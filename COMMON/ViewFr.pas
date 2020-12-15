@@ -1,5 +1,5 @@
 unit ViewFr;
-
+{$INCLUDE d:\sapr2012\CfgProject}
 interface
 
 uses
@@ -28,8 +28,12 @@ implementation
 
 uses
   TypeALL,
-  KanalArmSrv;
-
+{$IFDEF RMDSP}
+  KanalArmSrvDSP;
+{$ENDIF}
+{$IFDEF RMSHN}
+    KanalArmSrvSHN;
+{$ENDIF}
 //------------------------------------------------------------
 // Обновить данные FR3, FR4
 procedure TFrForm.RefreshClick(Sender: TObject);

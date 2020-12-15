@@ -67,123 +67,133 @@ begin
   for i := 1 to WorkMode.LimitObjZav do
   begin
     ins := false;
-    case ObjZav[i].TypeObj of
+    case ObjZv[i].TypeObj of
       2 : begin // стрелка
-        sparam[1] := 'стрелка'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'стрелка'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       3 : begin // участок
-        sparam[1] := 'участок'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'участок'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       4 : begin // путь
-        sparam[1] := 'путь'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'путь'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       5 : begin // светофор
-        sparam[1] := 'светофор'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'светофор'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       6 : begin // ПТО
-        sparam[1] := 'ПТО'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ПТО'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       7 : begin // Пригласительный сигнал
-        sparam[1] := 'ПС'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ПС'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       8 : begin // Тормозной упор
-        sparam[1] := 'УТС'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'УТС'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       9 : begin // Замыкание стрелок
-        sparam[1] := 'РзС'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'РзС'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       10 : begin // Управление переездом
-        sparam[1] := 'переезд(упр)'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'переезд(упр)'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       11 : begin // контроль переезда станционного
-        sparam[1] := 'переезд(к1)'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'переезд(к1)'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       12 : begin // контроль переезда диспетчерского
-        sparam[1] := 'переезд(дк)'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'переезд(дк)'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       13 : begin // Оповещение монтеров
-        sparam[1] := 'ОМ'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'ОМ'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       14 : begin // УКСПС
-        sparam[1] := 'УКСПС'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'УКСПС'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       15 : begin // АБ
-        sparam[1] := 'АБ'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'АБ'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       16 : begin // Вспомогательная смена направления
-        sparam[1] := 'ВСН'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'ВСН'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       17 : begin // Рабочая магистраль стрелок
-        sparam[1] := 'ВПС'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'ВПС'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
-      18 : begin // Магистраль макета стрелок
-        sparam[1] := 'ВМС'; sparam[2] := ObjZav[i].Title; ins := true;
+      18 : begin //--------------------------------------------- Магистраль макета стрелок
+        sparam[1] := 'Магитраль макета стрелок';
+        sparam[2] := ObjZv[i].Title; ins := true;
       end;
       19 : begin // Вспомогательный перевод стрелок
-        sparam[1] := 'ВКС'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'ВКС'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       20 : begin // Макет стрелки
-        sparam[1] := 'макет стр.'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'макет стр.'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       21 : begin // Комплект отмены
-        sparam[1] := 'КВВ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'КВВ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       22 : begin // ГРИ
-        sparam[1] := 'ГРИ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ГРИ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       23 : begin // МЭЦ
-        sparam[1] := 'увязка МЭЦ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'увязка МЭЦ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       24 : begin // Увязка между постами
-        sparam[1] := 'увязка ЭЦ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'увязка ЭЦ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       25 : begin // Квязка с маневровой колонкой
-        sparam[1] := 'МК'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'МК'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       26 : begin // РПБ
-        sparam[1] := 'РПБ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'РПБ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       31 : begin // Повторитель светофора
-        sparam[1] := 'повторитель св.'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'повторитель св.'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       32 : begin // Увязка с ГАЦ
-        sparam[1] := 'увязка ГАЦ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'увязка ГАЦ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       33 : begin // Датчик
-        sparam[1] := 'датчик'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'датчик'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       34 : begin // Контроль электропитания
-        sparam[1] := 'питание'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'питание'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       36 : begin // Команда без зависимостей
-        sparam[1] := 'ключ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ключ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       37 : begin // Контроллер
-        sparam[1] := 'контроллер'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'контроллер'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       38 : begin // Контроль маршрута надвига
-        sparam[1] := 'ГВ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ГВ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       39 : begin // Режим управления
-        sparam[1] := 'КРУ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'КРУ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       43 : begin // ОПИ
-        sparam[1] := 'ОПИ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'ОПИ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       45 : begin // Выбор зоны оповещения
-        sparam[1] := 'КНМ'; sparam[2] := ObjZav[i].Liter; ins := true;
+        sparam[1] := 'КНМ'; sparam[2] := ObjZv[i].Liter; ins := true;
       end;
       47 : begin // Включение автодействия
-        sparam[1] := 'АС'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'АС'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       49 : begin // Увязка с АБТЦ
-        sparam[1] := 'АБТЦ'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'АБТЦ'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
       50 : begin // Контроль перегонных точек
-        sparam[1] := 'АБСТ'; sparam[2] := ObjZav[i].Title; ins := true;
+        sparam[1] := 'АБСТ'; sparam[2] := ObjZv[i].Title; ins := true;
       end;
-      51 : begin // Контроль дополнительных датчиков
-        sparam[1] := 'ДопДат'; sparam[2] := ObjZav[i].Title; ins := true;
+      51 :
+      begin //------------------------------------------------------------ сборка датчиков
+        sparam[1] := 'Сборка датчиков';
+        sparam[2] := ObjZv[i].Title;
+        ins := true;
+      end;
+      60 :
+      begin //------------------------------------------------------------ сборка датчиков
+        sparam[1] := 'Релейный дешифратор';
+        sparam[2] := ObjZv[i].Title;
+        ins := true;
       end;
     end;
     if ins then
@@ -211,7 +221,7 @@ begin
     if (i > 0) and (i <= WorkMode.LimitObjZav) then
     begin
       ID_ViewObj := i;
-      if not ValueListDlg.Visible then ValueListDlg.Show;
+      if not VlLstDlg.Visible then VlLstDlg.Show;
     end;
   end;
 end;
@@ -228,26 +238,26 @@ begin
     j := StrToIntDef(ListObj.Items.Item[i-1].Caption,0);
     if j > 0 then
     begin
-      case ObjZav[j].TypeObj of
+      case ObjZv[j].TypeObj of
         2 : begin // Стрелка
-          o := ObjZav[j].BaseObject;
-          if not ObjZav[o].bParam[31] then
+          o := ObjZv[j].BasOb;
+          if not ObjZv[o].bP[31] then
           begin // нет данных
             StatusObjMsg[i] := 'нет данных'; state := 1;
           end else
-          if ObjZav[o].bParam[32] then
+          if ObjZv[o].bP[32] then
           begin // непарафазность
             StatusObjMsg[i] := 'неисправность ввода'; state := 2;
           end else
-          if ObjZav[o].bParam[26] and not ObjZav[o].bParam[1] and not ObjZav[o].bParam[2] then
+          if ObjZv[o].bP[26] and not ObjZv[o].bP[1] and not ObjZv[o].bP[2] then
           begin // потеря контроля стрелки
             StatusObjMsg[i] := 'нет контроля'; state := 3;
           end else
-          if ObjZav[o].bParam[1] and not ObjZav[o].bParam[2] then
+          if ObjZv[o].bP[1] and not ObjZv[o].bP[2] then
           begin
             StatusObjMsg[i] := 'в плюсе'; state := 4;
           end else
-          if not ObjZav[o].bParam[1] and ObjZav[o].bParam[2] then
+          if not ObjZv[o].bP[1] and ObjZv[o].bP[2] then
           begin
             StatusObjMsg[i] := 'в минусе'; state := 5;
           end else
@@ -257,55 +267,55 @@ begin
         end;
 
         3 : begin // Секция
-          if not ObjZav[j].bParam[31] then
+          if not ObjZv[j].bP[31] then
           begin // нет данных
             StatusObjMsg[i] := 'нет данных'; state := 1;
           end else
-          if ObjZav[j].bParam[32] then
+          if ObjZv[j].bP[32] then
           begin // непарафазность
             StatusObjMsg[i] := 'неисправность ввода'; state := 2;
           end else
           begin
-            if ObjZav[j].bParam[1] then begin state := 3; StatusObjMsg[i] := 'свободен'; end else begin state := 3+$8; StatusObjMsg[i] := 'занят'; end;
-            if ObjZav[j].bParam[2] then begin StatusObjMsg[i] := StatusObjMsg[i]+', разомкнут'; end else begin state := 3+$10; StatusObjMsg[i] := StatusObjMsg[i]+', замкнут'; end;
-            if ObjZav[j].bParam[3] then begin state := 3+$20; StatusObjMsg[i] := StatusObjMsg[i]+', искусственное размыкание'; end;
+            if ObjZv[j].bP[1] then begin state := 3; StatusObjMsg[i] := 'свободен'; end else begin state := 3+$8; StatusObjMsg[i] := 'занят'; end;
+            if ObjZv[j].bP[2] then begin StatusObjMsg[i] := StatusObjMsg[i]+', разомкнут'; end else begin state := 3+$10; StatusObjMsg[i] := StatusObjMsg[i]+', замкнут'; end;
+            if ObjZv[j].bP[3] then begin state := 3+$20; StatusObjMsg[i] := StatusObjMsg[i]+', искусственное размыкание'; end;
           end;
         end;
 
         4 : begin // Путь
-          if not ObjZav[j].bParam[31] then
+          if not ObjZv[j].bP[31] then
           begin // нет данных
             StatusObjMsg[i] := 'нет данных'; state := 1;
           end else
-          if ObjZav[j].bParam[32] then
+          if ObjZv[j].bP[32] then
           begin // непарафазность
             StatusObjMsg[i] := 'неисправность ввода'; state := 2;
           end else
           begin
-            if ObjZav[j].bParam[1] and ObjZav[j].bParam[16] then begin state := 3; StatusObjMsg[i] := 'свободен'; end else begin state := 3+$8; StatusObjMsg[i] := 'занят'; end;
-            if ObjZav[j].bParam[2] and ObjZav[j].bParam[3] then begin StatusObjMsg[i] := StatusObjMsg[i]+', разомкнут'; end else begin state := 3+$10; StatusObjMsg[i] := StatusObjMsg[i]+', замкнут'; end;
+            if ObjZv[j].bP[1] and ObjZv[j].bP[16] then begin state := 3; StatusObjMsg[i] := 'свободен'; end else begin state := 3+$8; StatusObjMsg[i] := 'занят'; end;
+            if ObjZv[j].bP[2] and ObjZv[j].bP[3] then begin StatusObjMsg[i] := StatusObjMsg[i]+', разомкнут'; end else begin state := 3+$10; StatusObjMsg[i] := StatusObjMsg[i]+', замкнут'; end;
           end;
         end;
 
         5 : begin // Светофор
-          if not ObjZav[j].bParam[31] then
+          if not ObjZv[j].bP[31] then
           begin // нет данных
             StatusObjMsg[i] := 'нет данных'; state := 1;
           end else
-          if ObjZav[j].bParam[32] then
+          if ObjZv[j].bP[32] then
           begin // непарафазность
             StatusObjMsg[i] := 'неисправность ввода'; state := 2;
           end else
           begin
-            if ObjZav[j].bParam[1] or ObjZav[j].bParam[2] or ObjZav[j].bParam[3] or ObjZav[j].bParam[4] then
+            if ObjZv[j].bP[1] or ObjZv[j].bP[2] or ObjZv[j].bP[3] or ObjZv[j].bP[4] then
             begin
               state := 4; StatusObjMsg[i] := 'открыт';
-              if ObjZav[j].bParam[1] or ObjZav[j].bParam[2] then begin state := state+$8; StatusObjMsg[i] := StatusObjMsg[i]+' маневровый'; end;
-              if ObjZav[j].bParam[3] or ObjZav[j].bParam[4] then begin state := state+$10; StatusObjMsg[i] := StatusObjMsg[i]+' поездной'; end;
+              if ObjZv[j].bP[1] or ObjZv[j].bP[2] then begin state := state+$8; StatusObjMsg[i] := StatusObjMsg[i]+' маневровый'; end;
+              if ObjZv[j].bP[3] or ObjZv[j].bP[4] then begin state := state+$10; StatusObjMsg[i] := StatusObjMsg[i]+' поездной'; end;
             end else
             begin
               state := 3; StatusObjMsg[i] := 'закрыт';
-              if ObjZav[j].bParam[5] then begin state := state+$20; StatusObjMsg[i] := StatusObjMsg[i]+', неисправен'; end;
+              if ObjZv[j].bP[5] then begin state := state+$20; StatusObjMsg[i] := StatusObjMsg[i]+', неисправен'; end;
             end;
           end;
         end;

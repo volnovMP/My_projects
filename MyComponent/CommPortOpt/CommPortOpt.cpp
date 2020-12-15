@@ -40,15 +40,15 @@ __fastcall TCommPortOpt::TCommPortOpt(TComponent* Owner) : TComponent(Owner)
 	IBuffUsed = 0;
 	OBuffUsed = 0;
 
-	FRTS = false;
-	FDTR = false;
+	FRTS = false; //-------------------------------------------------------------- сброс RTS
+	FDTR = false; //-------------------------------------------------------------- сброс DTR
 
-	InitializeCriticalSection(&ReadOptSection);
-
-	rtEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);// событие сбрасываемое автоматически
-	wtEventOpt = CreateEvent(NULL, TRUE, FALSE, NULL);  //----- событие сбрасываемое вручную
-	reEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);//-событие сбрасываемое автоматически
-	seEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);// событие сбрасываемое автоматически
+	InitializeCriticalSection(&ReadOptSection); //------------ критическая секция для чтения
+	
+	rtEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);//------ авто-событие "ПРИНЯТ СИМВОЛ"
+	wtEventOpt = CreateEvent(NULL, TRUE, FALSE, NULL);  //- неавто событие "ЕСТЬ ЧТО ПИСАТЬ"
+	reEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);//----- авто-событие "БУФЕР ПРОЧИТАН"
+	seEventOpt = CreateEvent(NULL, FALSE, FALSE, NULL);//-- авто-событие "В ПОРТУ ИЗМЕНЕНИЯ"
 	Status = 0;
 }
 
@@ -83,7 +83,7 @@ int __fastcall TCommPortOpt::GetOutQueCount(void)
 	return(Result);
 }
 
-//---------------------------------------------------------------------------
+//------------------------------------- открытие порта -----------------------------------
 void __fastcall TCommPortOpt::OpenPort(void)
 {
 	if( FOpen )  return;
@@ -94,7 +94,7 @@ void __fastcall TCommPortOpt::OpenPort(void)
   ZeroMemory(OSTATOK,sizeof(OSTATOK));
 	OBuffer = new unsigned char[OBuffSize];
 	IBuffer = new unsigned char[IBuffSize];
-	SetLastError(0); //remove any pending errors
+	SetLastError(0); //------------------------------------------- удалить предыдущие ошибки
 
 	DeviceName = AnsiString("\\\\.\\COM") + IntToStr(FComNumber);
 	FComHandle = CreateFile( DeviceName.c_str(),
@@ -102,112 +102,113 @@ void __fastcall TCommPortOpt::OpenPort(void)
 													 0, NULL,
 													 OPEN_EXISTING,
 													 FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, 0);
-	if( IsEnabled() )
+	if( IsEnabled() ) //--------------------------------------------- создан хендл для порта
 	{
 		COMMTIMEOUTS CommTimeOuts;
 		SetupComm( FComHandle,IBuffSize,OBuffSize );// установить размеры буферов ввода/вывода
 
-		ZeroMemory( &CommTimeOuts, sizeof(COMMTIMEOUTS) );
-		CommTimeOuts.ReadIntervalTimeout = 5;
-		CommTimeOuts.ReadTotalTimeoutMultiplier = 15;
-		CommTimeOuts.ReadTotalTimeoutConstant = 5;
-		CommTimeOuts.WriteTotalTimeoutMultiplier = 15;
-		CommTimeOuts.WriteTotalTimeoutConstant = 5;
+		ZeroMemory( &CommTimeOuts, sizeof(COMMTIMEOUTS) ); //---------------- сброс тайм-аутов 
+		CommTimeOuts.ReadIntervalTimeout = 5; //максимальное время ожидания между байтами в мс
+		CommTimeOuts.ReadTotalTimeoutMultiplier = 15; //множитель для ожидания полного приема
+		CommTimeOuts.ReadTotalTimeoutConstant = 5; //константа добавляемая к полному времени
+		CommTimeOuts.WriteTotalTimeoutMultiplier = 15;//множитель для ожидания полной передачи
+		CommTimeOuts.WriteTotalTimeoutConstant = 5; //константа добавляемая к полному времени
 		SetCommTimeouts( FComHandle, &CommTimeOuts );
 
 		Potoks = 0;
-		SetComControl(FComControl);
-		SetBaudRate(FBaudRate);
+		SetComControl(FComControl); //----- задать способ управления портом и прочие параметры
+		SetBaudRate(FBaudRate); 
 		SetParity(FParity);
 		SetStopBits(FStopBits);
 		SetDataBits(FDataBits);
 
 		StatusThreadOpt = new TStatusThreadOpt( this, FMonitorEvents );
-		StatusThreadOpt->Name = "CommStatusThread";
+		StatusThreadOpt->Name = "CommStatusThread"; //поток, следящий за всеми событиями порта
 
 		ResetEvent(rtEventOpt);
-		ReadThreadOpt = new TReadThreadOpt( this );
+		ReadThreadOpt = new TReadThreadOpt( this );//----- поток, следящий за приемом символов
 		ReadThreadOpt->Name = "CommReadThread";
 
 		ResetEvent(reEventOpt);
-		ReadEventThreadOpt = new TReadEventThreadOpt( this );
+		ReadEventThreadOpt = new TReadEventThreadOpt( this ); //------- поток чтения из буфера
 		ReadEventThreadOpt->Name = "CommReadEventThreadOpt";
 
 		ResetEvent(seEventOpt);
-		StatusEventThreadOpt = new TStatusEventThreadOpt( this );
+		StatusEventThreadOpt = new TStatusEventThreadOpt( this ); //------ поток статуса линии
 		StatusEventThreadOpt->Name = "CommStatusEventThreadOpt";
 
 		FOpen = true;
 
-		SetDTR(FDTR);
+		SetDTR(FDTR); //----------------------------------------- сброс DTR при открытии порта
 		GotovWrite = true;
-
-		if( FOnOpen )  FOnOpen( this, GetLastError() );
-	}else{
-//		Application->MessageBox("Не могу открыть COM-порт ", "COM-порт ошибка", MB_OK | MB_ICONSTOP );
-    MessageDlg("Не могу открыть COM-порт " + IntToStr(FComNumber),mtInformation, TMsgDlgButtons() << mbOK, 0);
 	}
+	if(FOnOpen) FOnOpen(this, GetLastError());
+	else
+	{
+		MessageDlg("Не могу открыть COM-порт " + IntToStr(FComNumber),mtInformation, TMsgDlgButtons() << mbOK, 0);
+	}	
 }
 
-//---------------------------------------------------------------------------
+//-------------------------------- закрытие порта ----------------------------------------
 void __fastcall TCommPortOpt::ClosePort(void)
 {
 	if( !FOpen )   return;
+	SetCommMask(ComHandle,0);
+	FCTS  = False;
+	FDSR  = False;
+	FDCD  = False;
+	FRing = False;
 
-		SetCommMask(ComHandle,0);
-		FCTS  = False;
-		FDSR  = False;
-		FDCD  = False;
-		FRing = False;
+	StatusThreadOpt->Terminate();
+	ResetEvent(StatusThreadOpt->SOL.hEvent);
+	SetCommMask(FComHandle, 0);
+	StatusThreadOpt->WaitFor();
+	delete StatusThreadOpt;
+	StatusThreadOpt = NULL;
 
-		StatusThreadOpt->Terminate();
-		ResetEvent(StatusThreadOpt->SOL.hEvent);
-		SetCommMask(FComHandle, 0);
-		StatusThreadOpt->WaitFor();
-		delete StatusThreadOpt;
-		StatusThreadOpt = NULL;
+	ReadThreadOpt->Terminate();
+	ResetEvent(ReadThreadOpt->ROL.hEvent);
+	SetEvent(rtEventOpt);
+	ReadThreadOpt->WaitFor();
+	delete ReadThreadOpt;
+	ReadThreadOpt = NULL;
 
-		ReadThreadOpt->Terminate();
-		ResetEvent(ReadThreadOpt->ROL.hEvent);
-		SetEvent(rtEventOpt);
-		ReadThreadOpt->WaitFor();
-		delete ReadThreadOpt;
-		ReadThreadOpt = NULL;
+	ReadEventThreadOpt->Terminate();
+	SetEvent(reEventOpt);
+	ReadEventThreadOpt->WaitFor();
+	delete ReadEventThreadOpt;
+	
+	ReadEventThreadOpt = NULL;
+	StatusEventThreadOpt->Terminate();
+	SetEvent(seEventOpt);
+	StatusEventThreadOpt->WaitFor();
+	delete StatusEventThreadOpt;
+	
+	StatusEventThreadOpt = NULL;
 
-		ReadEventThreadOpt->Terminate();
-		SetEvent(reEventOpt);
-		ReadEventThreadOpt->WaitFor();
-		delete ReadEventThreadOpt;
-		ReadEventThreadOpt = NULL;
+	CloseHandle(FComHandle);
+	FComHandle = INVALID_HANDLE_VALUE;
 
-		StatusEventThreadOpt->Terminate();
-		SetEvent(seEventOpt);
-		StatusEventThreadOpt->WaitFor();
-		delete StatusEventThreadOpt;
-		StatusEventThreadOpt = NULL;
+	delete [] IBuffer;
+	delete [] OBuffer;
+	IBuffer = NULL;
+	OBuffer = NULL;
+	IBuffUsed = 0;
+	OBuffUsed = 0;
 
-		CloseHandle(FComHandle);
-		FComHandle = INVALID_HANDLE_VALUE;
+	FOpen = false;
 
-		delete [] IBuffer;
-		delete [] OBuffer;
-		IBuffer = NULL;
-		OBuffer = NULL;
-		IBuffUsed = 0;
-		OBuffUsed = 0;
-
-		FOpen = false;
-
-	if( FOnClose )  FOnClose( this );
+	if(FOnClose)FOnClose(this);
 }
 
-//---------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 void __fastcall TCommPortOpt::SetComNumber(int n)
 {
 	Open = false;
 	FComNumber = n;
 }
-//---------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------
 void __fastcall TCommPortOpt::SetIBuffSize( DWORD _size )
 {
 	bool tmp = Open;
@@ -370,7 +371,8 @@ int __fastcall TCommPortOpt::GetBlock( unsigned char *Buf, DWORD Count )
 			if( size2 > Count ) size2 = Count; //если этот кусок больше оставшегося куска чтения
 		}
 	}
-	if( size1 > 0 )  CopyMemory( Buf, &IBuffer[pos1], size1 ); //--- копировать данные в Buf
+	if( size1 > 0 )  CopyMemory( Buf, &IBuffer[pos1], size1 ); //--- копПОДПИСАТЬСЯ
+Прорвемся. Самая авторитетная консалтинговая компания в мире просчитала пики и окончание эпидемии для разных стран - фотоировать данные в Buf
 	if( size2 > 0 )  CopyMemory( &Buf[size1], IBuffer, size2 );
 
 	DWORD Result = size1 + size2;
@@ -401,7 +403,7 @@ void __fastcall TCommPortOpt::SetComControl( TComControl Value )
 	}
 }
 //========================================================================================
-//---------------------------------------------------------------------------
+//------------------ установка скорости передачи данных ----------------------------------
 void __fastcall TCommPortOpt::SetBaudRate( TBaudRate Value )
 {
 	int CBR[15] =
@@ -561,7 +563,8 @@ void __fastcall TCommPortOpt::PowerOff(void)
 //---------------------------------------------------------------------------
 void __fastcall TCommPortOpt::SetDTR( bool State )
 {
-	if( FOpen ){
+	if(FOpen) //---------------------------------------------------------------- порт открыт
+	{
     if( EscapeCommFunction( FComHandle, State ? SETDTR : CLRDTR ) ){
       FDTR = State;
     }

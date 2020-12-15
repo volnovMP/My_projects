@@ -11,18 +11,6 @@ uses
   Classes,
   Dialogs,
   SysUtils;
-//-------------------------------------------------------------- функции из библиотеки DLL
-function findchar(var index: integer;const s: string;const c: char): boolean;external 'MyDLL1';
-function getbool(var index: integer;const s: string;var p: boolean): boolean;external 'MyDLL1';
-function getbyte(var index: integer;const s: string;var p: Byte): boolean;external 'MyDLL1';
-function getcrc16(var index: integer;const s: string;var p: Word): boolean;external 'MyDLL1';
-function getcrc32(var index: integer;const s: string;var p: integer): boolean;external 'MyDLL1';
-function getcrc8(var index: integer;const s: string;var p: Byte): boolean;external 'MyDLL1';
-function getinteger(var index: integer;const s: string;var p: integer): boolean;external 'MyDLL1';
-function getsmallint(var index: integer;const s: string;var p: smallInt): boolean;external 'MyDLL1';
-function getstring(var index: integer;const s: string;var p: string): boolean;external 'MyDLL1';
-function getword(var index: integer;const s: string;var p: Word): boolean;external 'MyDLL1';
-function skipchar(var index: integer; const s: string; const c: char): boolean; external 'MyDLL1';
 //----------------------------------------------------------------------------------------
 function CalcCRC_OU(Index : Integer) : boolean;
 function CalcCRC_OV(Index : Integer) : boolean;
@@ -54,22 +42,21 @@ uses
   Commons,
   crccalc;
 var
-  ps,hdr,{s,}t,k,p,v,name : string;
+  ps,hdr,t,k,p,v,name : string;
 
-//------------------------------------------------------------------------------
-// Найти индекс объекта в списке объектов зависимостей
+//========================================================================================
+//-------------------- Найти индекс объекта в списке объектов зависимостей по его литералу
 function FindObjZav(Liter : string) : SmallInt;
-  var i : integer;
+var
+  i : integer;
 begin
   if Liter <> '' then
   begin
     i := 1;
-    while i <= High(ObjZav) do
+    while i <= High(ObjZv) do
     begin
-      if AnsiUpperCase(ObjZav[i].Liter) = AnsiUpperCase(Liter) then
-      begin
-        result := i; exit;
-      end;
+      if AnsiUpperCase(ObjZv[i].Liter) = AnsiUpperCase(Liter)
+      then  begin result := i; exit; end;
       inc(i);
     end;
   end;
@@ -117,7 +104,7 @@ begin
       s := hdr+ memo.Text; //---- s - содержит массив для подсчета контрольной суммы файла
       crc := CalculateCRC32(pchar(s),Length(s));
       if crc <> ccrc then
-      reportf('Неверная контрольная сумма данных в файле '+ filepath);
+      RepF('Неверная контрольная сумма данных в файле '+ filepath);
     end;
   finally
     memo.Free;
@@ -133,55 +120,55 @@ begin
   if not LoadConfig(filepath) then
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла конфигурации базы данных станции.');
+    RepF('Ошибка при загрузке Файла конфигурации базы данных станции.');
     exit;
   end;
-  reportf('Выполнена загрузка Файла конфигурации базы данных станции.');
+  RepF('Выполнена загрузка Файла конфигурации базы данных станции.');
 
   for i := 1 to High(config.ozname) do
   if config.ozname[i] <> '' then
   if LoadOZStruct(config.path+config.ozname[i],config.ozstart[i],config.ozlen[i]) then
-  reportf('Выполнена загрузка Файла '+ config.path+config.ozname[i])
+  RepF('Выполнена загрузка Файла '+ config.path+config.ozname[i])
   else
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла '+ config.path+config.ozname[i]);
+    RepF('Ошибка при загрузке Файла '+ config.path+config.ozname[i]);
   end;
 
   for i := 1 to High(config.ovname) do
   if config.ovname[i] <> '' then
   if LoadOVStruct(config.path+config.ovname[i],config.ovstart[i],config.ovlen[i]) then
-  reportf('Выполнена загрузка Файла '+ config.path+config.ovname[i])
+  RepF('Выполнена загрузка Файла '+ config.path+config.ovname[i])
   else
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла '+ config.path+config.ovname[i]);
+    RepF('Ошибка при загрузке Файла '+ config.path+config.ovname[i]);
   end;
 
   for i := 1 to High(config.bvname) do
   if config.bvname[i] <> '' then
   if LoadOVBuffer(config.path+config.bvname[i],config.bvstart[i],config.bvlen[i]) then
-  reportf('Выполнена загрузка Файла '+ config.path+config.bvname[i])
+  RepF('Выполнена загрузка Файла '+ config.path+config.bvname[i])
   else
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла '+ config.path+config.bvname[i]);
+    RepF('Ошибка при загрузке Файла '+ config.path+config.bvname[i]);
   end;
 
   for i := 1 to High(config.ouname) do
   if config.ouname[i] <> '' then
   if LoadOUStruct(config.path+config.ouname[i],config.oustart[i],config.oulen[i]) then
-  reportf('Выполнена загрузка Файла '+ config.path+config.ouname[i])
+  RepF('Выполнена загрузка Файла '+ config.path+config.ouname[i])
   else
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла '+ config.path+config.ouname[i]);
+    RepF('Ошибка при загрузке Файла '+ config.path+config.ouname[i]);
   end;
 
   if not LoadLinkFR(config.path+'FR3.SDB') then
   begin
     result := false;
-    reportf('Ошибка при загрузке Файла FR3.SDB');
+    RepF('Ошибка при загрузке Файла FR3.SDB');
   end;
 
 
@@ -209,11 +196,11 @@ begin
     end;
 
   //--------------------------------------------- Разнести по районам объекты зависимостей
-  for i := 1 to Length(ObjZav) do
-    if (ObjZav[i].TypeObj > 0) and (ObjZav[i].RU > 0) then
+  for i := 1 to Length(ObjZv) do
+    if (ObjZv[i].TypeObj > 0) and (ObjZv[i].RU > 0) then
     begin
-      if i > configRU[ObjZav[i].RU].OZmax then configRU[ObjZav[i].RU].OZmax := i;
-      if i < configRU[ObjZav[i].RU].OZmin then configRU[ObjZav[i].RU].OZmin := i;
+      if i > configRU[ObjZv[i].RU].OZmax then configRU[ObjZv[i].RU].OZmax := i;
+      if i < configRU[ObjZv[i].RU].OZmin then configRU[ObjZv[i].RU].OZmin := i;
     end;
 
   //--------------------------------------------------------------- Сбросить пустые районы
@@ -243,7 +230,7 @@ begin
   if configRU[i].OUmax > WorkMode.LimitObjUprav
   then WorkMode.LimitObjUprav := configRU[i].OUmax;
 
-  reportf('Выполнена распаковка базы данных станции');
+  RepF('Выполнена распаковка базы данных станции');
 end;
 
 //========================================================================================
@@ -258,20 +245,9 @@ begin
   memo := TStringList.Create;
   try
     //------------------------------------- загрузить строки из файла конфигурации станции
-    try
-      memo.LoadFromFile(filepath);
-    except
-      err := true;
-      result := false;
-      exit;
-    end;
-
+    memo.LoadFromFile(filepath);
     if memo.Count < 25 then
-    begin
-      err := true;
-      ShowMessage('Ошибка в файле конфигурации модели станции '+ filepath);
-      exit;
-    end;
+    begin  err := true; ShowMessage('Ошибка в файле конфигурации '+ filepath); exit; end;
 
     i := 0; key := false; param := false; k := '';
 
@@ -297,7 +273,7 @@ begin
           else
           if param then p := p + s[j] //------------- если имя параметра, то заполняем его
           else
-            begin v := v + s[j]; val := true; end; //------------ иначе значение параметра
+          begin v := v + s[j]; val := true; end; //-------------- иначе значение параметра
           inc(j); //----------------------------------------------------- следующий символ
         end; //-------------------------------------------------------- строка закончилась
 
@@ -306,7 +282,7 @@ begin
         begin
           if k = 'Project' then //------------------ если был ранее обнаружен ключ проекта
           begin
-            if p = 'name' then config.name := v; // для параметра "name" взять его значение
+            if p = 'name' then config.name := v;// для параметра "name" взять его значение
             if p = 'server' then WorkMode.ServerStateSoob := StrToIntDef(v,0);//--- сервер
             if p = 'arm'  then WorkMode.DirectStateSoob := StrToIntDef(v,0); //------- арм
             if p = 'state' then WorkMode.ArmStateSoob := StrToIntDef(v,0);//---- состояние
@@ -318,93 +294,48 @@ begin
           if k = 'ru' then  //------------------------- если читаются параметры ключа "ru"
           begin
             if p = 'ru' then rup:= StrToIntDef(v,0);//-------- для "ru" взять его значение
-            if p = 'TabloHeight' then //---------- если работаем с параметром высоты табло
-            begin
-              if (rup > 0)and (rup <= lru)
-              then configRU[rup].Tablo_Size.Y := StrToInt(v)
-            end;
-            if p = 'TabloWidth'  then //-------------------- если работаем с шириной табло
-            begin
-              if (rup > 0) and (rup <= lru)
-              then configRU[rup].Tablo_Size.X := StrToInt(v)
-            end;
-            if p = 'MonHeight'   then //------------------- если работаем с высотой экрана
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MonSize.Y   := StrToInt(v)
-            end;
-            if p = 'MonWidth'    then //------------------- если работаем с шириной экрана
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MonSize.X   := StrToInt(v)
-            end;
-            if p = 'MsgLeft'     then //--------- если работаем с левой границей сообщений
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MsgLeft     := StrToInt(v)
-            end;
-            if p = 'MsgTop' then //------------ если работаем с верхней границей сообщений
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MsgTop  := StrToInt(v)
-            end;
-            if p= 'MsgRight' then //------------ если работаем с правой границей сообщений
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MsgRight := StrToInt(v)
-            end;
-            if p = 'MsgBottom'  then //------------------- если работаем с нижней границей
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].MsgBottom   := StrToInt(v)
-            end;
-            if p = 'BoxLeft' then //-------------- если работаем с левой границей ярлычков
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].BoxLeft     := StrToInt(v);
-            end;
-            if p = 'BoxTop' then//-------------- если работаем с верхней границей ярлычков
-            begin
-              if (rup > 0) and (rup <= lru) then
-              configRU[rup].BoxTop      := StrToInt(v)
-            end;
 
-            if p = 'Ориентация станции' then //-- работаем с ориентацией станции на экране
+            if (rup > 0) and (rup <= lru) then
             begin
-              if (rup > 0) and (rup <= lru) then
+              //----------------------------------------------  работа с параметрами табло
+              if (p = 'TabloHeight') then configRU[rup].T_S.Y := StrToInt(v);
+              if p = 'TabloWidth' then configRU[rup].T_S.X := StrToInt(v);
+
+              //------------------------------------------------------- работаем с экраном
+              if (p = 'MonHeight') then configRU[rup].MonSize.Y:=StrToInt(v);
+              if (p = 'MonWidth') then configRU[rup].MonSize.X   := StrToInt(v);
+
+              //------------------------------------------------  работа с окном сообщений
+              if (p = 'MsgLeft') then configRU[rup].MsgLeft := StrToInt(v);
+              if p = 'MsgTop' then configRU[rup].MsgTop := StrToInt(v);
+              if p = 'MsgRight' then  configRU[rup].MsgRight := StrToInt(v);
+              if p = 'MsgBottom' then configRU[rup].MsgBottom := StrToInt(v);
+
+              //----------------------------------------------- работа с полочкой ярлычков
+              if p = 'BoxLeft' then  configRU[rup].BoxLeft := StrToInt(v);
+              if p = 'BoxTop' then configRU[rup].BoxTop := StrToInt(v);
+
+               //-------------------------------- работаем с ориентацией станции на экране
+              if p = 'Ориентация станции' then
               if v = '1' then OddRight := true  //-------------- нечетная горловина справа
               else OddRight := false; //-------------------------------------------- слева
-            end;
 
-            if p = 'Наличие ДЦ' then //---------------- если работа с признаком наличия ДЦ
-            begin
-              if (rup > 0) and (rup <= lru) then
-              WorkMode.DC      := StrToInt(v);
-            end;
+              //--------------------------------------- если работа с признаком наличия ДЦ
+              if p = 'Наличие ДЦ' then WorkMode.DC := StrToInt(v);
 
-            if p = 'Наличие сезонного' then// если работа с признаком сезонного управления
-            begin
-              if (rup > 0) and (rup <= lru) then
-              WorkMode.SU  := StrToInt(v)
+              //----------------------------- если работа с признаком сезонного управления
+              if p = 'Наличие сезонного' then WorkMode.SU  := StrToInt(v);
             end;
-          end
-          else
+          end else
           if k = 'oz' then //---------------------------------- если работа с файлами "oz"
           begin
             for l := 1 to Length(p)-1 do p[l] := p[l+1];
-            SetLength(p,Length(p)-1);
-            try
-              l := StrToInt(p);
-            except
-              err := true; result := false; exit;
-            end;
+            SetLength(p,Length(p)-1); l := StrToInt(p);
             //-------------------------------------- начинаем с фрейма 1, l - индекс файла
             m := 1;
-            if getstring(m,v,config.ozname[l])   then
-            begin err := true; result := false; exit; end;
+            if not getstring(m,v,config.ozname[l]) then begin err:=true;result:=false;exit;end;
 
-            if getinteger(m,v,config.ozstart[l]) then
-            begin err := true; result := false; exit; end;
+            if getinteger(m,v,config.ozstart[l]) then begin err := true; result := false; exit; end;
 
             if getinteger(m,v,config.ozlen[l]) then
             begin err := true; result := false; exit; end;
@@ -423,7 +354,7 @@ begin
             end;
             //---------------------------------------начинаем с фрейма 1, l - индекс файла
               m := 1;
-              if getstring(m,v,config.ovname[l])   then
+              if not getstring(m,v,config.ovname[l])   then
               begin err := true; result := false; exit; end;
 
               if getinteger(m,v,config.ovstart[l]) then
@@ -439,25 +370,17 @@ begin
             if k = 'bv' then //--------------------------------------- работа с файлами BV
             begin
               for l := 1 to Length(p)-1 do p[l] := p[l+1];
-              SetLength(p,Length(p)-1);
-              try
-                l := StrToInt(p);
-              except
-                err := true; result := false; exit;
-              end;
+              SetLength(p,Length(p)-1);  l := StrToInt(p);
               //------------------------------------ начинаем с фрейма 1, l - индекс файла
               m := 1;
-              if getstring(m,v,config.bvname[l])   then
-              begin err := true; result := false; exit; end;
+              if not getstring(m,v,config.bvname[l])then begin err:=true;result:=false;exit;end;
 
               if getinteger(m,v,config.bvstart[l]) then
               begin err := true; result := false; exit; end;
 
-              if getinteger(m,v,config.bvlen[l])   then
-              begin err := true; result := false; exit; end;
+              if getinteger(m,v,config.bvlen[l]) then begin err:=true;result:=false;exit; end;
 
-              if getcrc32(m,v,config.bvcrc[l])     then
-              begin err := true; result := false; exit; end;
+              if getcrc32(m,v,config.bvcrc[l]) then begin err:=true;result:=false;exit;end;
             end
             else
             if k = 'ou' then //--------------------------------------- работа с файлами OU
@@ -471,7 +394,7 @@ begin
               end;
               //------------------------------------ начинаем с фрейма 1, l - индекс файла
               m := 1;
-              if getstring(m,v,config.ouname[l])   then
+              if not getstring(m,v,config.ouname[l])   then
               begin err := true; result := false; exit; end;
 
             if getinteger(m,v,config.oustart[l]) then
@@ -508,131 +431,102 @@ var
   memo : TStringList;
 begin
   //-------- Проверка допустимости параметров загружаемого фрагмента описания зависимостей
-  if not ((len > 0) and ((start + len) <= Length(ObjZav))) then
+  if not ((len > 0) and ((start + len) <= Length(ObjZv))) then
+  begin  ShowMessage('Ошибка загрузки объектов зависимостей'); result := false; exit; end;
+
+  memo := TStringList.Create;
+
+  for i := start to start + len do  //--------------- Сбросить буфер объектов зависимостей
+  with ObjZv[i] do
   begin
-    ShowMessage('Ошибка при загрузке фрагмента описания объектов зависимостей станции');
+    TypeObj := 0; Group := 0; RU := 0; Title := ''; Liter := '';
+    for j := 1 to High(Sosed) do
+    begin Sosed[j].TypeJmp := 0; Sosed[j].Obj := 0; Sosed[j].Pin := 0; end;
+    BasOb := 0; UpdOb := 0;
+    for j := 1 to High(ObCB) do ObCB[j] := false;
+    for j := 1 to High(ObCI) do ObCI[j] := 0;
+    CRC1 := 0; Refresh := false;
+    for j := 1 to High(bP) do bP[j] := false;
+    for j := 1 to High(iP) do iP[j] := 0;
+    for j := 1 to High(T) do begin T[j].Activ := false; T[j].F := 0; T[j].S:= 0; end;
+    Index := 0; Counter := 0; RodMarsh := 0;
+  end;
+
+  try  memo.LoadFromFile(filepath);
+  except
+    ShowMessage('Ошибка во время чтения файла '+ filepath); result := false;
+  end;
+
+  cLoad := memo.Count - 1;
+  if cLoad <> len then
+  begin
+    ShowMessage('Число объектов зависимостей в ' + filepath+' не по проекту!');
     result := false;
+    memo.Free;
     exit;
   end;
-  memo := TStringList.Create;
-  try
-    for i := start to start + len do  //------------- Сбросить буфер объектов зависимостей
-    begin
-      ObjZav[i].TypeObj := 0; ObjZav[i].Group := 0; ObjZav[i].RU := 0;
-      ObjZav[i].Title := ''; ObjZav[i].Liter := '';
 
-      for j := Low(ObjZav[1].Neighbour) to High(ObjZav[i].Neighbour) do
-      begin
-        ObjZav[i].Neighbour[j].TypeJmp := 0; ObjZav[i].Neighbour[j].Obj := 0;
-        ObjZav[i].Neighbour[j].Pin := 0;
-      end;
-
-      ObjZav[i].BaseObject := 0; ObjZav[i].UpdateObject := 0;
-
-      for j := Low(ObjZav[1].ObjConstB) to High(ObjZav[1].ObjConstB) do
-      ObjZav[i].ObjConstB[j] := false;
-
-      for j := Low(ObjZav[1].ObjConstI) to High(ObjZav[1].ObjConstI) do
-      ObjZav[i].ObjConstI[j] := 0;
-
-      ObjZav[i].CRC1 := 0; ObjZav[i].Refresh := false;
-      for j := Low(ObjZav[1].bParam) to High(ObjZav[1].bParam) do
-      ObjZav[i].bParam[j] := false;
-
-      for j := Low(ObjZav[1].iParam) to High(ObjZav[1].iParam) do
-      ObjZav[i].iParam[j] := 0;
-
-      for j := Low(ObjZav[1].Timers) to High(ObjZav[i].Timers) do
-      begin
-        ObjZav[i].Timers[j].Active := false;
-        ObjZav[i].Timers[j].First := 0;
-        ObjZav[i].Timers[j].Second := 0;
-      end;
-
-      ObjZav[i].Index := 0;
-      ObjZav[i].Counter := 0;
-      ObjZav[i].RodMarsh := 0;
-      ObjZav[i].CRC2 := 0;
-    end;
-
-    try
-      memo.LoadFromFile(filepath);
-    except
-      ShowMessage('Ошибка во время чтения файла '+ filepath);
-      result := false;
-    end;
-
-    cLoad := memo.Count - 1;
-    if cLoad <> len then
-    begin
-      ShowMessage('Число объектов зависимостей фрагмента ' + filepath+' не по проекту!');
-      result := false;
-      exit;
-    end;
-
-    //---------------------------------------- проверить соответствие параметров фрагмента
-    if not ChekFileParams(filepath, memo) then
-    begin
-        ShowMessage('Параметры файла фрагмента '+ filepath+ ' не по проекту!');
-        result := false;
-        exit;
-    end;
-
-    //------------------------------------------------------------------ прочитать объекты
-    fullrecord := false;  //--------------------- сбросить признак полноты записи в строке
-    j := 0; //--------------------------------------------- переместить в начало фрагмента
-    while j < cLoad do
-    begin
-      fullrecord := false;  //------------------- сбросить признак полноты записи в строке
-      s := memo.Strings[j+1]; //--------------------------------------- строка с описанием
-      i := 1; //----------------------------------------------------- первый символ строки
-
-      if getbyte(i, s, ObjZav[start+j].TypeObj) then break; //-------- чтение кода объекта
-      if getbyte(i, s, ObjZav[start+j].Group) then break; //---------------- чтение группы
-      if getbyte(i, s, ObjZav[start+j].RU) then break; //-------- чтение района управления
-      if getstring(i, s, ObjZav[start+j].Title) then break; //--- чтение заголовка объекта
-      if getstring(i, s, ObjZav[start+j].Liter) then break; //------ чтение литера объекта
-
-      for k := Low(ObjZav[j].Neighbour) to High(ObjZav[j].Neighbour) do
-      begin
-        if getbyte(i,s, ObjZav[start+j].Neighbour[k].TypeJmp) then break;// тип соединения
-        if getsmallint(i, s, ObjZav[start+j].Neighbour[k].Obj) then break; //индекс соседа
-        if getbyte(i, s, ObjZav[start+j].Neighbour[k].Pin) then break; //---- точка соседа
-      end;
-
-      if getsmallint(i, s,ObjZav[start+j].BaseObject) then break;//индекс базового объекта
-
-      if getsmallint(i, s, ObjZav[start+j].UpdateObject) then break; //- объект расширения
-
-      if getsmallint(i, s, ObjZav[start+j].VBufferIndex) then break; // индекс видеобуфера
-
-      for k := Low(ObjZav[j].ObjConstB) to High(ObjZav[j].ObjConstB) do
-      if getbool(i, s, ObjZav[start+j].ObjConstB[k]) then break; //--- булевские константы
-
-      for k := Low(ObjZav[j].ObjConstI) to High(ObjZav[j].ObjConstI) do
-      if getsmallint(i, s, ObjZav[start+j].ObjConstI[k]) then break; //--- целые константы
-
-      p := s; SetLength(p,i-1);
-      ccrc := CalculateCRC16(pchar(p),Length(p)); //----- подсчет контрольной суммы строки
-
-      if getcrc16(i, s, ObjZav[start+j].CRC1) then break; //--- контрольная суммы из файла
-
-      if ObjZav[start+j].CRC1 <> ccrc then
-      reportf('Искажена контрольная сумма в строке '+IntToStr(start+j)+' файла '+filepath);
-      inc(j); //------------------------------------------ переместить на следующую запись
-      fullrecord := true;
-    end;
-
-    if not fullrecord then
-    begin
-      ShowMessage('Ошибка раcпаковки параметров фрагмента описи зависимостей '+ filepath);
-      result := false;
-      exit;
-    end;
-    result := true;
-  finally
+  //------------------------------------------ проверить соответствие параметров фрагмента
+  if not ChekFileParams(filepath, memo) then
+  begin
+    ShowMessage('Параметры файла '+ filepath+ ' не по проекту!');
+    result := false;
     memo.Free;
+    exit;
   end;
+
+  //-------------------------------------------------------------------- прочитать объекты
+  fullrecord := false;  //----------------------- сбросить признак полноты записи в строке
+
+  j := 0; //----------------------------------------------- переместить в начало фрагмента
+  while j < cLoad do
+  begin
+    fullrecord := false;  //--------------------- сбросить признак полноты записи в строке
+    s := memo.Strings[j+1]; //----------------------------------------- строка с описанием
+    i := 1; //------------------------------------------------------- первый символ строки
+
+    if getbyte(i, s, ObjZv[start+j].TypeObj) then break; //----------- чтение кода объекта
+    if getbyte(i, s, ObjZv[start+j].Group) then break; //------------------- чтение группы
+    if getbyte(i, s, ObjZv[start+j].RU) then break; //----------- чтение района управления
+    if not getstring(i, s, ObjZv[start+j].Title) then break;//--- чтение заголовка объекта
+    if not getstring(i, s, ObjZv[start+j].Liter) then break;//------ чтение литера объекта
+
+    for k := Low(ObjZv[j].Sosed) to High(ObjZv[j].Sosed) do
+    begin
+      if getbyte(i,s, ObjZv[start+j].Sosed[k].TypeJmp) then break;//------- тип соединения
+      if getsmallint(i, s, ObjZv[start+j].Sosed[k].Obj) then break; //------ индекс соседа
+      if getbyte(i, s, ObjZv[start+j].Sosed[k].Pin) then break; //----------- точка соседа
+    end;
+
+    if getsmallint(i, s,ObjZv[start+j].BasOb) then break;//------- индекс базового объекта
+    if getsmallint(i, s, ObjZv[start+j].UpdOb) then break; //----------- объект расширения
+    if getsmallint(i, s, ObjZv[start+j].VBufInd) then break; //-------- индекс видеобуфера
+    for k := Low(ObjZv[j].ObCB) to High(ObjZv[j].ObCB) do
+    if getbool(i, s, ObjZv[start+j].ObCB[k]) then break; //----------- булевские константы
+
+    for k := Low(ObjZv[j].ObCI) to High(ObjZv[j].ObCI) do
+    if getsmallint(i, s, ObjZv[start+j].ObCI[k]) then break; //----------- целые константы
+
+    p := s; SetLength(p,i-1);
+    ccrc := CalculateCRC16(pchar(p),Length(p)); //------- подсчет контрольной суммы строки
+
+    if getcrc16(i, s, ObjZv[start+j].CRC1) then break; //------ контрольная суммы из файла
+
+    if ObjZv[start+j].CRC1 <> ccrc then
+    RepF('Искажена КС строки '+IntToStr(start+j)+' файла '+filepath);
+    inc(j); //------------------------------------------ переместить на следующую запись
+    fullrecord := true;
+  end;
+
+  if not fullrecord then
+  begin
+    ShowMessage('Ошибка раcпаковки зависимостей в '+ filepath);
+    result := false;
+    memo.Free;
+    exit;
+  end;
+  result := true;
+  memo.Free;
 end;
 
 //-----------------------------------------------------------------------------
@@ -659,13 +553,13 @@ begin
       ObjView[i].Layer := 0;
       ObjView[i].Title := '';
       ObjView[i].Name := '';
-      for j := Low(ObjView[1].Points) to High(ObjView[i].Points) do
+      for j := Low(ObjView[1].P) to High(ObjView[i].P) do
       begin
-        ObjView[i].Points[j].X := 0;
-        ObjView[i].Points[j].Y := 0;
+        ObjView[i].P[j].X := 0;
+        ObjView[i].P[j].Y := 0;
       end;
-      for j := Low(ObjView[1].ObjConstI) to High(ObjView[1].ObjConstI)
-      do ObjView[i].ObjConstI[j] := 0;
+      for j := Low(ObjView[1].ObCI) to High(ObjView[1].ObCI)
+      do ObjView[i].ObCI[j] := 0;
 
       ObjView[i].CRC := 0;
       ObjView[i].Refresh := false;
@@ -706,24 +600,24 @@ begin
       if getbyte(i, s, ObjView[start+j].TypeObj) then break; //------- чтение кода объекта
       if getbyte(i, s, ObjView[start+j].RU) then break; //------- чтение района управления
       if getbyte(i, s, ObjView[start+j].Layer) then break;//чтение слоя прорисовки объекта
-      if getstring(i, s, ObjView[start+j].Title) then break; //-- чтение заголовка объекта
-      if getstring(i,s,ObjView[start+j].Name)  then break;  //------- чтение имени объекта
-      for k := Low(ObjView[j].Points) to High(ObjView[j].Points) do
+      if not getstring(i, s, ObjView[start+j].Title) then break; //-- чтение заголовка объекта
+      if not getstring(i,s,ObjView[start+j].Name)  then break;  //------- чтение имени объекта
+      for k := Low(ObjView[j].P) to High(ObjView[j].P) do
       begin
-        if getinteger(i, s, ObjView[start+j].Points[k].X) then break;//чтение координаты Х
-        if getinteger(i, s, ObjView[start+j].Points[k].Y) then break;//чтение координаты У
+        if getinteger(i, s, ObjView[start+j].P[k].X) then break;//чтение координаты Х
+        if getinteger(i, s, ObjView[start+j].P[k].Y) then break;//чтение координаты У
       end;
 
       //--------------------------------------------------- чтение целых констант описания
-      for k := Low(ObjView[j].ObjConstI) to High(ObjView[j].ObjConstI) do
-      if getsmallint(i, s, ObjView[start+j].ObjConstI[k]) then break;
+      for k := Low(ObjView[j].ObCI) to High(ObjView[j].ObCI) do
+      if getsmallint(i, s, ObjView[start+j].ObCI[k]) then break;
 
       p := s; SetLength(p,i-1); ccrc := CalculateCRC16(pchar(p),Length(p));
       if getcrc16(i, s, ObjView[start+j].CRC) then break; // KS константной части описания
 
       if ObjView[start+j].CRC <> ccrc then
       begin
-        reportf('Искажена контр. сумма строки '+ IntToStr(start+j)+ ' файла '+ filepath);
+        RepF('Искажена контр. сумма строки '+ IntToStr(start+j)+ ' файла '+ filepath);
       end;
       inc(j); //------------------------------------------ переместить на следующую запись
       fullrecord := true;
@@ -803,7 +697,7 @@ begin
       if getsmallint(i, s, OVBuffer[start+j].Steps) then break;  //чтение контрольной суммы
       p := s; SetLength(p,i-1); ccrc := CalculateCRC16(pchar(p),Length(p));
       if getcrc16(i, s, OVBuffer[start+j].CRC) then break;      //чтение контрольной суммы константной части описания буфера
-      if OVBuffer[start+j].CRC <> ccrc then begin reportf('Искажена контрольная сумма в строке '+ IntToStr(start+j)+ ' файла '+ filepath); end;
+      if OVBuffer[start+j].CRC <> ccrc then begin RepF('Искажена контрольная сумма в строке '+ IntToStr(start+j)+ ' файла '+ filepath); end;
       inc(j); // переместить на следующую запись
       fullrecord := true;
     end;
@@ -849,8 +743,8 @@ begin
       ObjUprav[i].Box.Right  := 0;
       ObjUprav[i].Box.Top    := 0;
       ObjUprav[i].Box.Bottom := 0;
-      for j := Low(ObjUprav[1].Neighbour) to High(ObjUprav[i].Neighbour) do
-      ObjUprav[i].Neighbour[j] := 0;
+      for j := Low(ObjUprav[1].Sosed) to High(ObjUprav[i].Sosed) do
+      ObjUprav[i].Sosed[j] := 0;
 
       ObjUprav[i].Hint := '';
       ObjUprav[i].CRC  := 0;
@@ -890,23 +784,23 @@ begin
 
       if getbyte(i,s,ObjUprav[start+j].RU) then break; //- чтение номера района управления
       if getsmallint(i,s,ObjUprav[start+j].IndexObj) then break;//- чтение индекса объекта
-      if getstring(i,s,ObjUprav[start+j].Title) then break;//---- чтение заголовка объекта
+      if not getstring(i,s,ObjUprav[start+j].Title) then break;//---- чтение заголовка объекта
       if getsmallint(i,s,ObjUprav[start+j].MenuID) then break;//- чтение управляющего кода
       if getinteger(i,s,ObjUprav[start+j].Box.Left) then break;//------ чтение области ...
       if getinteger(i,s,ObjUprav[start+j].Box.Top) then break; //.........................
       if getinteger(i,s,ObjUprav[start+j].Box.Right) then break; //.......................
       if getinteger(i,s,ObjUprav[start+j].Box.Bottom) then break;//...... чувствительности
 
-      for k := Low(ObjUprav[j].Neighbour) to High(ObjUprav[j].Neighbour) do
-      if getsmallint(i,s,ObjUprav[start+j].Neighbour[k]) then break; //---- чтение соседей
+      for k := Low(ObjUprav[j].Sosed) to High(ObjUprav[j].Sosed) do
+      if getsmallint(i,s,ObjUprav[start+j].Sosed[k]) then break; //---- чтение соседей
 
-      if getstring(i,s,ObjUprav[start+j].Hint) then break;//- чтение всплывающего описания
+      if not getstring(i,s,ObjUprav[start+j].Hint) then break;//- чтение всплывающего описания
       p := s; SetLength(p,i-1); //------- ограничить строку "р" размерами уже прочитанного
       ccrc := CalculateCRC16(pchar(p),Length(p));//----------- вычислить контрольную сумму
 
       if getcrc16(i,s,ObjUprav[start+j].CRC) then break; //--- чтение КС константной части
       if ObjUprav[start+j].CRC <> ccrc then
-      reportf('Искажена контр.сумма в строке '+ IntToStr(start+j)+ ' файла '+ filepath);
+      RepF('Искажена контр.сумма в строке '+ IntToStr(start+j)+ ' файла '+ filepath);
       inc(j); //------------------------------------------ переместить на следующую запись
       fullrecord := true;
     end;
@@ -929,82 +823,71 @@ var
   i : integer;
   ccrc : crc16_t;
 begin
-  if (Index > 0) and (Index <= High(ObjZav)) then
+  if (Index > 0) and (Index <= High(ObjZv)) then
   begin
-    s := IntToStr(ObjZav[Index].TypeObj)+ ';'+
-         IntToStr(ObjZav[Index].Group)+ ';'+
-         IntToStr(ObjZav[Index].RU)+ ';'+
-         ObjZav[Index].Title+';'+
-         ObjZav[Index].Liter+';'+
-         IntToStr(ObjZav[Index].Neighbour[1].TypeJmp)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[1].Obj)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[1].Pin)+ ';'+
-         IntToStr(ObjZav[Index].Neighbour[2].TypeJmp)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[2].Obj)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[2].Pin)+ ';'+
-         IntToStr(ObjZav[Index].Neighbour[3].TypeJmp)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[3].Obj)+ ':'+
-         IntToStr(ObjZav[Index].Neighbour[3].Pin)+ ';'+
-         IntToStr(ObjZav[Index].BaseObject)+ ';'+
-         IntToStr(ObjZav[Index].UpdateObject)+ ';'+
-         IntToStr(ObjZav[Index].VBufferIndex)+ ';';
-    for i := 1 to High(ObjZav[Index].ObjConstB) do
-    if ObjZav[Index].ObjConstB[i] then s := s + 't;' else s := s + ';';
+    s := IntToStr(ObjZv[Index].TypeObj)+ ';'+
+         IntToStr(ObjZv[Index].Group)+ ';'+
+         IntToStr(ObjZv[Index].RU)+ ';'+
+         ObjZv[Index].Title+';'+
+         ObjZv[Index].Liter+';'+
+         IntToStr(ObjZv[Index].Sosed[1].TypeJmp)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[1].Obj)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[1].Pin)+ ';'+
+         IntToStr(ObjZv[Index].Sosed[2].TypeJmp)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[2].Obj)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[2].Pin)+ ';'+
+         IntToStr(ObjZv[Index].Sosed[3].TypeJmp)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[3].Obj)+ ':'+
+         IntToStr(ObjZv[Index].Sosed[3].Pin)+ ';'+
+         IntToStr(ObjZv[Index].BasOb)+ ';'+
+         IntToStr(ObjZv[Index].UpdOb)+ ';'+
+         IntToStr(ObjZv[Index].VBufInd)+ ';';
+    for i := 1 to High(ObjZv[Index].ObCB) do
+    if ObjZv[Index].ObCB[i] then s := s + 't;' else s := s + ';';
 
-    for i := 1 to High(ObjZav[Index].ObjConstI) do
-    s := s + IntToStr(ObjZav[Index].ObjConstI[i])+ ';';
+    for i := 1 to High(ObjZv[Index].ObCI) do
+    s := s + IntToStr(ObjZv[Index].ObCI[i])+ ';';
 
     ccrc := CalculateCRC16(pchar(s),Length(s));
-    result := ccrc = ObjZav[Index].CRC1;
-    exit;
-  end;
-  result := true;
-end;
-
-//------------------------------------------------------------------------------
-//
-function CalcCRC_OV(Index : Integer) : boolean;
-  var ccrc : crc16_t;
-begin
-  if (Index > 0) and (Index <= High(ObjView)) then
-  begin
-    s := IntToStr(ObjView[Index].TypeObj)+ ';'+
-         IntToStr(ObjView[Index].RU)+ ';'+
-         IntToStr(ObjView[Index].Layer)+ ';'+
-         ObjView[Index].Title+';'+
-         ObjView[Index].Name+';'+
-         IntToStr(ObjView[Index].Points[1].X)+ ':'+ IntToStr(ObjView[Index].Points[1].Y)+ ';'+
-         IntToStr(ObjView[Index].Points[2].X)+ ':'+ IntToStr(ObjView[Index].Points[2].Y)+ ';'+
-         IntToStr(ObjView[Index].Points[3].X)+ ':'+ IntToStr(ObjView[Index].Points[3].Y)+ ';'+
-         IntToStr(ObjView[Index].Points[4].X)+ ':'+ IntToStr(ObjView[Index].Points[4].Y)+ ';'+
-         IntToStr(ObjView[Index].Points[5].X)+ ':'+ IntToStr(ObjView[Index].Points[5].Y)+ ';'+
-         IntToStr(ObjView[Index].Points[6].X)+ ':'+ IntToStr(ObjView[Index].Points[6].Y)+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[1])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[2])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[3])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[4])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[5])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[6])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[7])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[8])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[9])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[10])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[11])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[12])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[13])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[14])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[15])+ ';'+
-         IntToStr(ObjView[Index].ObjConstI[16])+ ';';
-
-    ccrc := CalculateCRC16(pchar(s),Length(s));
-    result := ccrc = ObjView[Index].CRC;
+    result := ccrc = ObjZv[Index].CRC1;
     exit;
   end;
   result := true;
 end;
 
 //========================================================================================
-//
+//----------------------------------------------------------------------------------------
+function CalcCRC_OV(Index : Integer) : boolean;
+var
+  ccrc : crc16_t;
+begin
+  if (Index > 0) and (Index <= High(ObjView)) then
+  begin
+    with ObjView[Index] do
+    begin
+      s := IntToStr(TypeObj)+ ';'+ IntToStr(RU)+ ';'+ IntToStr(Layer)+ ';'+ Title+';'+
+      Name+';'+ IntToStr(P[1].X)+ ':'+ IntToStr(P[1].Y)+ ';'+
+      IntToStr(P[2].X)+ ':'+ IntToStr(P[2].Y)+ ';'+
+      IntToStr(P[3].X)+ ':'+ IntToStr(P[3].Y)+ ';'+
+      IntToStr(P[4].X)+ ':'+ IntToStr(P[4].Y)+ ';'+
+      IntToStr(P[5].X)+ ':'+ IntToStr(P[5].Y)+ ';'+
+      IntToStr(P[6].X)+ ':'+ IntToStr(P[6].Y)+ ';'+
+      IntToStr(ObCI[1]) + ';'+ IntToStr(ObCI[2]) + ';'+ IntToStr(ObCI[3]) + ';'+
+      IntToStr(ObCI[4]) + ';'+ IntToStr(ObCI[5]) + ';'+ IntToStr(ObCI[6]) + ';'+
+      IntToStr(ObCI[7]) + ';'+ IntToStr(ObCI[8]) + ';'+ IntToStr(ObCI[9]) + ';'+
+      IntToStr(ObCI[10])+ ';'+ IntToStr(ObCI[11])+ ';'+ IntToStr(ObCI[12])+ ';'+
+      IntToStr(ObCI[13])+ ';'+ IntToStr(ObCI[14])+ ';'+ IntToStr(ObCI[15])+ ';'+
+      IntToStr(ObCI[16])+ ';';
+      ccrc := CalculateCRC16(pchar(s),Length(s));
+      result := ccrc = CRC;
+      exit;
+    end;
+  end;
+  result := true;
+end;
+
+//========================================================================================
+//----------------------------------------------------------------------------------------
 function CalcCRC_OU(Index : Integer) : boolean;
   var ccrc : crc16_t;
 begin
@@ -1016,10 +899,10 @@ begin
          IntToStr(ObjUprav[Index].MenuID)+ ';'+
          IntToStr(ObjUprav[Index].Box.Left)+ ':'+ IntToStr(ObjUprav[Index].Box.Top)+ ':'+
          IntToStr(ObjUprav[Index].Box.Right)+ ':'+ IntToStr(ObjUprav[Index].Box.Bottom)+ ';'+
-         IntToStr(ObjUprav[Index].Neighbour[1])+ ';'+
-         IntToStr(ObjUprav[Index].Neighbour[2])+ ';'+
-         IntToStr(ObjUprav[Index].Neighbour[3])+ ';'+
-         IntToStr(ObjUprav[Index].Neighbour[4])+ ';'+
+         IntToStr(ObjUprav[Index].Sosed[1])+ ';'+
+         IntToStr(ObjUprav[Index].Sosed[2])+ ';'+
+         IntToStr(ObjUprav[Index].Sosed[3])+ ';'+
+         IntToStr(ObjUprav[Index].Sosed[4])+ ';'+
          ObjUprav[Index].Hint+';';
     ccrc := CalculateCRC16(pchar(s),Length(s));
     result := ccrc = ObjUprav[Index].CRC;
@@ -1028,45 +911,47 @@ begin
   result := true;
 end;
 
-//------------------------------------------------------------------------------
-//
+//========================================================================================
+//----------------------------------------------------------------------------------------
 function CalcCRC_VB(Index : Integer) : boolean;
-  var ccrc : crc16_t;
+var
+  ccrc : crc16_t;
 begin
-  if (Index > 0) and (Index <= High(OVBuffer)) then
+  with OVBuffer[Index] do
   begin
-    s := IntToStr(OVBuffer[Index].TypeRec)+ ';'+
-         IntToStr(OVBuffer[Index].Jmp1)+ ';'+
-         IntToStr(OVBuffer[Index].Jmp2)+ ';'+
-         IntToStr(OVBuffer[Index].DZ1)+ ';'+
-         IntToStr(OVBuffer[Index].DZ2)+ ';'+
-         IntToStr(OVBuffer[Index].DZ3)+ ';'+
-         IntToStr(OVBuffer[Index].Steps)+ ';';
-    ccrc := CalculateCRC16(pchar(s),Length(s));
-    result := ccrc = OVBuffer[Index].CRC;
-    exit;
+    if (Index > 0) and (Index <= High(OVBuffer)) then
+    begin
+      s := IntToStr(TypeRec)+ ';'+ IntToStr(Jmp1)+ ';'+  IntToStr(Jmp2)+ ';'+
+      IntToStr(DZ1)+ ';'+ IntToStr(DZ2)+ ';'+ IntToStr(DZ3)+ ';'+ IntToStr(Steps)+ ';';
+      ccrc := CalculateCRC16(pchar(s),Length(s));
+      result := ccrc = CRC;
+      exit;
+    end;
   end;
   result := true;
 end;
 
-//------------------------------------------------------------------------------
-// Загрузка коротких сообщений РМ-ДСП
+//========================================================================================
+//----------------------------------------------------- Загрузка коротких сообщений РМ-ДСП
 function LoadLex(filepath: string) : boolean;
-  var memo : TStringList; i,j : integer; c : string; cl : boolean;
+var
+  memo : TStringList;
+  i,j : integer;
+  c : string;
+  cl : boolean;
 begin
   memo := TStringList.Create;
   try
     try
       memo.LoadFromFile(filepath);
     except
-      reportf('Ошибка во время чтения файла '+ filepath);
-      result := false;
-      exit;
+      RepF('Ошибка чтения '+ filepath); result := false; exit;
     end;
 
-    if (memo.Count = 0) or (memo.Count > high(Lex)) then begin reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
+    if (memo.Count = 0) or (memo.Count > high(Lex)) then
+    begin RepF('Параметры '+ filepath+ ' не по проекту!'); result := false; exit; end;
 
-    // Загрузить структуру коротких сообщений
+    //--------------------------------------------- Загрузить структуру коротких сообщений
     for i := 1 to memo.Count do
     begin
       s := memo.Strings[i-1];
@@ -1074,14 +959,10 @@ begin
       j := 1;
       while j <= Length(s) do
       begin
-        if s[j] = '#' then
-        begin
-        // обнаружен признак параметра цвета
-          cl := true;
-        end else
+        if s[j] = '#' then cl := true  //--------------- обнаружен признак параметра цвета
+        else
         if cl then
-        begin
-        // чтение кода цвета
+        begin //-------------------------------------------------------- чтение кода цвета
           if (s[j] < '0') or (s[j] > '9') then
           begin
             j := StrToInt(c);
@@ -1089,20 +970,15 @@ begin
               2 :  Lex[i].Color := GetColor1(2);
               4 :  Lex[i].Color := GetColor1(1);
               14 : Lex[i].Color := GetColor1(7);
-            else
-              Lex[i].Color := GetColor1(0);
+              else Lex[i].Color := GetColor1(0);
             end;
-            break; // завершить чтение параметра в Lex
-          end else
-            c := c + s[j];
-        end else
-        // присоединить следующий символ
-          Lex[i].msg := Lex[i].msg + s[j];
+            break; //------------------------------------ завершить чтение параметра в Lex
+          end else c := c + s[j];
+        end else Lex[i].msg := Lex[i].msg + s[j];//--------- присоединить следующий символ
         inc(j);
       end;
     end;
-
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
@@ -1116,9 +992,9 @@ function LoadLex2(filepath: string) : boolean;
 begin
   memo := TStringList.Create;
   try
-    try memo.LoadFromFile(filepath); except reportf('Ошибка во время чтения файла '+ filepath); result := false; exit; end;
+    try memo.LoadFromFile(filepath); except RepF('Ошибка во время чтения файла '+ filepath); result := false; exit; end;
 
-    if (memo.Count = 0) or (memo.Count > High(Lex2)) then begin reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
+    if (memo.Count = 0) or (memo.Count > High(Lex2)) then begin RepF('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
 
     // Загрузить структуру коротких сообщений
     for i := 1 to memo.Count do
@@ -1156,7 +1032,7 @@ begin
       end;
     end;
 
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
@@ -1170,9 +1046,9 @@ function LoadLex3(filepath: string) : boolean;
 begin
   memo := TStringList.Create;
   try
-    try memo.LoadFromFile(filepath); except reportf('Ошибка во время чтения файла '+ filepath); result := false; exit; end;
+    try memo.LoadFromFile(filepath); except RepF('Ошибка во время чтения файла '+ filepath); result := false; exit; end;
 
-    if (memo.Count = 0) or (memo.Count > High(Lex3)) then begin reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
+    if (memo.Count = 0) or (memo.Count > High(Lex3)) then begin RepF('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
 
     // Загрузить структуру коротких сообщений
     for i := 1 to memo.Count do
@@ -1210,66 +1086,72 @@ begin
       end;
     end;
 
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
   end;
 end;
 
-//------------------------------------------------------------------------------
-// Загрузка АКНР
+//========================================================================================
+//-------------------------------------------------------------------------- Загрузка АКНР
 function LoadAKNR(filepath: string) : boolean;
-  var memo : TStringList; i,j,k : integer; ccrc : crc16_t; fullrecord : boolean;
+var
+  memo : TStringList;
+  i,j,k : integer;
+  ccrc : crc16_t;
+  fullrecord : boolean;
 begin
   for i := 1 to High(AKNR) do
   begin
     AKNR[i].ObjStart := 0;
-    AKNR[i].ObjEnd := 0;
+    AKNR[i].ObjEnd   := 0;
     for j := 1  to High(AKNR[i].ObjAuto) do AKNR[i].ObjAuto[j] := 0;
     AKNR[i].Crc := 0;
   end;
 
   memo := TStringList.Create;
   try
-    try memo.LoadFromFile(filepath); except reportf('Ошибка во время чтения файла '+ filepath); result := false; exit; end;
+    try memo.LoadFromFile(filepath);
+    except RepF('Ошибка чтения файла '+ filepath); result := false; exit; end;
 
-    if memo.Count > High(AKNR) then begin reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
+    if memo.Count > High(AKNR) then
+    begin RepF('Параметры '+ filepath+ 'не по проекту!'); result := false; exit; end;
 
     if memo.Count > 0 then
     begin
       fullrecord := false;
 
-      // Загрузить структуру АКНР
+      //--------------------------------------------------------- Загрузить структуру АКНР
       for j := 1 to memo.Count do
       begin
-        fullrecord := false;  // сбросить признак полноты записи в строке
-        s := memo.Strings[j-1]; // строка с описанием
-        i := 1; // первый символ строки
-        if getstring(i, s, p) then break;        //объект начала
-        AKNR[j].ObjStart := FindObjZav(p);
-        if getstring(i, s, p) then break;          //объект конца
-        AKNR[j].ObjEnd := FindObjZav(p);
+        fullrecord := false;  //----------------- сбросить признак полноты записи в строке
+        s := memo.Strings[j-1]; //--------------------------- очередная строка с описанием
+        i := 1; //-------------------------------------- начинать с первого символа строки
+        if not getstring(i, s, p) then break;   //--------------- p - литер объекта начала
+        AKNR[j].ObjStart := FindObjZav(p); //----------------------- индекс объекта начала
+        if not getstring(i,s,p) then break; AKNR[j].ObjEnd:= FindObjZav(p);// объект конца
+
         for k := Low(AKNR[j].ObjAuto) to High(AKNR[j].ObjAuto) do
         begin
-          if getstring(i, s, p) then break;       //чтение промежуточных точек
-          AKNR[j].ObjAuto[k] := FindObjZav(p);
+          if not getstring(i,s,p) then break;AKNR[j].ObjAuto[k]:=FindObjZav(p);//промежут.
         end;
+
+        //--------------- обрезать считанную строку до текущего символа и просчитать CRC16
         p := s; SetLength(p,i-1); ccrc := CalculateCRC16(pchar(p),Length(p));
-        if getcrc16(i, s, AKNR[j].CRC) then break; //чтение контрольной суммы
-        if AKNR[j].CRC <> ccrc then
-        begin
-          reportf('Искажена контрольная сумма в строке '+ IntToStr(j)+ ' файла '+ filepath);
-        end;
+
+        if getcrc16(i, s, AKNR[j].CRC) then break; //- чтение записанной контрольной суммы
+
+        if AKNR[j].CRC <> ccrc
+        then RepF('Искажение CRC в строке '+ IntToStr(j)+ ' '+ filepath);
         fullrecord := true;
       end;
 
-      if not fullrecord then begin reportf('Ошибка при загрузке из файла '+ filepath); result := false; exit; end;
-
-      reportf('Выполнена загрузка файла '+ filepath);
+      if not fullrecord then
+      begin RepF('Ошибка загрузки файла '+ filepath); result := false; exit; end;
+      RepF('Выполнена загрузка файла '+ filepath);
       result := true;
-    end else
-      result := true;
+    end else result := true;
   finally
     memo.Free;
   end;
@@ -1287,16 +1169,16 @@ begin
     try
       memo.LoadFromFile(filepath);
     except
-      reportf('Ошибка во время чтения файла '+ filepath); result := false; exit;
+      RepF('Ошибка во время чтения файла '+ filepath); result := false; exit;
     end;
 
     if memo.Count > High(MsgList) then
-    begin reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
+    begin RepF('Параметры файла '+ filepath+ ' не соответствуют проекту!'); result := false; exit; end;
 
     // Загрузить структуру коротких сообщений
     for i := 1 to memo.Count do MsgList[i] := memo.Strings[i-1];
 
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
@@ -1314,37 +1196,37 @@ begin
   try
     DateTimeToString(s,'hh:mm:ss dd/nn/yy', LastTime);
     sl.Add(s);
-    for i := 1 to High(ObjZav) do
-    case ObjZav[i].TypeObj of
+    for i := 1 to High(ObjZv) do
+    case ObjZv[i].TypeObj of
       1,3,4,5 :
       begin //----- перебор всех объектов зависимостей, для которых фиксируется статистика
-        p := IntToHex(ObjZav[i].TypeObj,2)+ ObjZav[i].Title+ '$';
+        p := IntToHex(ObjZv[i].TypeObj,2)+ ObjZv[i].Title+ '$';
 
         for j := 1 to 7 do
         begin
-          if ObjZav[i].dtParam[j] > 0 then
+          if ObjZv[i].dtP[j] > 0 then
           begin
-            t := FloatToStrF(ObjZav[i].dtParam[j],ffGeneral,15,7);
+            t := FloatToStrF(ObjZv[i].dtP[j],ffGeneral,15,7);
             p := p + t + ';';
           end
           else  p := p + '0;';
         end;
 
         for j := 1 to 32 do
-        if ObjZav[i].sbParam[j] then  p := p + 't'
+        if ObjZv[i].sbP[j] then  p := p + 't'
         else  p := p + 'f';
 
         p := p + ';';
 
         for j := 1 to 10 do
-        p := p + IntToStr(ObjZav[i].siParam[j])+ ';';
+        p := p + IntToStr(ObjZv[i].siP[j])+ ';';
 
         sl.Add(p);
       end;
     end;
     sl.SaveToFile(filename);
   except
-    reportf('Ошибка SaveDiagnoze');
+    RepF('Ошибка SaveDiagnoze');
   end;
   sl.Free;
   result := true;
@@ -1362,7 +1244,7 @@ begin
     if FileExists(filename) then sl.LoadFromFile(filename) else
     begin
       sl.Free;
-      reportf('файл статистики состояния объектов '+ filename+ ' не обнаружен.');
+      RepF('файл статистики состояния объектов '+ filename+ ' не обнаружен.');
       result := -1;
       exit;
     end;
@@ -1377,123 +1259,123 @@ begin
         begin name := name + s[j]; inc(j); end;
         inc(j);
 
-        for index := 1 to High(ObjZav) do
+        for index := 1 to High(ObjZv) do
         begin
-          if (ObjZav[index].TypeObj = tobj) and (ObjZav[index].Title = name) then
+          if (ObjZv[index].TypeObj = tobj) and (ObjZv[index].Title = name) then
           begin //------------------------------ распаковка статистики для данного объекта
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
 
-            if p <> '' then ObjZav[index].dtParam[1] := StrToFloat(p)
-            else ObjZav[index].dtParam[1] :=0;
+            if p <> '' then ObjZv[index].dtP[1] := StrToFloat(p)
+            else ObjZv[index].dtP[1] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[2] := StrToFloat(p)
-            else ObjZav[index].dtParam[2] :=0;
+            if p <> '' then ObjZv[index].dtP[2] := StrToFloat(p)
+            else ObjZv[index].dtP[2] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[3] := StrToFloat(p)
-            else ObjZav[index].dtParam[3] :=0;
+            if p <> '' then ObjZv[index].dtP[3] := StrToFloat(p)
+            else ObjZv[index].dtP[3] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[4] := StrToFloat(p)
-            else ObjZav[index].dtParam[4] :=0;
+            if p <> '' then ObjZv[index].dtP[4] := StrToFloat(p)
+            else ObjZv[index].dtP[4] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[5] := StrToFloat(p)
-            else ObjZav[index].dtParam[5] :=0;
+            if p <> '' then ObjZv[index].dtP[5] := StrToFloat(p)
+            else ObjZv[index].dtP[5] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[6] := StrToFloat(p)
-            else ObjZav[index].dtParam[4] :=0;
+            if p <> '' then ObjZv[index].dtP[6] := StrToFloat(p)
+            else ObjZv[index].dtP[4] :=0;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            if p <> '' then ObjZav[index].dtParam[7] := StrToFloat(p)
-            else ObjZav[index].dtParam[5] :=0;
+            if p <> '' then ObjZv[index].dtP[7] := StrToFloat(p)
+            else ObjZv[index].dtP[5] :=0;
             inc(j);
 
             k := 1;
-            while ((j <= Length(s)) and (k <= High(ObjZav[1].sbParam))) do
-            begin ObjZav[index].sbParam[k] := (s[j] = 't'); inc(j); inc(k); end;
+            while ((j <= Length(s)) and (k <= High(ObjZv[1].sbP))) do
+            begin ObjZv[index].sbP[k] := (s[j] = 't'); inc(j); inc(k); end;
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[1] := StrToIntDef(p,0);
+            ObjZv[index].siP[1] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[2] := StrToIntDef(p,0);
+            ObjZv[index].siP[2] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[3] := StrToIntDef(p,0);
+            ObjZv[index].siP[3] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[4] := StrToIntDef(p,0);
+            ObjZv[index].siP[4] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[5] := StrToIntDef(p,0);
+            ObjZv[index].siP[5] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[6] := StrToIntDef(p,0);
+            ObjZv[index].siP[6] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[7] := StrToIntDef(p,0);
+            ObjZv[index].siP[7] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[8] := StrToIntDef(p,0);
+            ObjZv[index].siP[8] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[9] := StrToIntDef(p,0);
+            ObjZv[index].siP[9] := StrToIntDef(p,0);
             inc(j);
 
             p := '';
             while ((j <= Length(s)) and (s[j] <> ';')) do
             begin p := p + s[j]; inc(j); end;
-            ObjZav[index].siParam[10] := StrToIntDef(p,0);
+            ObjZv[index].siP[10] := StrToIntDef(p,0);
             break;
           end;
         end;
@@ -1518,7 +1400,7 @@ begin
     try
       memo.LoadFromFile(filepath);
     except
-      reportf('Ошибка во время чтения файла '+ filepath);
+      RepF('Ошибка во время чтения файла '+ filepath);
       result := false;
       memo.Free;
       exit;
@@ -1526,7 +1408,7 @@ begin
 
     if memo.Count > High(LinkFR3) then
     begin
-      reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!');
+      RepF('Параметры файла '+ filepath+ ' не соответствуют проекту!');
       result := false;
       memo.Free;
       exit;
@@ -1541,16 +1423,13 @@ begin
       l := Length(s);
       while j < l  do
       begin
-        if s[j] =';' then break;
-        p := p + s[j];
-        inc(j);
+        if s[j] =';' then break;   p := p + s[j];   inc(j);
       end;
       try
-        k := StrToIntDef(p,0);
-        LinkFR[k].FR3 := k;
+        k := StrToIntDef(p,0); LinkFR[k].FR3 := k;
       except
         memo.Free;
-        reportf('Ошибка при загрузке '+ filepath);
+        RepF('Ошибка при загрузке '+ filepath);
         result := false;
         exit;
       end;
@@ -1559,17 +1438,13 @@ begin
       p := '';
       while j < l do
       begin
-        if s[j] = ';' then break;
-        p := p + s[j];
-        inc(j);
+        if s[j] = ';' then break;  p := p + s[j];  inc(j);
       end;
-      LinkFR[k].Name := p;
-      p  := '';
-      inc(i);
+      LinkFR[k].Name := p;  p  := ''; inc(i);
     end;
 
     WorkMode.LimitNameFRI := memo.Count-1;
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
@@ -1589,7 +1464,7 @@ begin
   try
     memo.LoadFromFile(filepath);
   except
-    reportf('Ошибка во время чтения файла '+ filepath);
+    RepF('Ошибка во время чтения файла '+ filepath);
     result := false;
     memo.Free;
     exit;
@@ -1598,7 +1473,7 @@ begin
   try
     if memo.Count > High(LinkTCDC) then
     begin
-      reportf('Параметры файла '+ filepath+ ' не соответствуют проекту!');
+      RepF('Параметры файла '+ filepath+ ' не соответствуют проекту!');
       result := false;
       memo.Free;
       exit;
@@ -1629,7 +1504,7 @@ begin
     end;
 
     WorkMode.LimitSoobDC := memo.Count;
-    reportf('Выполнена загрузка файла '+ filepath);
+    RepF('Выполнена загрузка файла '+ filepath);
     result := true;
   finally
     memo.Free;
@@ -1643,14 +1518,14 @@ var
   i,j : integer;
 begin
   j := 0;
-  for i := 1 to High(ObjZav) do   //----------------- пройти по всем объектам зависимостей
-    if ObjZav[i].TypeObj = 37 then //----------------------- если вышли на обьект УВК-ТУМС
+  for i := 1 to High(ObjZv) do   //------------------ пройти по всем объектам зависимостей
+    if ObjZv[i].TypeObj = 37 then //------------------------ если вышли на обьект УВК-ТУМС
     begin
-      if ObjZav[i].ObjConstI[8] > 0 then //----------------------- если предусмотрен MYTHX
+      if ObjZv[i].ObCI[8] > 0 then //----------------------------- если предусмотрен MYTHX
       begin
         inc(j);
         if j <= High(MYT)
-        then MYT[j] := ObjZav[i].ObjConstI[8] div 8
+        then MYT[j] := ObjZv[i].ObCI[8] div 8
         else break;
       end;
     end;

@@ -39,7 +39,7 @@ void __fastcall TReadThreadOpt::Execute()
 
 				if(lpStat.cbInQue < FComPortOpt->PacketSize) //-- если в порту слишком мало данных
 				{
-					ResetEvent(FComPortOpt->rtEventOpt); //------ сбросить событие "появление символов"
+					ResetEvent(FComPortOpt->rtEventOpt); //--- сбросить событие "появление символов"
 					break;//-------------------------- прервать цикл и вернуться в ожидание символов
 				}
 

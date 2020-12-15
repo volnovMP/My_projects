@@ -5,7 +5,7 @@
 #pragma package(smart_init)
 
 //========================================================================================
-//--------------------------------------------------------------------- конструктор класса
+//---------------------------- конструктор класса потока слежени€ за всеми событи€ми порта
 __fastcall TStatusThreadOpt::TStatusThreadOpt(TCommPortOpt *ComPortOpt,TComEventType Events)
 : TThread(false)
 {
@@ -22,7 +22,7 @@ __fastcall TStatusThreadOpt::TStatusThreadOpt(TCommPortOpt *ComPortOpt,TComEvent
 		TEventState EvIndex = (TEventState)i;
 		if( Events.Contains(EvIndex) )  AttrWord |= EvList[i];
 	}
-	SetCommMask( FComPortOpt->ComHandle, AttrWord );
+	SetCommMask( FComPortOpt->ComHandle, AttrWord );//------------- установить маску событий
 	ZeroMemory( &SOL, sizeof(SOL) );
 	SOL.hEvent = CreateEvent( NULL, TRUE, FALSE, NULL ); //-------------------- ручной сброс
 }
@@ -37,7 +37,7 @@ __fastcall TStatusThreadOpt::~TStatusThreadOpt(void)
 void __fastcall TStatusThreadOpt::Execute()
 {
 	DWORD lpModemStatus;
-	if( FComPortOpt->IsEnabled() &&  //----------------- если порт имеет достоверный ’эндл и
+	if( FComPortOpt->IsEnabled() &&  //---- если порт открыт (имеет достоверный ’эндл) и ...
 	GetCommModemStatus( FComHandle,&lpModemStatus)) //функци€ чтени€ регистра модема успешна
 	{
 		FComPortOpt->FCTS  = (lpModemStatus & MS_CTS_ON); //---- считываем состо€ние линии CTS
@@ -87,8 +87,7 @@ void __fastcall TStatusThreadOpt::Execute()
 */
 			}
 			//------------------------------------------ если в массе событий есть прием символа
-			if((Status & EV_RXCHAR)!=0)
-			SetEvent(FComPortOpt->rtEventOpt);//----------------------- установить "надо читать"
+			if((Status & EV_RXCHAR)!=0)	SetEvent(FComPortOpt->rtEventOpt);//флаг = "надо читать"
 			SetEvent(FComPortOpt->seEventOpt); //--------------- установить "есть событие порта"
 		}
 	}

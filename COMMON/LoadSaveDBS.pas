@@ -187,7 +187,7 @@ begin
           inc(z);
           j := 1;
           r := '';
-          // Загрузить RU
+          //----------------------------------------------------------------- Загрузить RU
           p := '';
           while s[j] <> ',' do
           begin
@@ -198,84 +198,94 @@ begin
           inc(j);
            try ObjUprav[z].RU := StrToint(p) except exit end;
 
-          // Загрузить IndexObj
+          //----------------------------------------------------------- Загрузить IndexObj
           p := '';
           while s[j] <> ';' do
           begin
-            p := p + s[j];
-            inc(j);
-            if j > Length(s) then break;
+            p := p + s[j];  inc(j); if j > Length(s) then break;
           end;
           inc(j);
           try  ObjUprav[z].IndexObj := StrToint(p) except exit end;
 
-          // Загрузить Title
+          //-------------------------------------------------------------- Загрузить Title
           p := '';
           while s[j] <> ';'
           do
           begin
-            p := p + s[j];
-            inc(j);
-            if j > Length(s) then break;
+            p := p + s[j];  inc(j);    if j > Length(s) then break;
           end;
           inc(j);
           ObjUprav[z].Title := p;
 
-          // Загрузить MenuID
+          //------------------------------------------------------------- Загрузить MenuID
           p := '';
           while s[j] <> ';' do
           begin
-            p := p + s[j];
-            inc(j);
-            if j > Length(s) then break;
+            p := p + s[j]; inc(j); if j > Length(s) then break;
           end;
           inc(j);
           try ObjUprav[z].MenuID := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ':' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //------------------------------------------- Загрузить левую координату рамочки
+          p := '';
+          while s[j] <> ':' do
+          begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjUprav[z].Box.Left := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ':' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //----------------------------------------- Загрузить верхнюю координату рамочки
+          p := '';
+          while s[j] <> ':'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjUprav[z].Box.Top := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ':' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //------------------------------------------ Загрузить правую координату рамочки
+          p := '';
+          while s[j] <> ':'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjUprav[z].Box.Right := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //------------------------------------------ Загрузить нижнюю координату рамочки
+          p := '';
+          while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjUprav[z].Box.Bottom := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjUprav[z].Neighbour[1] := StrToint(p) except exit end;
+          //------------------------------------------------ Загрузить индекс соседа слева
+          p := '';
+          while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          try ObjUprav[z].Sosed[1] := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjUprav[z].Neighbour[2] := StrToint(p) except exit end;
+          //----------------------------------------------- Загрузить индекс соседа сверху
+          p := '';
+          while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          try ObjUprav[z].Sosed[2] := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjUprav[z].Neighbour[3] := StrToint(p) except exit end;
+          //----------------------------------------------- Загрузить индекс соседа справа
+          p := ''; while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          try ObjUprav[z].Sosed[3] := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjUprav[z].Neighbour[4] := StrToint(p) except exit end;
+          //------------------------------------------------ Загрузить индекс соседа снизу
+          p := ''; while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          try ObjUprav[z].Sosed[4] := StrToint(p) except exit end;
 
-          // Загрузить
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //---------------------------------------------------------- Загрузить подсказку
+          p := ''; while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           ObjUprav[z].Hint := p;
 
-          // Загрузить контрольную сумму
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+          //-------------------------------------------------- Загрузить контрольную сумму
+          p := ''; while s[j] <> ';'
+          do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           ObjUprav[z].CRC := StrTointDef('$'+p,0);
 
-          // Загрузить комментарий
+          //-------------------------------------------------------- Загрузить комментарий
           while j <= Length(s) do begin r := r + s[j]; inc(j); end;
         end;
-        // анализ комментария
+        //------------------------------------------------------------- анализ комментария
         if r <> '' then
         begin
           j := 1;
@@ -383,7 +393,7 @@ begin
 
           if s[j] = ':' then //-------------------------------- если разделитель для точки
           begin
-            ObjView[z].Points[1].X := StrToint(p);
+            ObjView[z].P[1].X := StrToint(p);
             j := k;
           end else  //--------------------------------------- если разделитель для объекта
           begin
@@ -399,7 +409,7 @@ begin
             if j > Length(s) then break;
           end;
           inc(j);
-          try ObjView[z].Points[1].X := StrToint(p)   except exit end;
+          try ObjView[z].P[1].X := StrToint(p)   except exit end;
           p := '';
 
           while s[j] <> ';' do
@@ -408,7 +418,7 @@ begin
             if j > Length(s) then break;
           end; inc(j);
           try
-            ObjView[z].Points[1].Y := StrToint(p)
+            ObjView[z].P[1].Y := StrToint(p)
           except exit
           end;
 
@@ -419,7 +429,7 @@ begin
             if j > Length(s) then break;
           end;
             inc(j);
-          try ObjView[z].Points[2].X := StrToint(p) except exit end;
+          try ObjView[z].P[2].X := StrToint(p) except exit end;
           p := '';
           while s[j] <> ';' do
           begin
@@ -427,7 +437,7 @@ begin
             if j > Length(s) then break;
           end;
           inc(j);
-          try ObjView[z].Points[2].Y := StrToint(p) except exit end;
+          try ObjView[z].P[2].Y := StrToint(p) except exit end;
 
           //---------------------------------------------------- Загрузить точку 3 (X & Y)
           p := '';
@@ -437,7 +447,7 @@ begin
             inc(j);
             if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].Points[3].X := StrToint(p) except exit end;
+          try ObjView[z].P[3].X := StrToint(p) except exit end;
           p := '';
           while s[j] <> ';' do
           begin
@@ -445,7 +455,7 @@ begin
             inc(j); if j > Length(s) then break;
           end;
           inc(j);
-          try ObjView[z].Points[3].Y := StrToint(p) except exit end;
+          try ObjView[z].P[3].Y := StrToint(p) except exit end;
 
           //---------------------------------------------------- Загрузить точку 4 (X & Y)
           p := '';
@@ -455,14 +465,14 @@ begin
           end;
           inc(j);
           try
-            ObjView[z].Points[4].X := StrToint(p) except exit
+            ObjView[z].P[4].X := StrToint(p) except exit
           end;
           p := '';
           while s[j] <> ';' do
           begin
             p := p + s[j]; inc(j); if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].Points[4].Y := StrToint(p) except exit end;
+          try ObjView[z].P[4].Y := StrToint(p) except exit end;
 
           // Загрузить точку 5 (X & Y)
           p := '';
@@ -472,14 +482,14 @@ begin
             if j > Length(s) then break;
           end; inc(j);
           try
-            ObjView[z].Points[5].X := StrToint(p) except exit
+            ObjView[z].P[5].X := StrToint(p) except exit
           end;
           p := '';
           while s[j] <> ';' do
           begin
             p := p + s[j]; inc(j); if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].Points[5].Y := StrToint(p) except exit end;
+          try ObjView[z].P[5].Y := StrToint(p) except exit end;
 
           //---------------------------------------------------- Загрузить точку 6 (X & Y)
           p := '';
@@ -489,94 +499,94 @@ begin
             if j > Length(s) then break;
           end; inc(j);
           try
-            ObjView[z].Points[6].X := StrToint(p) except exit
+            ObjView[z].P[6].X := StrToint(p) except exit
           end;
           p := '';
           while s[j] <> ';' do
           begin
             p := p + s[j]; inc(j); if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].Points[6].Y := StrToint(p) except exit end;
+          try ObjView[z].P[6].Y := StrToint(p) except exit end;
           //-------------------------------------------------------- Загрузить константу 1
           p := '';
           while s[j] <> ';' do
           begin
             p := p + s[j]; inc(j); if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].ObjConstI[1] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[1] := StrToint(p) except exit end;
           //-------------------------------------------------------- Загрузить константу 2
           p := '';
           while s[j] <> ';' do
           begin
             p := p + s[j]; inc(j); if j > Length(s) then break;
           end; inc(j);
-          try ObjView[z].ObjConstI[2] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[2] := StrToint(p) except exit end;
           //-------------------------------------------------------- Загрузить константу 3
           p := '';
           while s[j] <> ';' do
           begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[3] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[3] := StrToint(p) except exit end;
 
           // Загрузить константу 4
           p := '';
           while s[j] <> ';'
           do begin p := p + s[j]; inc(j); if j > Length(s) then break; end;
           inc(j);
-          try ObjView[z].ObjConstI[4] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[4] := StrToint(p) except exit end;
 
           // Загрузить константу 5
           p := '';
           while s[j] <> ';'
           do begin p := p + s[j]; inc(j); if j > Length(s) then break; end;
           inc(j);
-          try ObjView[z].ObjConstI[5] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[5] := StrToint(p) except exit end;
 
           // Загрузить константу 6
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[6] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[6] := StrToint(p) except exit end;
 
           // Загрузить константу 7
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[7] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[7] := StrToint(p) except exit end;
 
           // Загрузить константу 8
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[8] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[8] := StrToint(p) except exit end;
 
           // Загрузить константу 9
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[9] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[9] := StrToint(p) except exit end;
 
           // Загрузить константу 10
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[10] := StrToint(p) except exit end;
+          try ObjView[z].ObCI[10] := StrToint(p) except exit end;
 
           hvost := length(s) - j;
           if hvost > 10 then
           begin
             // Загрузить константу 11
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[11] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[11] := StrToint(p) except exit end;
 
             // Загрузить константу 12
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[12] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[12] := StrToint(p) except exit end;
 
             // Загрузить константу 13
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[13] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[13] := StrToint(p) except exit end;
 
             // Загрузить константу 14
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[14] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[14] := StrToint(p) except exit end;
 
             // Загрузить константу 15
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[15] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[15] := StrToint(p) except exit end;
 
             // Загрузить константу 16
             p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-            try ObjView[z].ObjConstI[16] := StrToint(p) except exit end;
+            try ObjView[z].ObCI[16] := StrToint(p) except exit end;
           end;
           // Загрузить контрольную сумму
           p := '';
@@ -785,32 +795,32 @@ begin
     //-------------------------------------------------------- Сформировать фрагмент БД OZ
     for i := start to start+len-1 do
     begin
-      s := IntToStr(ObjZav[i].TypeObj)+ ';'+
-      IntToStr(ObjZav[i].Group)+ ';' +
-      IntToStr(ObjZav[i].RU) + ';' +
-      ObjZav[i].Title + ';' +
-      ObjZav[i].Liter+ ';';
+      s := IntToStr(ObjZv[i].TypeObj)+ ';'+
+      IntToStr(ObjZv[i].Group)+ ';' +
+      IntToStr(ObjZv[i].RU) + ';' +
+      ObjZv[i].Title + ';' +
+      ObjZv[i].Liter+ ';';
 
-      for j := Low(ObjZav[i].Neighbour) to High(ObjZav[i].Neighbour) do
-      s := s + IntToStr(ObjZav[i].Neighbour[j].TypeJmp) + ':' +
-      IntToStr(ObjZav[i].Neighbour[j].Obj) + ':' +
-      IntToStr(ObjZav[i].Neighbour[j].Pin) + ';';
+      for j := Low(ObjZv[i].Sosed) to High(ObjZv[i].Sosed) do
+      s := s + IntToStr(ObjZv[i].Sosed[j].TypeJmp) + ':' +
+      IntToStr(ObjZv[i].Sosed[j].Obj) + ':' +
+      IntToStr(ObjZv[i].Sosed[j].Pin) + ';';
 
-      s := s + IntToStr(ObjZav[i].BaseObject) + ';' +
-      IntToStr(ObjZav[i].UpdateObject) + ';' +
-      IntToStr(ObjZav[i].VBufferIndex)+ ';';
+      s := s + IntToStr(ObjZv[i].BasOb) + ';' +
+      IntToStr(ObjZv[i].UpdOb) + ';' +
+      IntToStr(ObjZv[i].VBufInd)+ ';';
 
-      for j := Low(ObjZav[i].ObjConstB) to High(ObjZav[i].ObjConstB) do
+      for j := Low(ObjZv[i].ObCB) to High(ObjZv[i].ObCB) do
       begin
-        if ObjZav[i].ObjConstB[j] then s := s + 't;' else s := s + ';';
+        if ObjZv[i].ObCB[j] then s := s + 't;' else s := s + ';';
       end;
 
-      for j := Low(ObjZav[i].ObjConstI) to High(ObjZav[i].ObjConstI) do
-      s := s + IntToStr(ObjZav[i].ObjConstI[j]) + ';';
+      for j := Low(ObjZv[i].ObCI) to High(ObjZv[i].ObCI) do
+      s := s + IntToStr(ObjZv[i].ObCI[j]) + ';';
 
-      ObjZav[i].CRC1 := CalculateCRC16(pchar(s),Length(s));
+      ObjZv[i].CRC1 := CalculateCRC16(pchar(s),Length(s));
 
-      s := s + IntToHex(ObjZav[i].CRC1,4)+ ';';  //-------------- контрольная сумма строки
+      s := s + IntToHex(ObjZv[i].CRC1,4)+ ';';  //-------------- контрольная сумма строки
 
       s := s + ' -' + IntToStr(i);
 
@@ -861,28 +871,28 @@ begin
       if ObjView[i].TypeObj = 12 then //------------------------------------ если это путь
       begin
         if TabloP.PlaceN = 0 then //-------------------------- если нечетные подходы слева
-        if ObjView[i].Points[2].X > ObjView[i].Points[3].X then
+        if ObjView[i].P[2].X > ObjView[i].P[3].X then
         begin
-          Tochka.X := ObjView[i].Points[2].X;
-          ObjView[i].Points[2].X := ObjView[i].Points[3].X;
-          ObjView[i].Points[3].X := Tochka.X;
+          Tochka.X := ObjView[i].P[2].X;
+          ObjView[i].P[2].X := ObjView[i].P[3].X;
+          ObjView[i].P[3].X := Tochka.X;
         end;
 
         if TabloP.PlaceN = 1 then //------------------------- если нечетные подходы справа
-        if ObjView[i].Points[2].X < ObjView[i].Points[3].X then
+        if ObjView[i].P[2].X < ObjView[i].P[3].X then
         begin
-          Tochka.X := ObjView[i].Points[2].X;
-          ObjView[i].Points[2].X := ObjView[i].Points[3].X;
-          ObjView[i].Points[3].X := Tochka.X;
+          Tochka.X := ObjView[i].P[2].X;
+          ObjView[i].P[2].X := ObjView[i].P[3].X;
+          ObjView[i].P[3].X := Tochka.X;
         end;
       end;
 
-      for j := Low(ObjView[i].Points) to High(ObjView[i].Points) do
-      s := s + IntToStr(ObjView[i].Points[j].X)+ ':'+
-      IntToStr(ObjView[i].Points[j].Y)+ ';';
+      for j := Low(ObjView[i].P) to High(ObjView[i].P) do
+      s := s + IntToStr(ObjView[i].P[j].X)+ ':'+
+      IntToStr(ObjView[i].P[j].Y)+ ';';
 
-      for j := Low(ObjView[i].ObjConstI) to High(ObjView[i].ObjConstI) do
-      s := s + IntToStr(ObjView[i].ObjConstI[j])+ ';';
+      for j := Low(ObjView[i].ObCI) to High(ObjView[i].ObCI) do
+      s := s + IntToStr(ObjView[i].ObCI[j])+ ';';
 
       ObjView[i].CRC := CalculateCRC16(pchar(s),Length(s));
       s := s + IntToHex(ObjView[i].CRC,4)+ ';';  // контрольная сумма строки
@@ -927,10 +937,10 @@ begin
              IntToStr(ObjUprav[i].Box.Top)+ ':'+
              IntToStr(ObjUprav[i].Box.Right)+ ':'+
              IntToStr(ObjUprav[i].Box.Bottom)+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[1])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[2])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[3])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[4])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[1])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[2])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[3])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[4])+ ';'+
              ObjUprav[i].Hint+ ';';
         ObjUprav[i].CRC := CalculateCRC16(pchar(s),Length(s));
         s := s + IntToHex(ObjUprav[i].CRC,4)+ ';';  // контрольная сумма строки
@@ -953,10 +963,10 @@ begin
              IntToStr(ObjUprav[i].Box.Top)+ ':'+
              IntToStr(ObjUprav[i].Box.Right)+ ':'+
              IntToStr(ObjUprav[i].Box.Bottom)+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[1])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[2])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[3])+ ';'+
-             IntToStr(ObjUprav[i].Neighbour[4])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[1])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[2])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[3])+ ';'+
+             IntToStr(ObjUprav[i].Sosed[4])+ ';'+
              ObjUprav[i].Hint+ ';';
         ObjUprav[i].CRC := CalculateCRC16(pchar(s),Length(s));
         s := s + IntToHex(ObjUprav[i].CRC,4)+ ';';  // контрольная сумма строки
@@ -1094,7 +1104,6 @@ begin
     sl11.Add('[ou]'); j := 1;
     for i := 1 to High(hdrOU) do
       if hdrOU[i] <> '' then begin sl11.Add('f'+ IntToStr(j)+ '='+ hdrOU[i]); inc(j); end;
-
 
     sl11.Add('');
     sl11.Add('[ru]');

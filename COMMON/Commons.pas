@@ -1,85 +1,52 @@
 unit Commons;
+
 //========================================================================================
 //-------------------------------------------------  общеупотребимые процедуры и константы
 {$INCLUDE d:\Sapr2012\CfgProject}
 interface
 
 uses
-  Windows,
-  Forms,
-  SysUtils,
-  Graphics;
+  Windows,    Forms,  SysUtils,  Graphics;
 
-{$IFDEF RMARC}
-procedure ArcMsg(Obj : integer; Msg : SmallInt; Offset : Integer);
-{$ENDIF}
+{$IFDEF RMARC} procedure ArcMsg(Obj : integer; Msg : SmallInt; Offset : Integer); {$ENDIF}
 
-procedure ReportF(Rep : string); //-------------------- сохранить строку в файле протокола
-function GetColor1(param : SmallInt) : TColor; external 'MyDLL1';
+procedure RepF(Rep : string); //-------------------- сохранить строку в файле протокола
+procedure ResetCommands; //------------------------------------ сброс всех активных команд
+function GetColor1(param : SmallInt) : TColor;
 function IsTestMode : Boolean;
-function GetShortMsg(nlex, index : integer; arg : string; cvt : integer) : string;
-procedure ShowShortMsg(index, x, y : integer; arg : string);
-//------------------------------------- PutShortMsg(clr-цвет; x, y-координаты;  msg-текст)
-procedure PutShortMsg(clr, x, y : integer; msg : string);
-procedure ResetShortMsg;
-procedure InsArcNewMsg(Obj : Integer; Msg,cvt : SmallInt);
-procedure AddFixMessage(msg : string; color : SmallInt; alarm : SmallInt);
+function GetSMsg(nlex, index : integer; arg : string; cvt : integer) : string;
+function findchar(var index: integer;const s: string;const c: char): boolean;
+function getbool(var index: integer;const s: string;var p: boolean): boolean;
+function getbyte(var index: integer;const s: string;var p: Byte): boolean;
+function getcrc16(var index: integer;const s: string;var p: Word): boolean;
+function getcrc32(var index: integer;const s: string;var p: integer): boolean;
+function getcrc8(var index: integer;const s: string;var p: Byte): boolean;
+function getinteger(var index: integer;const s: string;var p: integer): boolean;
+function getsmallint(var index: integer;const s: string;var p: smallInt): boolean;
+function getstring(var index: integer;const s: string;var p: string): boolean;
+function getword(var index: integer;const s: string;var p: Word): boolean;
+function skipchar(var index: integer; const s: string; const c: char): boolean;
+
+//------------------------------------- PutSMsg(clr-цвет; x, y-координаты;  msg-текст)
+procedure ShowSMsg(index, x, y : integer; arg : string);
+procedure PutSMsg (clr,   x, y : integer; msg : string);
+procedure RSTMsg;
+procedure InsNewMsg(Obj : Integer; Msg,cvt : SmallInt;datch:string);
+procedure AddFixMes(msg1 : string; color1 : SmallInt; alarm : SmallInt);
 procedure ResetFixMessage;
 procedure SetLockHint;
 procedure SimpleBeep;
 procedure UnLockHint;
 procedure SetParamTablo; //----- Установить параметры табло для текущего района управления
-function  GetNameObjZav(Index : SmallInt) : string;
+function GetNameObj(Index : SmallInt) : string;
 function GetFR3(const param : Word; var nep, ready : Boolean) : Boolean;
 function GetFR4State(param : Word) : Boolean;
 function GetFR5(param : Word) : Byte;
 
 
-{$IFNDEF RMARC}
-procedure InsNewArmCmd(Obj,Cmd : Word); //------------------ добавить команду меню в архив
-{$ENDIF}
-//---------------------------------------------------------- Определение цветов для РМ-ДСП
-const
-  //             blue         green      red
-  armcolor1  =   0 * 65536 +   0 * 256 + 255;  //----------------------- lt red = 0x0000FF
-  armcolor2  =   0 * 65536 + 255 * 256 +   0;  //--------------------- lt green = 0x00FF00
-  armcolor3  = 255 * 65536 +   0 * 256 +   0;  //-----------------------lt blue = 0xFF0000
-  armcolor4  =   0 * 65536 +   0 * 256 + 191;  //-------------------------- red = 0x0000BF
-  armcolor5  =   0 * 65536 + 191 * 256 +   0;   //----------------------- green = 0x00BF00
-  armcolor6  = 191 * 65536 +   0 * 256 +   0;   //------------------------ blue = 0xBF0000
-  armcolor7  =   0 * 65536 + 255 * 256 + 255; //------------------------ желтый = 0x00FFFF
-  armcolor8  = 127 * 65536 + 127 * 256 + 127; //---------------------------gray = 0x7F7F7F
-  armcolor9  = 255 * 65536 + 255 * 256 + 255; //------------------------- белый = 0xFFFFFF
-  armcolor10 = 255 * 65536 +   0 * 256 + 127; //----------------------- magenta = 0xFF007F
-  armcolor11 = 255 * 65536 +   0 * 256 + 255; //-------------------- lt magenta = 0xFF00FF
-  armcolor12 =  95 * 65536 +  95 * 256 +  95; //----------- черный (нет данных) = 0x5F5F5F
-  armcolor13 =   1 * 65536 + 135 * 256 + 205; //------------------------- brown = 0x0187CD
-  armcolor14 = 255 * 65536 + 255 * 256 +   0;  //---------- циан (непарафазный) = 0xFFFF00
-{$IFDEF RMARC}
-  armcolor15 = 160 * 65536 + 196 * 256 + 196;//--------------------- фон архива = 0xA0C4C4
-{$ELSE}
- armcolor15 = 191 * 65536 + 191 * 256 + 191;  //--------------------------- фон = 0xBFBFBF
-{$ENDIF}
-  armcolor16 = 239 * 65536 + 239 * 256 + 239; //------------------------------- = 0xEFEFEF
-  armcolor17 =  63 * 65536 +  63 * 256 +  63; //------------------------------- = 0x3F3F3F
-  armcolor18 = 205 * 65536 + 205 * 256 + 205; //------------------------------- = 0xEFEFEF
-  armcolor19 = 209 * 65536 + 209 * 256 + 209; //------------------------------- = 0xCDCDCD
-
-  armcolor25 =   0 * 65536 + 16 * 256 + 128;//-------- цвет для синего мигнания = 0x001080
-  armcolor26 =   0 * 65536 + 32 * 256 + 128;//-------- цвет для белого мигнания = 0x002080
-  armcolor27 =   0 * 65536 + 48 * 256 + 128;//------- цвет для желтого мигнания = 0x003080
-  armcolor28 =   0 * 65536 + 64 * 256 + 128;//------ цвет для красного мигнания = 0x004080
-  armcolor29 =   0 * 65536 + 80 * 256 + 128;//------ цвет для зеленого мигнания = 0x005080
-  armcolor30 = 240 * 65536 + 96 * 256 + 128; //-- цвет восклицательного(логика) = 0x006080
-
-  bkgndcolor  = armcolor15; //-------------------------------------------------- фон табло
-  focuscolor  = armcolor19; //------------------- фон выделенной строки в списке сообщений
-  snsidecolor = armcolor16; //----------------------------------------- освещенная сторона
-  dksidecolor = armcolor17; //-------------------------------------------- теневая сторона
-  bkkeycolor  = armcolor18; //------------------------------------------------- фон кнопки
+{$IFNDEF RMARC} procedure InsNewArmCmd(Obj, Cmd : Word); {команду меню в архив} {$ENDIF}
 var
-
-t : string;
+  t : string;
 implementation
 uses
 {$IFDEF TABLO}
@@ -87,7 +54,7 @@ uses
 {$ENDIF}
 
 {$IFDEF RMDSP}
-  TabloForm,
+  TabloDSP,
 {$ENDIF}
 
 {$IFNDEF TABLO}
@@ -106,7 +73,7 @@ uses
 {$ENDIF}
 
 {$IFDEF RMDSP}
-  KanalArmSrv,
+  KanalArmSrvDSP,
 {$ENDIF}
 
 {$IFDEF RMSHN}
@@ -123,68 +90,68 @@ begin
 {$IFDEF RMDSP}
   //shiftscr := 0;
   isChengeRegion := true;
-  TabloMain.Height := configRU[config.ru].Tablo_Size.Y;
-  TabloMain.Width  := configRU[config.ru].Tablo_Size.X;
+  TabloMain.Height := configRU[config.ru].T_S.Y;
+  TabloMain.Width  := configRU[config.ru].T_S.X;
   isChengeRegion := false;
 
-  Tablo1.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo1.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo1.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo1.Width   := configRU[config.ru].T_S.X;
 
-  Tablo2.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo2.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo2.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo2.Width   := configRU[config.ru].T_S.X;
   if not StartRM
-  then AddFixMessage(GetShortMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),7),0,2);
+  then AddFixMes(GetSMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),7),0,2);
 {$ENDIF}
 
 {$IFDEF RMARC}
   //shiftscr := 0;
   isChengeRegion := true;
-  TabloMain.Height := configRU[config.ru].Tablo_Size.Y;
-  TabloMain.Width  := configRU[config.ru].Tablo_Size.X;
+  TabloMain.Height := configRU[config.ru].T_S.Y;
+  TabloMain.Width  := configRU[config.ru].T_S.X;
   isChengeRegion := false;
 
-  Tablo1.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo1.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo1.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo1.Width   := configRU[config.ru].T_S.X;
 
-  Tablo2.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo2.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo2.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo2.Width   := configRU[config.ru].T_S.X;
   if not StartRM
-  then AddFixMessage(GetShortMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),0),0,2);
+  then AddFixMes(GetSMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),0),0,2);
 {$ENDIF}
 
 {$IFDEF RMSHN}
   //shiftscr := 0;
   isChengeRegion := true;
-  TabloMain.Height := configRU[config.ru].Tablo_Size.Y;
-  TabloMain.Width  := configRU[config.ru].Tablo_Size.X;
+  TabloMain.Height := configRU[config.ru].T_S.Y;
+  TabloMain.Width  := configRU[config.ru].T_S.X;
   //isChengeRegion := false;
 
-  Tablo1.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo1.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo1.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo1.Width   := configRU[config.ru].T_S.X;
 
-  Tablo2.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo2.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo2.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo2.Width   := configRU[config.ru].T_S.X;
   if not StartRM
-  then AddFixMessage(GetShortMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),0),0,2);
+  then AddFixMes(GetSMsg(1,275,'ДСПЦ'+ IntToStr(config.ru),0),0,2);
 {$ENDIF}
 
 {$IFDEF TABLO}
-  TabloMain.Tablo.Height := configRU[config.ru].Tablo_Size.Y;
-  TabloMain.Tablo.Width  := configRU[config.ru].Tablo_Size.X;
-  Tablo1.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo1.Width   := configRU[config.ru].Tablo_Size.X;
+  TabloMain.Tablo.Height := configRU[config.ru].T_S.Y;
+  TabloMain.Tablo.Width  := configRU[config.ru].T_S.X;
+  Tablo1.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo1.Width   := configRU[config.ru].T_S.X;
 
-  Tablo2.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo2.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo2.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo2.Width   := configRU[config.ru].T_S.X;
 {$ENDIF}
 
 {$IFDEF RMARC}
 //  shiftxscr := 0; shiftyscr := 0;
-  Tablo1.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo1.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo1.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo1.Width   := configRU[config.ru].T_S.X;
 
-  Tablo2.Height  := configRU[config.ru].Tablo_Size.Y-15;
-  Tablo2.Width   := configRU[config.ru].Tablo_Size.X;
+  Tablo2.Height  := configRU[config.ru].T_S.Y-15;
+  Tablo2.Width   := configRU[config.ru].T_S.X;
 {$ENDIF}
 end;
 //========================================================================================
@@ -199,7 +166,7 @@ end;
 procedure UnLockHint;
 begin
 {$IFNDEF RMARC}
-  LockHint := false; LastMove := Date+Time;
+  LockHint := false; LastMove := Date + Time;
 {$ENDIF}
 end;
 
@@ -210,125 +177,102 @@ begin
   IsTestMode := (asTestMode = $AA);
 end;
 //========================================================================================
-//------------------------------------------------------- Добавить в архив новое сообщение
-procedure InsArcNewMsg(Obj : integer ;Msg,Cvt : SmallInt);
-{$IFNDEF RMARC}
-{$IFNDEF TABLO}
+//------------------------------------------------- Добавить в Мемо - окна новое сообщение
+procedure InsNewMsg(Obj: integer; Msg,Cvt: SmallInt; datch : String);
+{$IFNDEF RMARC}{$IFNDEF TABLO}
 var
   ss : string;
   bh, bl : Byte;
   k,m : Integer;
-{$ENDIF}
-{$ENDIF}
+{$ENDIF}{$ENDIF}
 begin
   //------------------------------------------------------------ Дополнить буфер сообщений
-  {$IFNDEF RMARC}
-  {$IFNDEF TABLO}
-  bh := Obj div $100;
-  bl := Obj - (bh * $100);
+  {$IFNDEF RMARC} {$IFNDEF TABLO}
+  bh:=Obj div $100; bl:=Obj-(bh*$100); NewMsg:=NewMsg+chr(bl)+chr(bh);
+  bh:=Msg div $100; bl:=Msg-(bh*$100); NewMsg:=NewMsg+chr(bl)+chr(bh);
 
-  NewMsg := NewMsg + chr(bl) + chr(bh);
-
-  bh := Msg div $100;
-  bl := Msg - (bh * $100);
-  NewMsg := NewMsg + chr(bl) + chr(bh);
-
-  if Msg = $3001 then
+  if Msg=$3001 then
   begin
-    ss := 'Зафиксирована неисправность входного интерфейса '+ IntToStr(Obj);
-    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);
-    ss := t + ' > '+ ss;
+    ss := 'Неисправность входного интерфейса '+ IntToStr(Obj); //------------------ объект
+    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime); ss := t + ' > '+ ss;
   end else
   if Msg = $3010 then
   begin
-      ss := 'Зафиксирована неисправность входного интерфейса '+  LinkFR[Obj].Name;
-    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);
-    ss := t + ' > '+ ss;
+    ss := 'Неисправность входного интерфейса '+  LinkFR[Obj].Name;//------------------ бит
+    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime); ss := t + ' > '+ ss;
   end else
   if Msg = $3002 then
   begin
-    ss := 'Зафиксировано восстановление входного интерфейса '+  IntToStr(Obj);
-    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);
-    ss := t + ' > '+ ss;
+    ss := 'Восстановление входного интерфейса '+  IntToStr(Obj);
+    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime); ss := t + ' > '+ ss;
   end
-
   else
   //- Сообщения диагностики УВК не дублировать (выводятся в процедуре обработки состояний)
   if (Msg >= $3003) and (Msg <= $3007) then exit
-
   else  //-------------------- поместить сообщение в буфер неисправностей и предупреждений
   if Msg >= 0 then
   begin
-    k := Msg and $0c00;
-    m := Msg and $03ff;
+    k := Msg and $0c00;  m := Msg and $03ff;
+    with ObjZv[Obj] do
     case k of
       $400 :
       begin //------------------------------------------------------ текст берется из LEX2
-        if (ObjZav[Obj].TypeObj = 33) or (ObjZav[Obj].TypeObj = 36) then ss := MsgList[m]
-        else ss := GetShortMsg(2,m,ObjZav[Obj].Liter,Cvt);
+        if (TypeObj=33) or (TypeObj=36) then ss:=MsgList[m]
+        else ss := GetSMsg(2,m,Liter,Cvt);
       end;
 
-      $800 : begin //-------------------------------------------------------- тект из LEX3
-        if (ObjZav[Obj].TypeObj = 33) or (ObjZav[Obj].TypeObj = 36) then ss := MsgList[m]
-        else ss := GetShortMsg(3,m,ObjZav[Obj].Liter,Cvt);
+      $800 :
+      begin //--------------------------------------------------------------- тект из LEX3
+        if (TypeObj=33) or (TypeObj=36) then ss:=MsgList[m]
+        else ss:=GetSMsg(3,m,Liter,Cvt);
       end;
 
-    else //------------------------------------------------------------------------ из LEX
-        if (ObjZav[Obj].TypeObj = 33) or //--------------------- дискретный датчик или ...
-        (ObjZav[Obj].TypeObj = 36) or    //-------------------- кнопка с датчиками или ...
-        (ObjZav[Obj].TypeObj = 51)        //------------------------------ сборка датчиков
-        then ss := MsgList[m]
-        else ss := GetShortMsg(1,m,ObjZav[Obj].Liter,Cvt);
+      else //---------------------------------------------------------------- текст из LEX
+        //---- дискретный датчик, доступ к параметрам, кнопка с датчиками, сборка датчиков
+        if(TypeObj=33) or (TypeObj=35) or (TypeObj=36) or (TypeObj=51) then ss:=MsgList[m]
+        else ss := GetSMsg(1,m,Liter,Cvt);
     end;
     DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);
-    ss := t + ' > '+ ss;
+    ss := t + ' > '+ ss + ' ' + datch;
   end;
 
   if ss <> '' then
   begin
     if (Msg < $3000) or (Msg >= $4000) then
     begin //------------------------ предупреждения и сообщения о неисправностях устройств
-      ListMessages := ss + #13#10 + ListMessages;
-      newListMessages := true;
+      ListMessages := ss + #13#10 + ListMessages;  newListMessages := true;
+
       if Length(ListMessages) > 200000 then
       begin //----------------------------- отрезать хвост если строка длиннее допустимого
-        k := 199000;
-        SetLength(ListMessages,k);
+        k := 199000; SetLength(ListMessages,k);
         while (k > 0) and (ListMessages[k] <> #10) do dec(k);
         SetLength(ListMessages,k);
       end;
+
       if (Msg > $1000) and (Msg < $2000) then
       begin //-------------------------------- поместить в список неисправностей устройств
-        LstNN := ss + #13#10 + LstNN;
-        newListNeisprav := true;
+        LstNN := ss + #13#10 + LstNN;  newListNeisprav := true;
         if Length(LstNN) > 200000 then
         begin //--------------------------- отрезать хвост если строка длиннее допустимого
-          k := 199000;
-          SetLength(LstNN,k);
+          k := 199000; SetLength(LstNN,k);
           while (k > 0) and (LstNN[k] <> #10) do dec(k);
           SetLength(LstNN,k);
         end;
       end;
     end else
     begin //------------------------------------------------ диагностические сообщения УВК
-      ListDiagnoz := ss + #13#10 + ListDiagnoz;
-      newListDiagnoz := true;
-      SingleBeep4 := true;
+      ListDiagnoz := ss + #13#10 + ListDiagnoz; newListDiagnoz := true; SBeep[4] := true;
       if Length(ListDiagnoz) > 200000 then
       begin //----------------------------- отрезать хвост если строка длиннее допустимого
-        k := 199000;
-        SetLength(ListDiagnoz,k);
+        k := 199000;  SetLength(ListDiagnoz,k);
         while (k > 0) and (ListDiagnoz[k] <> #10) do dec(k);
         SetLength(ListDiagnoz,k);
       end;
     end;
     NewNeisprav := true; //------------- Зафиксирована новая неисправность, предупреждение
-  {$IFDEF ARMSN}
-    rifreshMsg := false; //-------------------------- Требование обновить списки сообщений
-  {$endif}
+  {$IFDEF ARMSN} rifreshMsg := false; {$endif} //---- Требование обновить списки сообщений
   end;
-{$ENDIF}
-{$ENDIF}
+{$ENDIF}{$ENDIF}
 end;
 //========================================================================================
 {$IFDEF RMARC}
@@ -337,57 +281,38 @@ var
   k,m : Integer;
   s,t : string;
 begin
-  if Msg = 273 then
+  if Msg = 273 then //-------------------------- "РМДСП переведен в управляющее состояние"
   begin
-    WorkMode.Upravlenie := true;
-    StateRU := StateRU or $80;
-    DirState[1] := DirState[1] or $80;
+    WorkMode.Upravlenie:= true; StateRU:= StateRU or $80; DirState[1]:=DirState[1] or $80;
   end;
 
-  if Msg = 274 then
+  if Msg = 274 then     //------------------------------------- "РМДСП переведен в резерв"
   begin
-    WorkMode.Upravlenie := false;
-    StateRU := StateRU and $7F;
-    DirState[1] := DirState[1] and $7f;
+    WorkMode.Upravlenie:=false; StateRU:=StateRU and $7F;DirState[1]:=DirState[1] and $7f;
   end;
 
-  if Msg = $3001 then
+  if Msg=$3001 then s:='Неисправность входного интерфейса '+IntToStr(Obj) else// № объекта
+  if Msg = $3010 then
   begin
-    s := 'Зафиксирована неисправность входного интерфейса '+ IntToStr(Obj);
+    s := 'Неисправность входного интерфейса '+ LinkFR[Obj].Name; //-------------- имя бита
+    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);  s := t + ' > '+ s //- дата и время
   end else
-   if Msg = $3010 then
+  if Msg = $3002 then s := 'Восстановление входного интерфейса '+ IntToStr(Obj) else //- №
+  if (Msg >= $3003) and (Msg <= $3006) then exit else //Диагностика УВК выводится не здесь
+  if (Msg > $3006) and (Msg < $4000) then //------------ сообщещние из строк файла LEX.sdb
   begin
-    s := 'Зафиксирована неисправность входного интерфейса '+ LinkFR[Obj].Name;
-    DateTimeToString(t,'dd-mm-yy hh:nn:ss', LastTime);
-    s := t + ' > '+ s
-  end else
-  if Msg = $3002 then
-  begin
-    s := 'Зафиксировано восстановление входного интерфейса '+ IntToStr(Obj);
-  end else
-  if (Msg >= $3003) and (Msg <= $3006) then
-  // Сообщения диагностики УВК не дублировать (выводятся в процедуре обработки состояний)
-  begin
-    exit;
-  end else
-  if (Msg > $3006) and (Msg < $4000) then
-  begin // LEX
     m := Msg and $03ff;
-    if (Obj > 0) and (Obj < 4096) then
-    begin
-      s := GetShortMsg(1,m,ObjZav[Obj].Liter,0);
-    end else
-      s := GetShortMsg(1,m,'',0);
+    if (Obj > 0) and (Obj < 4096) then s := GetSMsg(1,m,ObjZv[Obj].Liter,0) //добавить имя
+    else s := GetSMsg(1,m,'',0); //------------------------------------- без имени объекта
   end;
 
   //-------------------------- поместить сообщение в буфер неисправностей и предупреждений
   if Length(LstNN) > 200000 then
-  begin //--------------------------------- отрезать хвост если строка длиннее допустимого
-    k := 199000;
-    SetLength(LstNN,k);
-    while (k > 0) and (LstNN[k] <> #10) do dec(k);
+  begin //-------------------------------- отрезать хвост, если строка длиннее допустимого
+    k := 199000; SetLength(LstNN,k); while (k > 0) and (LstNN[k] <> #10) do dec(k);
     SetLength(LstNN,k);
   end;
+
   if (Msg >= 0) and (Msg < $3000) then
   begin
     k := Msg and $0c00;
@@ -397,36 +322,29 @@ begin
       begin //----------------------------------------------------------------------- LEX2
         if (Obj > 0) and (Obj < 4096) then
         begin
-          if (ObjZav[Obj].TypeObj = 33) or
-          (ObjZav[Obj].TypeObj = 36)  or
-          (ObjZav[Obj].TypeObj = 51)
-          then s := MsgList[m]
-          else s := GetShortMsg(2,m,ObjZav[Obj].Liter,0);
-        end
-        else s := GetShortMsg(2,m,'',0);
+          if(ObjZv[Obj].TypeObj=33) or (ObjZv[Obj].TypeObj=36) or (ObjZv[Obj].TypeObj=51)
+          then s := MsgList[m] else s := GetSMsg(2,m,ObjZv[Obj].Liter,0);
+        end else s := GetSMsg(2,m,'',0);
       end;
 
       $800 :
       begin //----------------------------------------------------------------------- LEX3
         if (Obj > 0) and (Obj < 4096) then
         begin
-          if (ObjZav[Obj].TypeObj = 33) or (ObjZav[Obj].TypeObj = 36)
-          then s := MsgList[m]
-          else s := GetShortMsg(3,m,ObjZav[Obj].Liter,0);
-        end
-        else s := GetShortMsg(3,m,'',0);
+          if (ObjZv[Obj].TypeObj = 33) or (ObjZv[Obj].TypeObj = 36)
+          then s := MsgList[m] else s := GetSMsg(3,m,ObjZv[Obj].Liter,0);
+        end else s := GetSMsg(3,m,'',0);
       end;
 
       else //------------------------------------------------------------------------- LEX
       if (Obj > 0) and (Obj < 4096) then
       begin
-        if (ObjZav[Obj].TypeObj = 33) or
-        (ObjZav[Obj].TypeObj = 36) or
-        (ObjZav[Obj].TypeObj = 51)
+        if (ObjZv[Obj].TypeObj=33) or (ObjZv[Obj].TypeObj=36) or (ObjZv[Obj].TypeObj=51)
         then s := MsgList[m]
-        else s := GetShortMsg(1,m,ObjZav[Obj].Liter,0);
-      end else
-      s := GetShortMsg(1,m,'',0);
+        else
+        if m = 581 then s := GetSMsg(1,m,LinkFr[Obj].Name,0)
+        else s := GetSMsg(1,m,ObjZv[Obj].Liter,0);
+      end else  s := GetSMsg(1,m,'',0);
     end;
   end else
   if Msg < $1000 then
@@ -434,26 +352,18 @@ begin
     m := Msg and $03ff;
     if (Obj > 0) and (Obj < 4096) then
     begin
-      if (ObjZav[Obj].TypeObj = 33) or
-      (ObjZav[Obj].TypeObj = 36) or
-      (ObjZav[Obj].TypeObj = 51)
-      then s := MsgList[m]
-      else s := GetShortMsg(1,m,ObjZav[Obj].Liter,0);
-    end
-    else s := GetShortMsg(1,m,'',0);
+      if (ObjZv[Obj].TypeObj=33) or (ObjZv[Obj].TypeObj=36) or (ObjZv[Obj].TypeObj=51)
+      then s := MsgList[m] else s := GetSMsg(1,m,ObjZv[Obj].Liter,0);
+    end  else s := GetSMsg(1,m,'',0);
   end else
   if (Msg >= $4000) and (Msg < $5000) then
   begin //----------------- LEX - диалог с оператором, меню, запросы, подтверждение команд
     m := Msg and $03ff;
     if (Obj > 0) and (Obj < 4096) then
     begin
-      if (ObjZav[Obj].TypeObj = 33)
-      or (ObjZav[Obj].TypeObj = 36)
-      or (ObjZav[Obj].TypeObj = 51)
-      then s := MsgList[m]
-      else s := GetShortMsg(1,m,ObjZav[Obj].Liter,0);
-    end
-    else s := GetShortMsg(1,m,'',0);
+      if (ObjZv[Obj].TypeObj=33)  or (ObjZv[Obj].TypeObj=36) or (ObjZv[Obj].TypeObj = 51)
+      then s := MsgList[m] else s := GetSMsg(1,m,ObjZv[Obj].Liter,0);
+    end else s := GetSMsg(1,m,'',0);
   end;
 
   if (Msg >= $5000) and (Msg < $6000) then
@@ -461,168 +371,115 @@ begin
     m := Msg and $03ff;
     if (Obj > 0) and (Obj < 4096) then
     begin
-      if (ObjZav[Obj].TypeObj = 33)
-      or (ObjZav[Obj].TypeObj = 36)
-      or (ObjZav[Obj].TypeObj = 51)
-      then s := MsgList[m]
-      else s := GetShortMsg(1,m,ObjZav[Obj].Liter,0);
-    end
-    else s := GetShortMsg(1,m,'',0);
+      if(ObjZv[Obj].TypeObj=33) or (ObjZv[Obj].TypeObj=36) or (ObjZv[Obj].TypeObj=51)
+      then s := MsgList[m] else s := GetSMsg(1,m,ObjZv[Obj].Liter,0);
+    end else s := GetSMsg(1,m,'',0);
   end;
 
   if s <> '' then
   begin
     if LastFixed < Offset then
     begin
-      DateTimeToString(t,'dd-mm-yy hh:nn:ss', DTFrameOffset);
-      s := t + ' > '+ s;
+      DateTimeToString(t,'dd-mm-yy hh:nn:ss', DTFrameOffset);  s := t + ' > '+ s;
       if (Msg < $3000) or (Msg >= $4000) then
       begin //------- предупреждения и сообщения о неисправностях устройств, меню, запросы
         LstNN := s + #13#10 + LstNN;
         if (Msg > $1000) and (Msg < $2000) then SndNewWar := true;
-      end else
-      begin //---------------------------------------------- диагностические сообщения УВК
-        ListDiagnoz := s + #13#10 + ListDiagnoz;
-        SndNewUvk := true;
-      end;
+      end else //------------------------------------------- диагностические сообщения УВК
+      begin ListDiagnoz := s + #13#10 + ListDiagnoz;  SndNewUvk := true;  end;
       NewNeisprav := true; //--- Зафиксирована новая неисправность, предупреждение, запрос
     end;
   end;
 end;
 {$ENDIF}
 
-//{$IFDEF RMDSP}
 //========================================================================================
-//------------------------------------------------------------- Вывести короткое сообщение
-procedure ShowShortMsg(index, x, y : integer; arg : string);
+//-------------------------- Формирует короткое сообщение и готовит цвет для нижней строки
+procedure ShowSMsg(index, x, y : integer; arg : string);
 var
   i,j : integer;
   c : TColor;
-{$IFNDEF RMDSP}  t : string;{$ENDIF}
 begin
-  if (index < 1) or (index > Length(Lex))
-  then begin s := 'Ошибочный индекс короткого сообщения.';  c := armcolor1; end
-  else
+  if (index < 1) or (index > High(Lex))
+  then begin s := 'Ошибка индекса короткого сообщения.';  c := ACVT1; end  else
   begin
     s := Lex[index].msg; t := '';
-    for i := 1 to Length(s) do
-    begin
-      if s[i] = '$' then t := t + arg
-      else t := t + s[i];
-    end;
+    for i:= 1 to Length(s) do begin if s[i]='$' then t:= t + arg else t:= t + s[i]; end;
     c := Lex[index].Color;
   end;
   SetLockHint;
   j := x div configRU[config.ru].MonSize.X + 1; //---------------------- Найти номер табло
-  for i := 1 to 4 do
-  begin
-    if i = j
-    then shortMsg[i] := t
-    else shortMsg[i] := '';
-  end;
-  if (c = armcolor1) or (c = armcolor4) then SingleBeep := true;
-  //shortmsgcolor[1] := c;
+  for i := 1 to 4 do begin  if i = j  then sMsg[i] := t  else sMsg[i] := ''; end;
+  if (c = ACVT1) or (c = ACVT4) then SBeep[1]:= true;
+  sMsgCvet[1] := c;
 end;
-//{$ENDIF}
+
 //========================================================================================
-//----------------------------------- получить строку сообщения из списков Lex, Lex2, Lex3
-function GetShortMsg(nlex, index : integer; arg : string; Cvt : Integer) : string;
+//--------------------------------- возвращает строку сообщения из списков Lex, Lex2, Lex3
+function GetSMsg(nlex, index : integer; arg : string; Cvt : Integer) : string;
+//--------------------------------------------------------- nlex - индекс файла сообощений
+//----------------------------------------------------------- index - номер строки в файле
+//------------------ arg - текстовый литерал, добавляемый к сообщению (обычно имя объекта)
+//--------------- Cvt - назначаемый цвет для первого цвета из массива  sMsgCvet[1..4]
 var
   i,cvet : integer;
 begin
   cvet := 0;
+  result := '';
   case nlex of //---------------------------------------------------- чтение из списка LEX
     1 :
-    begin
-      if (index < 1) or (index > High(Lex))
-      then s := 'Ошибочный № сообщения.'
-      else
-      begin
-        s := Lex[index].msg;
-        cvet := Lex[index].Color;
-        result := '';
-        for i := 1 to Length(s) do
-        if s[i] = '$'
-        then result := result + arg
-        else result := result + s[i];
-      end;
-    end;
+    if (index < 1) or (index > High(Lex)) then s := 'Ошибочный № сообщения.'  else
+    begin s:= Lex[index].msg; cvet:= Lex[index].Color; result:= '';  end;
 
     2 :  //--------------------------------------------------------- чтение из списка LEX2
-    begin
-      if (index < 1) or (index > Length(Lex2))then s := 'Ошибочный № сообщения.'
-      else
-      begin
-        s := Lex2[index].msg;
-        cvet := Lex[index].Color;
-        result := '';
-        for i := 1 to Length(s) do
-        begin
-          if s[i] = '$'
-          then result := result + arg
-          else result := result + s[i];
-        end;
-      end;
-    end;
+    if (index < 1) or (index > Length(Lex2))then s:= 'Ошибочный № сообщения.' else
+    begin s:= Lex2[index].msg;  cvet:= Lex[index].Color;  result:= ''; end;
 
     3 :  //--------------------------------------------------------- чтение из списка LEX3
-    begin
-      if (index < 1) or (index > Length(Lex3)) then s := 'Ошибочный № сообщения.'
-      else
-      begin
-        s := Lex3[index].msg;
-        cvet := Lex[index].Color;
-        result := '';
-        for i := 1 to Length(s) do
-        begin
-          if s[i] = '$'
-          then result := result + arg
-          else result := result + s[i];
-        end;
-      end;
-    end;
+    if (index < 1) or (index > Length(Lex3)) then s := 'Ошибочный № сообщения.'  else
+    begin  s := Lex3[index].msg;  cvet := Lex[index].Color;   result := ''; end;
   end;
-  if not WorkMode.Upravlenie and (index <> 76)then cvt := 0
-  else
+
+  for i:= 1 to Length(s) do if s[i]='$' then result:=result+arg else result:=result+s[i];
+
+
+  if not WorkMode.Upravlenie and (index <> 76)then cvt := 0 else
   begin
-    if (cvet = armcolor1) or (cvet = armcolor4) then  SingleBeep := true;
-    if cvt = 1 then cvt := ArmColor1;
-    if cvt = 2 then cvt := ArmColor2;
-    if cvt = 7 then cvt := ArmColor7;
-    if cvt<> 0 then shortmsgcolor[1] := cvt;
+    if (cvet = ACVT1) or (cvet = ACVT4) then SBeep[1]:= true;
+    if cvt = 1 then cvt := ACVT1 else
+    if cvt = 2 then cvt := ACVT2 else
+    if cvt = 7 then cvt := ACVT7;
+    if cvt<> 0 then sMsgCvet[1] := cvt;
   end;
 end;
 
-//------------------------------------------------------------------------------
-// Вывести сообщение на экран
-procedure PutShortMsg(clr, x, y : integer; Msg : string);
+//----------------------------------------------------------------------------------------
+//------------------------------------------------------- подготовить сообщение для экрана
+procedure PutSMsg(clr, x, y : integer; Msg : string);
 {$IFDEF RMDSP}  var i,j : integer; {$ENDIF}
 begin
 {$IFDEF RMDSP}
-  j := x div configRU[config.ru].MonSize.X + 1; //---------------------- Найти номер табло
+  j := x div configRU[config.ru].MonSize.X + 1; //--------------------- Найти номер экрана
   SetLockHint;
   for i := 1 to 4 do
   begin
-    if i = j then
+    if i = j then  //------------------------------------- если найден экран для сообщения
     begin
-      shortMsg[i] := Msg;
-      if not WorkMode.Upravlenie then shortMsgColor[i]  := 0
-      else shortMsgColor[i] := GetColor1(clr);
-    end
-    else shortMsg[i] := '';
+      sMsg[i]:= Msg;
+      if not WorkMode.Upravlenie then sMsgCvet[i] := 0 else sMsgCvet[i] := GetColor1(clr);
+    end else sMsg[i] := ''; //------------------------ для прочих экранов сообщения убрать
   end;
-
 {$ENDIF}
 end;
 //========================================================================================
 //----------------------------------------------------- сохранить строку в файле протокола
-procedure ReportF(Rep : string);
+procedure RepF(Rep : string);
 var
   hfile,hnbw: cardinal;
   fp: longword;
 begin
   repl := rep + #13#10;
-  hfile := CreateFile(PChar(ReportFileName),
+  hfile := CreateFile(PChar(RepFileName),
                       GENERIC_WRITE,
                       0,
                       nil,
@@ -639,53 +496,31 @@ begin
     CloseHandle(hfile);
   end;
 end;
-
-//{$IFDEF RMDSP}
 //========================================================================================
 //----------------------------------------------------- Сбросить короткие сообщения РМ-ДСП
-procedure ResetShortMsg;
+procedure RSTMsg;
 var i : integer;
 begin
-  ShowWarning := false;
-  for i := 1 to Length(ShortMsg) do ShortMsg[i] := '';
+  ShowWarning := false; for i := 1 to High(SMsg) do sMsg[i] := '';
 end;
-//{$ENDIF}
+
 //========================================================================================
-//----------------------------------------------- Добавить строку к фиксируемым сообщениям
-procedure AddFixMessage(msg : string; color : SmallInt; alarm : SmallInt);
+//------- Добавить строку к фиксируемым сообщениям, выводимым в правом верхнем углу экрана
+procedure AddFixMes(msg1: string; color1: SmallInt; alarm: SmallInt);
 {$IFDEF RMDSP}  var i : integer; {$ENDIF}
 begin
-{$IFDEF RMDSP}
-  //if WorkMode.Upravlenie then
-  //begin //--------------------------------- фиксируем сообщения если включено управление
-    DateTimeToString(s,'hh:mm:ss',LastTime);
-    if FixMessage.Count > 0 then
-    begin
-      for i := High(FixMessage.Msg) downto 2 do
-      begin
-        FixMessage.Msg[i] := FixMessage.Msg[i-1];
-        FixMessage.Color[i] := FixMessage.Color[i-1];
-      end;
-    end;
-    FixMessage.Msg[1] := s + ' > ' + msg;
-    FixMessage.Color[1] := GetColor1(color);
-    FixMessage.MarkerLine := 1;
-    FixMessage.StartLine := 1;
-    if FixMessage.Count < High(FixMessage.Msg) then inc(FixMessage.Count);
-    case alarm of
-      1 : SingleBeep  := true;
-      2 : SingleBeep2 := true;
-      3 : sound := true;
-      4 : SingleBeep4 := true;
-      5 : SingleBeep5 := true;
-      6 : SingleBeep6 := true;
-    end;
-
-  //end else
-  //begin
-
-  //end;
-{$ENDIF}
+  {$IFDEF RMDSP}
+  DateTimeToString(s,'hh:mm:ss',LastTime);
+  with FixMessage do
+  begin
+    if Count > 0 then
+    for i:= High(Msg) downto 2 do begin Msg[i]:= Msg[i-1]; Color[i]:= Color[i-1]; end;
+    Msg[1] := s + ' > ' + msg1;  Color[1] := GetColor1(color1);
+    ActLine := 1;  StartLine := 1;
+    if Count < High(Msg) then inc(Count);
+    if alarm = 3 then Zvuk := true else  SBeep[alarm]  := true;
+  end
+  {$ENDIF}
 end;
 
 //========================================================================================
@@ -694,66 +529,100 @@ procedure ResetFixMessage;
 {$IFDEF RMDSP}  var i : integer; {$ENDIF}
 begin
 {$IFDEF RMDSP}
-  if (FixMessage.Count > 0) and (FixMessage.MarkerLine > 0) then
+  if (FixMessage.Count > 0) and (FixMessage.ActLine > 0) then
   begin
-    if FixMessage.MarkerLine < FixMessage.Count then
+    if FixMessage.ActLine < FixMessage.Count then
     begin
-      for i := FixMessage.MarkerLine + 1 to FixMessage.Count do
+      for i := FixMessage.ActLine + 1 to FixMessage.Count do
       begin
-        FixMessage.Msg[i-1] := FixMessage.Msg[i]; 
+        FixMessage.Msg[i-1] := FixMessage.Msg[i];
         FixMessage.Color[i-1] := FixMessage.Color[i];
       end;
       dec(FixMessage.Count);
     end else
     begin
-      dec(FixMessage.Count); dec(FixMessage.MarkerLine);
+      dec(FixMessage.Count); dec(FixMessage.ActLine);
     end;
     if FixMessage.Count = 0 then
     begin
-      FixMessage.MarkerLine := 1; FixMessage.StartLine := 1;
+      FixMessage.ActLine := 1; FixMessage.StartLine := 1;
     end else
     begin
-      if (FixMessage.MarkerLine > 4) and ((FixMessage.MarkerLine - FixMessage.StartLine) < 4) 
-      then FixMessage.StartLine := FixMessage.MarkerLine - 4;
+      if (FixMessage.ActLine > 4) and ((FixMessage.ActLine - FixMessage.StartLine) < 4)
+      then FixMessage.StartLine := FixMessage.ActLine - 4;
       
-      if FixMessage.MarkerLine < FixMessage.StartLine 
-      then FixMessage.StartLine := FixMessage.MarkerLine;
+      if FixMessage.ActLine < FixMessage.StartLine 
+      then FixMessage.StartLine := FixMessage.ActLine;
     end;
   end;
 {$ENDIF}
 end;
+
+//========================================================================================
+//---------------------------------------------------------------- процедура сброса команд
+procedure ResetCommands;
+begin
+{$IFDEF RMDSP}
+  DspMenu.Ready := false; //--------------------------------------- сброс ожидания команды
+  DspMenu.WC := false;  //--------------------------- сброс ожидания подтверждения команды
+  DspCom.Active := false; //--------------------------------- сброс активности команды
+  DspMenu.obj := -1; //----------------------------------------- сброс объекта для команды
+  ResetTrace; //---------------------------------------------- Сбросить набираемый маршрут
+  WorkMode.GoMaketSt := false; //---------------------------------- установки на макет нет
+  WorkMode.GoOtvKom := false; //--------------------------- ввода ответственных команд нет
+  Workmode.MarhOtm := false; //--------------------------------------- отмены маршрута нет
+  Workmode.VspStr := false; //---------------------- вспомогательного перевода стрелки нет
+  Workmode.InpOgr := false; //-------------------------------------- ввода ограничений нет
+  if OtvCommand.Active then //---- если на момент сбоса была активна ответственная команда
+  begin
+    InsNewArmCmd(0,0);
+    OtvCommand.Active := false;
+    InsNewMsg(0,156,1,'');  //----------------------- "ввод ответственной команды прерван"
+    ShowSMsg(156,LastX,LastY,'');
+  end else
+  if VspPerevod.Active then //--------- если активизирован вспомогательный перевод стрелки
+  begin
+    InsNewArmCmd(0,0);
+    VspPerevod.Cmd := 0;
+    VspPerevod.Strelka := 0;
+    VspPerevod.Reper := 0;
+    VspPerevod.Active := false;
+    InsNewMsg(0,149,1,''); //------------------------- "Отменено ожидание нажатия кнопки ВСП"
+    ShowSMsg(149,LastX,LastY,'');
+  end else RSTMsg; //------------------------------------- Сбросить все короткие сообщения
+{$ENDIF}
+end;
+
 //========================================================================================
 //--------------------------------------------------------------------------- простой Beep
 procedure SimpleBeep;
 begin
   Beep;
 end;
-//------------------------------------------------------------------------------
-// Получить наименование объекта зависимостей по его индексу в базе данных
-function GetNameObjZav(Index : SmallInt) : string;
+
+//========================================================================================
+//---------------- Получить наименование объекта зависимостей по его индексу в базе данных
+function GetNameObj(Index : SmallInt) : string;
 begin
   if Index = 0 then result := 'УВК' else
-  case ObjZav[Index].TypeObj of
-    1,2 : begin
-      result := 'стр'+ ObjZav[Index].Liter;
-    end;
-  else
-    result := ObjZav[Index].Liter;
+  case ObjZv[Index].TypeObj of
+    1,2 : result := 'стр'+ ObjZv[Index].Liter;
+    else  result := ObjZv[Index].Liter;
   end;
 end;
 
 {$IFNDEF RMARC}
 //========================================================================================
-//---------------------------------------------------------- добавить команду меню в архив
+//-------------------------------------------------- добавить команду или тип меню в архив
 procedure InsNewArmCmd(Obj,Cmd : Word);
-  var bh,bl : Byte;
+var
+  bh,bl : Byte;
 begin
-  bh := obj div $100;
-  bl := obj - (bh * $100);
-  NewMenuC := NewMenuC + chr(bl) + chr(bh);   //---------------------------- номер объекта
-  bh := Cmd div $100;
-  bl := Cmd - (bh * $100);
-  NewMenuC := NewMenuC + chr(bl) + chr(bh);  //----------------------------- номер команды
+  bh := obj div $100;  bl := obj - (bh * $100);
+  NewMenuC := NewMenuC + chr(bl) + chr(bh);   //-------- номер объекта = ст.байт + мл.байт
+
+  bh := Cmd div $100;  bl := Cmd - (bh * $100);
+  NewMenuC := NewMenuC + chr(bl) + chr(bh);  //--------- номер команды = ст.байт + мл.байт
 end;
 {$ENDIF}
 
@@ -764,34 +633,29 @@ var
   p,d : integer;
   NP : boolean;
 begin
-  try
-    result := false;
-    if param < 8 then exit;
-    d := param and 7; //---------------------------------------- номер запрашиваемого бита
-    p := param shr 3; //--------------------------------------- номер запрашиваемого байта
-    if p > 4096 then exit;
+  result := false;
+  if param < 8 then exit;
+  d := param and 7; //------------------------------------------ номер запрашиваемого бита
+  p := param shr 3; //----------------------------------------- номер запрашиваемого байта
+  if p > 4096 then exit;
 
-    //------------------------------------------ Проверить превышение времени жизни данных
+  //-------------------------------------------- Проверить превышение времени жизни данных
 {$IFNDEF  RMARC}
-    if ready then ready := (LastTime - FR3s[p]) < MaxTimeOutRecave;
+  if ready then ready := (LastTime - FR3s[p]) < MaxTimeOutRecave;
 {$ENDIF}
-    //------------------------------------------- Проверить признак парафазности сообщения
-    NP := (FR3[p] and $20) = $20;
-    nep := nep or NP;
-    //------------------------------------------------------------------ Получить значение
-    case d of
-      1 : result := (FR3[p] and 2) = 2;
-      2 : result := (FR3[p] and 4) = 4;
-      3 : result := (FR3[p] and 8) = 8;
-      4 : result := (FR3[p] and $10) = $10;
-      5 : result := (FR3[p] and $20) = $20;
-      6 : result := (FR3[p] and $40) = $40;
-      7 : result := (FR3[p] and $80) = $80;
-    else
-      result := (FR3[p] and 1) = 1;
-    end;
-  except
-    reportf('Ошибка [KanalArmSrv.GetFR3]'); Application.Terminate; result := false;
+  //--------------------------------------------- Проверить признак парафазности сообщения
+  NP := (FR3[p] and $20) = $20;
+  nep := nep or NP;
+  //-------------------------------------------------------------------- Получить значение
+  case d of
+    1   :   result := (FR3[p] and   2) = 2;
+    2   :   result := (FR3[p] and   4) = 4;
+    3   :   result := (FR3[p] and   8) = 8;
+    4   :   result := (FR3[p] and $10) = $10;
+    5   :   result := (FR3[p] and $20) = $20;
+    6   :   result := (FR3[p] and $40) = $40;
+    7   :   result := (FR3[p] and $80) = $80;
+    else    result := (FR3[p] and   1) = 1;
   end;
 end;
 //========================================================================================
@@ -800,42 +664,257 @@ function GetFR4State(param:Word):Boolean;
 var
   p,d : integer;
 begin
-  try
-    result := false;
-    if param < 8 then exit;
-    d := param and 7;
-    p := param shr 3;
-    if p > 4096 then exit;
+  result := false;
+  if param < 8 then exit;
+  d := param and 7;
+  p := param shr 3;
+  if p > 4096 then exit;
 
-    //------------------------------------------ Проверить превышение времени жизни данных
-    if (FR4s[p] > 0 ) then
-    begin
-      case d of
-        1 : result := (FR4[p] and 2) = 2;
-        2 : result := (FR4[p] and 4) = 4;
-        3 : result := (FR4[p] and 8) = 8;
-        4 : result := (FR4[p] and $10) = $10;
-        5 : result := (FR4[p] and $20) = $20;
-        6 : result := (FR4[p] and $40) = $40;
-        7 : result := (FR4[p] and $80) = $80;
-        else result := (FR4[p] and 1) = 1;
-      end;
-    end else result := false;
-  except
-    reportf('Ошибка [KanalArmSrv.GetFR4State]'); Application.Terminate; result := false;
-  end;
+  //-------------------------------------------- Проверить превышение времени жизни данных
+  if (FR4s[p] > 0 ) then
+  begin
+    case d of
+      1 : result := (FR4[p] and 2) = 2;
+      2 : result := (FR4[p] and 4) = 4;
+      3 : result := (FR4[p] and 8) = 8;
+      4 : result := (FR4[p] and $10) = $10;
+      5 : result := (FR4[p] and $20) = $20;
+      6 : result := (FR4[p] and $40) = $40;
+      7 : result := (FR4[p] and $80) = $80;
+      else result := (FR4[p] and 1) = 1;
+    end;
+  end else result := false;
 end;
 //========================================================================================
 //---------------------------------------------------------- получить значение диагностики
 function GetFR5(param : Word) : Byte;
 begin
-  try
-    result := FR5[param];
-    FR5[param] := 0; //------------------------------------------------- очистить признаки
-  except
-    reportf('Ошибка [KanalArmSrv.GetFR5]');
-    Application.Terminate;
-    result := 0;
+  result := FR5[param];  FR5[param] := 0; //---------------------------- очистить признаки
+end;
+
+
+//========================================================================================
+//------------------------------------------------------------- получить цвет по его коду
+function GetColor1(param : SmallInt) : TColor;
+begin
+  case param of
+    0  : GetColor1 := clBlack;
+    1  : GetColor1 := ACVT1; //------------------------------------- lt red     - светофор
+    2  : GetColor1 := ACVT2; //------------------------------------- lt green   - светофор
+    3  : GetColor1 := ACVT3; //--------------------------------------------------- lt blue
+    4  : GetColor1 := ACVT4; //------------------------------------------------------- red
+    5  : GetColor1 := ACVT5; //----------------------------------------------------- green
+    6  : GetColor1 := ACVT6; //------------------------ blue - подсветка положения стрелок
+    7  : GetColor1 := ACVT7; //---------------------------------------------------- yellow
+    8  : GetColor1 := ACVT8; //------------------------------------------------------ gray
+    9  : GetColor1 := ACVT9; //------ white - маневровый сигнал, предварительное замыкание
+    10 : GetColor1 := ACVT10; //----------------------------------------- magenta    - МСП
+    11 : GetColor1 := ACVT11; //------------------------------- dk magenta - неисправность
+    12 : GetColor1 := ACVT12; //------------ dk cyan    - цвет нецентрализованных объектов
+    13 : GetColor1 := ACVT13; //-------------------------- brown      - местное управление
+    14 : GetColor1 := ACVT14; //------------------------------ cyan       - непарафазность
+    15 : GetColor1 := ACVT15; //----------------------------------------- background - фон
+    16 : GetColor1 := ACVT16; //------------------------ солнечная сторона - контур кнопки
+    17 : GetColor1 := ACVT17; //-------------------------- теневая сторона - контур кнопки
+    18 : GetColor1 := ACVT18; //----------------------------------------------- фон кнопки
+    19 : GetColor1 := ACVT19; //----------------------------------------- подсветка кнопки
+    20 : GetColor1 := ACVT20; //-------------------------------------- приглушенный объект
+    25 : GetColor1 := ACVT25; //-------------------------------- синее мигание (индикатор)
+    26 : GetColor1 := ACVT26; //-------------------------------- белое мигание (индикатор)
+    27 : GetColor1 := ACVT27; //------------------------------- желтое мигание (индикатор)
+    28 : GetColor1 := ACVT28; //------------------------------ красное мигание (индикатор)
+    29 : GetColor1 := ACVT29; //------------------------------ зеленое мигание (индикатор)
+    30 : GetColor1 := ACVT30; //--------------------- восклицательный желтый мигающий знак
+    else  GetColor1 := 0; // black
   end;
 end;
+//========================================================================================
+//-------------------------- прочитать параметр Bool и вернуть индекс следующего параметра
+function getbool(var index: integer; const s: string; var p: boolean): boolean;
+var ps : string;
+begin
+  ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      p := (ps = 't');
+      getbool := (index > Length(s));
+      inc(index);
+      exit;
+    end else
+    begin
+      ps := ps + s[index];
+      inc(index);
+    end;
+  end;
+  p := false;
+  getbool := true;
+end;
+//========================================================================================
+//----------------------- прочитать параметр Integer и вернуть индекс следующего параметра
+function getcrc32(var index: integer; const s: string; var p: integer): boolean;
+var ps : string;
+begin
+  p := 0; ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin p:= StrToIntDef('$'+ps,0); result:= (index > Length(s)); inc(index); exit; end
+    else  begin ps := ps + s[index]; inc(index); end;
+  end;
+  result := true;
+end;
+//========================================================================================
+//--------------------- прочитать строковый параметр и вернуть индекс следующего параметра
+function getstring(var index: integer; const s: string; var p: string): boolean;
+begin
+  p := '';
+  while index <= Length(s) do
+  begin
+    if s[index] = ';' then begin getstring := not (index>Length(s)); inc(index); exit; end
+    else begin p := p + s[index]; inc(index); end;
+  end;
+  getstring := false;
+end;
+//========================================================================================
+//--------------------- прочитать строковый параметр и вернуть индекс следующего параметра
+function getword(var index: integer; const s: string; var p: Word): boolean;
+var
+  ps : string;
+begin
+  p := 0; ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      try p := StrToInt(ps) except p := 0 end;
+      getword := (index > Length(s));   inc(index);  exit;
+    end
+    else begin ps := ps + s[index]; inc(index); end;
+  end;
+  getword := true;
+end;
+//========================================================================================
+//--------------------- прочитать строковый параметр и вернуть индекс следующего параметра
+function getbyte(var index: integer; const s: string; var p: Byte): boolean;
+var ps : string;
+begin
+  p := 0;
+  ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      try p := StrToInt(ps) except p := 0 end;
+      getbyte := (index > Length(s)); inc(index);  exit;
+    end
+    else begin ps := ps + s[index];  inc(index);  end;
+  end;
+  getbyte := true;
+end;
+//========================================================================================
+//--------------------------------------------- найти символ и вернуть его индекс в строке
+function findchar(var index: integer; const s: string; const c: char): boolean;
+begin
+  while index <= Length(s) do
+  if s[index] = c then begin findchar := true; exit; end else inc(index);
+  findchar := false;
+end;
+//========================================================================================
+//----------------------- прочитать параметр Integer и вернуть индекс следующего параметра
+function getinteger(var index: integer; const s: string; var p: integer): boolean;
+//- index - позиция считывания параметра, по окончании работы функции - позиция следующего
+//------------------------------- s - текстовая строка, в которой записан искомый параметр
+//---------------------------------------- p - значение параметра, цель выполнения функции
+var ps : string;
+begin
+  p := 0; ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      try p := StrToInt(ps) except p := 0 end;
+      getinteger := (index > Length(s));  inc(index);   exit;
+    end
+    else  begin  ps := ps + s[index];  inc(index); end;
+  end;
+  getinteger := true;
+end;
+//========================================================================================
+//------------ прочитать параметр SmallInt и вернуть позицию следующего параметра в строке
+function getsmallint(var index: integer; const s: string; var p: smallInt): boolean;
+//- index - позиция считывания параметра, по окончании работы функции - позиция следующего
+//------------------------------- s - текстовая строка, в которой записан искомый параметр
+//---------------------------------------- p - значение параметра, цель выполнения функции
+var
+  ps : string;
+begin
+  p := 0;
+  ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      try p := StrToInt(ps) except p := 0 end;
+      getsmallint := (index > Length(s));  inc(index);  exit;
+    end
+    else  begin  ps := ps + s[index];  inc(index); end;
+  end;
+  getsmallint := true;
+end;
+//========================================================================================
+//---- пропустить последовательность символов и вернуть индекс следующего символа в строке
+function skipchar(var index: integer; const s: string; const c: char): boolean;
+begin
+  while index <= Length(s) do
+    if s[index] = c then inc(index)
+    else begin skipchar := true; exit; end;
+  skipchar := false;
+end;
+//========================================================================================
+//--------------------- прочитать строковый параметр и вернуть индекс следующего параметра
+function getcrc16(var index: integer; const s: string; var p: Word): boolean;
+var ps : string;
+begin
+  p := 0; ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      p := StrToIntDef('$'+ps,0);
+      getcrc16 := (index > Length(s));
+      inc(index);
+      exit;
+    end else
+    begin
+      ps := ps + s[index];
+      inc(index);
+    end;
+  end;
+  getcrc16 := true;
+end;
+//========================================================================================
+//--------------------- прочитать строковый параметр и вернуть индекс следующего параметра
+function getcrc8(var index: integer; const s: string; var p: Byte): boolean;
+var ps : string;
+begin
+  p := 0; ps := '';
+  while index <= Length(s) do
+  begin
+    if (s[index] = ';') or (s[index] = ':') or (s[index] = ',') then
+    begin
+      p := StrToIntDef('$'+ps,0);
+      getcrc8 := (index > Length(s));
+      inc(index);
+      exit;
+    end else
+    begin
+      ps := ps + s[index];
+      inc(index);
+    end;
+  end;
+  getcrc8 := true;
+end;
+
 end.

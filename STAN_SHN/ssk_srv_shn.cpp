@@ -72,12 +72,12 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	ReBoot = false;
 
 
-	KOL_STR[0] = 2; //----------------------------------------------- число объектов стрелок
-	KOL_SIG[0] = 5; //---------------------------------------------- число объектов сигналов
-	KOL_DOP[0] = 14;//---------------------------------------- число дополнительных объектов
-	KOL_SP[0] = 6; //----------------------------------------------------- число объектов СП
-	KOL_PUT[0] = 2;//-------------------------------------------------- число объектов путей
-	KOL_KONT[0]=5; //-------------------------------------------- число объектов контроллера
+	KOL_STR[0] = 1; //----------------------------------------------- число объектов стрелок
+	KOL_SIG[0] = 2; //---------------------------------------------- число объектов сигналов
+	KOL_DOP[0] = 8;//---------------------------------------- число дополнительных объектов
+	KOL_SP[0] = 2; //----------------------------------------------------- число объектов СП
+	KOL_PUT[0] = 1;//-------------------------------------------------- число объектов путей
+	KOL_KONT[0]= 5;//-------------------------------------------- число объектов контроллера
 
 	portA = ""; //-------------- обнуление переменной слежения за портом А кнопочной станции
 	portB = ""; //-------------- обнуление переменной слежения за портом В кнопочной станции
@@ -141,8 +141,8 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 			if(Reg->ValueExists("path"))Put=Reg->ReadString("path");
 			if(Reg->ValueExists("arcpath"))ArcPut=Reg->ReadString("arcpath");
 			Reg->RootKey=HKEY_LOCAL_MACHINE;
-			ARM_DSP=15;
-			ARM_SHN=0;
+			ARM_DSP=0;
+			ARM_SHN=15;
 			Reg->CloseKey();
 		}
 		else
@@ -231,7 +231,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	for(i=0;i<Nst;i++)
 	LIN_PZU=LIN_PZU +KOL_STR[i] +KOL_SIG[i] +KOL_DOP[i] +KOL_SP[i] +KOL_PUT[i] +KOL_KONT[i];
 
-  KOL_VO = LIN_PZU * 5 + 10;
+  KOL_VO = LIN_PZU * 5 + 25;
 
 #ifdef KOL_AVTOD
  //--------------------------------------------- заполнение массива маршрутов автодействия
@@ -686,53 +686,48 @@ void __fastcall TStancia::MARSH_GLOB_LOCAL(void)
 //--------------------------------------------------------- kan - номер канала (0,1)
 int __fastcall TStancia::diagnoze(int st,int kan)
 {
-	int nom_serv,strk,error_diag=0,i;
+	int nom_serv, strk, error_diag = 0, i;
 	unsigned char gru,podgru,nm[15],NOM_ARM[2],bt,kod;
-	while(error_diag!=-1)
+	while(error_diag != -1)
 	{
 		if((st<0)||(st>7))error_diag=-1;
 		if(kan==0)
-		{
-			gru = REG[st][0][4];
-			podgru = REG[st][0][5];
-			bt = REG[st][0][6]&0xf;
-			kod = REG[st][0][7];
-		}
+		{ gru=REG[st][0][4]; podgru=REG[st][0][5]; bt=REG[st][0][6]&0xf; kod=REG[st][0][7]; }
 		else
 		if(kan==1)
-		{
-			gru = REG[st][0][4];
-			podgru = REG[st][0][5];
-			bt = REG[st][0][6]&0xf;
-			kod = REG[st][0][7];
-		}
-		strk = TAKE_STROKA(gru,podgru-48,st);
-		if(strk == -1) error_diag = -1;
-		//--------------------------------------------------------- нахождение объекта сервера
-		switch(gru)
-		{
-		case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
-		case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
-		case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
-		default: error_diag = -1; break;
-		}
-		nom_serv = nm[bt*2] * 256 + nm[bt*2+1];
-		if(nom_serv > (int)KOL_VO)error_diag = -1;
+		{ gru=REG[st][0][4]; podgru=REG[st][0][5]; bt=REG[st][0][6]&0xf; kod=REG[st][0][7];	}
 
-		//----------------------------------------------------------- нахождение объекта АРМов
-		for(i = 0; i < 2; i++)NOM_ARM[i] = OUT_OB[nom_serv].byt[i];
-		DIAGNOZ[0] = NOM_ARM[1];
-		DIAGNOZ[1] = NOM_ARM[0]|0x20;
-		switch(kod)
-		{
-			case 'P': DIAGNOZ[2] = 1; break;
-			case 'Z': DIAGNOZ[2] = 1; break;
-			case 'S': DIAGNOZ[2] = 2; break;
-			case 'T': DIAGNOZ[2] = 4; break;
-			default: error_diag = -1; break;
+		strk = TAKE_STROKA(gru,podgru-48,st);
+
+		if(strk < 0) error_diag = -1;
+    else
+    {//-------------------------------------------------------- нахождение объекта сервера
+			switch(gru)
+			{
+				case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
+				case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
+				case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
+				default: error_diag = -1; break;
+			}
+			nom_serv = nm[bt*2] * 256 + nm[bt*2+1];
+			if(nom_serv > (int)KOL_VO)error_diag = -1;
+  	  else
+    	{
+				//--------------------------------------------------------- нахождение объекта АРМов
+				for(i = 0; i < 2; i++)NOM_ARM[i] = OUT_OB[nom_serv].byt[i];
+				DIAGNOZ[0] = NOM_ARM[1]; DIAGNOZ[1] = NOM_ARM[0]|0x20;
+				switch(kod)
+				{
+					case 'P': DIAGNOZ[2] = 1; break;
+					case 'Z': DIAGNOZ[2] = 1; break;
+					case 'S': DIAGNOZ[2] = 2; break;
+					case 'T': DIAGNOZ[2] = 4; break;
+					default: error_diag = -1; break;
+				}
+				break;
+    	}
 		}
-		break;
-	}
+  }
 	return(error_diag);
 }
 //========================================================================================
@@ -760,7 +755,6 @@ int __fastcall TStancia::test_plat(int st,int kan)
 		{
 			for(i = 0; i < 5; i++)BAITY_OLD[i] = baity[i]; //------- перезаписать ненормы заново
 			TIME_OLD = time(NULL); //-----------------------------  значение для времени ненормы
-			return(0);
 		}
 	}
 	else //---------------------------------- если подгруппа отличная от ранее фиксированных
@@ -773,50 +767,49 @@ int __fastcall TStancia::test_plat(int st,int kan)
 
   switch(podgr)
   {
-		case 'p': kod=1; plata=1;   //-------------------------------------- объединение групп
-    					for(i=0;i<3;i++)bits=bits|((baity[i]&0x1f)<<(i*5));
-              break;
-		case 'q': kod=2; plata=1;  //--------------------------------------------- обрыв групп
-							for(i=0;i<3;i++)bits=bits|((baity[i]&0x1f)<<(i*5));
-							break;
-		case 'r': kod=3; plata=9;    //--------------------------------- отсутствие 0 в М201-1
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 's': kod=3; plata=10;   //--------------------------------- отсутствие 0 в М201-2
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 't': kod=3; plata=11;   //--------------------------------- отсутствие 0 в М201-3
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'u': kod=3; plata=12;   //--------------------------------- отсутствие 0 в М201-4
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'v': kod=4; plata=9;  //----------------------------------- отсутствие 1 в M201-1
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'w': kod=4; plata=10; //----------------------------------- отсутствие 1 в M201-2
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'x': kod=4; plata=11;  //---------------------------------- отсутствие 1 в M201-3
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
+		case 'p': kod =1; break; //-------------------------------------- несоответствия групп
+		case 'r': kod=3; plata = 1; break; //--------------------------- отсутствие 0 в М201-1
+		case 's': kod=3; plata = 2; break; //--------------------------- отсутствие 0 в М201-2
+		case 't': kod=3; plata = 3; break; //--------------------------- отсутствие 0 в М201-3
+		case 'u': kod=3; plata = 4; break; //--------------------------- отсутствие 0 в М201-4
+		case 'v': kod=4; plata = 1; break; //--------------------------- отсутствие 1 в M201-1
+		case 'w': kod=4; plata = 2; break; //--------------------------- отсутствие 1 в M201-2
+		case 'x': kod=4; plata = 3; break; //--------------------------- отсутствие 1 в M201-3
 		default: return(0);
 	}
+	bits = 0;
+  ERR_PLAT[0]=0;	ERR_PLAT[1]=0x14; //---------------------------- базовый адрес сообщения
 
-	ERR_PLAT[0]=0;
-	ERR_PLAT[1]=0x14;
+  if (kod == 1)
+  {
+		plata = baity[0] & 0x1F; //--------------------------------- номер выставленной группы
+    bits = bits | ((baity[3]&0x1f)<<10);
+    bits = bits | ((baity[2]&0x1f)<<5);
+    bits = bits | ((baity[1]&0x1f)); //------------------------- полученное значение групп
 
-	ERR_PLAT[5]=((st+1)&0xf)<<4;
-	ERR_PLAT[5]=ERR_PLAT[5]|(((KORZINA[st]+1)&3)<<2);
-	ERR_PLAT[5]=ERR_PLAT[5] | ( (plata&0xc)>>2 );
+  	ERR_PLAT[2] = ((st+1)&0xf)<<4;
+		ERR_PLAT[2] = ERR_PLAT[2]|(((KORZINA[st]+1)&3)<<2);
+    ERR_PLAT[3] = plata;
+		ERR_PLAT[4] = (bits&0xFF00)>>8;
+    ERR_PLAT[5] = bits&0xFF;
+		return(1);
+  }
+  else
+  {
+    ERR_PLAT[0] = 1;
+		bits = bits | ((baity[3]&0xf)<<12); //-------- полученное значение неправильных данных
+		bits = bits | ((baity[2]&0xf)<<8);
+		bits = bits | ((baity[1]&0xf)<<4);
+ 		bits = bits |  (baity[0]&0xf);
 
-	ERR_PLAT[4]=(plata&0x3)<<6;
-	ERR_PLAT[4]=ERR_PLAT[4] | (kod&0x3f);
-
-	ERR_PLAT[2]=bits&0xFF;
-	ERR_PLAT[3]=(bits&0xFF00)>>8;
-
-	return(1);
+		ERR_PLAT[2] = ((st+1)&0xf)<<4; //---------------------------------------------- стойка
+		ERR_PLAT[2] = ERR_PLAT[2]|(((KORZINA[st]+1)&3)<<2);//------------------------- корзина
+		ERR_PLAT[2] = ERR_PLAT[2]| (plata&0x3); //-------------------------------------- плата
+    ERR_PLAT[3] = kod;
+		ERR_PLAT[4] = (bits&0xFF00)>>8;
+    ERR_PLAT[5] = bits&0xFF;
+		return(1);
+	}
 }
 
 //========================================================================================
@@ -935,6 +928,22 @@ void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsign
 			 //----------------------------- изменить состояние в соответствие с данными из ТУМС 
 				if((VVOD[tum][sob][i]&l))//---------------------------------- если бит перешел в 1
 				{
+          if(GRP=='L')
+          {
+          	READ_BD(jj);
+        		if(BD_OSN[0]==0x19) //--------------------------- если этот объект является KS
+						{
+        			if (((Tek_Packet[tum]&0xFF)<10) && (Zapusk[tum] == false))
+          		{
+          			FR3[jj].byt[9] = 1;
+                VVOD[tum][sob][i] = VVOD[tum][sob][i]|0x8;
+            		New_For_ARM(jj);
+            		Zapusk[tum] = true;
+                POOO[jj] = time(NULL);
+          		}
+						}
+          }
+
 					if(GRP=='E') //----------------------------------------------------- если сигнал
 					{
             READ_BD(jj);
@@ -1116,8 +1125,26 @@ void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsign
 												New_For_ARM(jj);
 											}
 					}
-					if((FR3[69].byt[0]==0) && (FR3[69].byt[1]==0))
-					tester = 0;
+
+          if(GRP=='L')
+          {
+ 	         	READ_BD(jj);
+  	      	if(BD_OSN[0]==0x19) //--------------------------- если этот объект является KS
+    	      {
+      	  		if(Zapusk[tum] == true)
+        	    {
+                if(((time(NULL) - POOO[jj]) > 10) && (POOO[jj]> 0))
+                {
+ 	                Zapusk[tum] = false;
+             			FR3[jj].byt[9] = 0;
+                  POOO[jj] = 0;
+                  VVOD[tum][sob][i] = VVOD[tum][sob][i]&0xF7;
+                }
+                else VVOD[tum][sob][i] = VVOD[tum][sob][i]|0x8;
+            		New_For_ARM(jj);
+          		}
+          	}
+          }
 
 					if((GRP == 'F') && (j == 1)) //---------------------------- если СП разомкнулась
 					{
@@ -4352,11 +4379,12 @@ void __fastcall TStancia::TimerMainTimer(TObject *Sender)
   return;
 }
 
-#ifdef KOL_AVTOD
+
 //========================================================================================
 //-------- Процедура обработки команд автодействия,принятых от АРМа     MAKE_AVTOD(int ob)
 void __fastcall TStancia::MAKE_AVTOD(int ob)
 {
+#ifdef KOL_AVTOD
 	unsigned int nach_marsh,end_marsh,nstrel,ii;
 	int jj;
   char POKAZ[13];
@@ -4398,9 +4426,9 @@ void __fastcall TStancia::MAKE_AVTOD(int ob)
     TRASSA[ii].stoyka=0;
     TRASSA[ii].podgrup=0;
 	}
+ #endif
   return;
 }
-#endif
 //------------------------------------------------------------------------
 void __fastcall TStancia::Edit5DblClick(TObject *Sender)
 {
@@ -5336,7 +5364,8 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 	Zagol_UVK, //------------------------------------------------- заголовок принятый от УВК
 	novizna,MYTHX,GRUPPA,STROKA,PODGR;
 	char Soob[] = "         ";
-#ifdef RBOX
+/*
+#if RBOX != 0
 		//----------------------------- анализ состояния кнопки "ОК" и переключателя "Осн/Рез"
 		PORTA->StrFromComm(&portA);
 		PORTB->StrFromComm(&portB);
@@ -5347,6 +5376,7 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 
 		if((portB.c_str()[0] == 'А')||(portB.c_str()[0] == 'B'))TimerB = T_TIME;
 #endif
+*/
 	cikl_marsh++;
 
 	if(cikl_marsh>3)cikl_marsh=0;

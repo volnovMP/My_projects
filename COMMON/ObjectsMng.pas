@@ -70,7 +70,7 @@ function  AddNewObj(ind : integer) : integer; //------- Добавить новый объект за
 function  MoveObj(ind : integer) : integer; //---------------- Переместить объект по сетке
 function  DeleteObj(ind : integer) : integer; //------------------- Удалить объект из базы
 procedure SetObjInspector(i : integer); //----- Установить параметры в инспекторе объектов
-function  CheckParam(var p: PObjParams): boolean;//проверить заполнение параметров объекта
+function  CheckParam(var p: TObjParams): boolean;//проверить заполнение параметров объекта
 procedure ClearAllCon; //--------------------------------- Очистить весь список соединений
 function  ConFirst : integer; //---------------------- подключить первую точку соединителя
 function  ConSecond : integer; //--------------------- подключить вторую точку соединителя
@@ -232,7 +232,7 @@ begin
           selectPin := GetSelectPin(CurPos.X,CurPos.Y,i);
           result := true;
 {$IFDEF TABLO}
-          if InspectorTabloForm.Visible then InspectorTabloForm.Refresh;
+          if InspTabloForm.Visible then InspTabloForm.Refresh;
 {$ELSE}
           if InspectorForm.Visible then InspectorForm.Refresh;
 {$ENDIF}
@@ -442,7 +442,7 @@ end;
 procedure SetObjInspector(i : integer);
 begin
 {$IFDEF TABLO}
-  InspectorTabloForm.SetViewObject(i);
+  InspTabloForm.SetViewObject(i);
 {$ELSE}
   InspectorForm.SetViewObject(i);
 {$ENDIF}
@@ -657,7 +657,7 @@ begin
 end;
 //========================================================================================
 //------------------------- проверить полноту и правильность заполнения параметров объекта
-function CheckParam(var p : PObjParams) : boolean;
+function CheckParam(var p : TObjParams) : boolean;
 var
   s,t,pa,d,h : string;
   i,j,k,l, All, Row1 : integer;

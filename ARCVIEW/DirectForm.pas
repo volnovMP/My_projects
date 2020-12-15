@@ -76,10 +76,10 @@ var
   SoobTime3 : Boolean; //-------------------------------------------------- 3 байт времени
   SoobTime4 : Boolean; //-------------------------------------------------- 4 байт времени
   SoobCont  : Boolean; // содержимое сообщени€
-  TypeSoob  : byte;    // тип сообщени€
-  LenSoob   : byte;    // длина сообщени€
-  TimeSoob  : Int64;   //------------------------------------------------- врем€ сообщени€
-  NeedStep  : Boolean; // признак включени€ прокрутки клипа
+  TypeSoob  : byte; //------------------------------------------------------ тип сообщени€
+  LenSoob   : byte; //---------------------------------------------------- длина сообщени€
+  TimeSoob  : Int64;//---------------------------------------------------- врем€ сообщени€
+  YStep  : Boolean; //---------------------------------- признак включени€ прокрутки клипа
   TypeLastFrame : Byte; //------------------------------------ тип последнего кадра данных
   ArcMaxOldTime : Double; //------------------------- ограничение доступа к старым архивам
   StartTime : Double;
@@ -263,7 +263,7 @@ begin
   BtnStop.Enabled := true;
   BtnStep.Enabled := false;
   BtnPrev.Enabled := false;
-  NeedStep := true;
+  YStep := true;
 end;
 
 procedure TDirectFormDlg.BtnStopClick(Sender: TObject);
@@ -275,7 +275,7 @@ begin
   BtnStop.Enabled := false;
   BtnStep.Enabled := true;
   BtnPrev.Enabled := true;
-  NeedStep := false;
+  YStep := false;
 end;
 
 procedure TDirectFormDlg.BtnStepClick(Sender: TObject);
@@ -346,7 +346,7 @@ begin
     BtnOpen.Enabled := true; BtnStart.Enabled := true; BtnStop.Enabled := false; BtnStep.Enabled := true; BtnPrev.Enabled := false;
   end;
   edittime.ReadOnly := false;
-  NeedStep := false;
+  YStep := false;
 end;
 
 var d,s,t,p : string;
@@ -395,7 +395,7 @@ procedure TDirectFormDlg.RegionChange(Sender: TObject);
   var i : integer;
 begin
   i := Region.ItemIndex+1;
-  if configRU[i].Tablo_Size.X = 0 then begin Region.ItemIndex := 0; i := 1; end;
+  if configRU[i].T_S.X = 0 then begin Region.ItemIndex := 0; i := 1; end;
   ChangeRegion(i);
 end;
 
@@ -575,11 +575,11 @@ begin
   begin // архив закончилс€
     DirectFormDlg.edittime.ReadOnly := false; DirectFormDlg.Region.SetFocus; DirectFormDlg.BtnOpen.Enabled := true;
     DirectFormDlg.BtnStart.Enabled := true; DirectFormDlg.BtnStop.Enabled := false; DirectFormDlg.BtnStep.Enabled := true;
-    DirectFormDlg.BtnPrev.Enabled := true; NeedStep := false; result := false; exit;
+    DirectFormDlg.BtnPrev.Enabled := true; YStep := false; result := false; exit;
   end;
   if arhiv[i] <> #$ff then
   begin
-    NeedStep := false;
+    YStep := false;
     ShowMessage('ошибка при распаковке архива');
     result := false;
     exit;
@@ -587,7 +587,7 @@ begin
   inc(i);
   if arhiv[i] <> #0 then
   begin
-    NeedStep := false;
+    YStep := false;
     ShowMessage('ошибка при распаковке архива');
     result := false; exit;
   end;
@@ -598,11 +598,11 @@ begin
   begin // архив закончилс€
     DirectFormDlg.edittime.ReadOnly := false; DirectFormDlg.Region.SetFocus; DirectFormDlg.BtnOpen.Enabled := true;
     DirectFormDlg.BtnStart.Enabled := true; DirectFormDlg.BtnStop.Enabled  := false; DirectFormDlg.BtnStep.Enabled := true;
-    DirectFormDlg.BtnPrev.Enabled := true; NeedStep := false; result := false; exit;
+    DirectFormDlg.BtnPrev.Enabled := true; YStep := false; result := false; exit;
   end;
   if arhiv[i+len] <> #$ff then
   begin
-    NeedStep := false;
+    YStep := false;
     ShowMessage('ошибка при распаковке архива');
     result := false;
     exit;
@@ -624,35 +624,20 @@ var
   w : word;
 begin
   if index > (Length(arhiv)-10) then
-  begin
-    NeedStep := false;
-    ShowMessage(' онец фрагмента архива');
-    result := Length(arhiv);
-    exit;
-  end;
+  begin YStep:= false;ShowMessage(' онец фрагмента '); result:= Length(arhiv); exit; end;
 
   i := index;
   if arhiv[i] <> #$ff then
   begin
-    NeedStep := false;
-    ShowMessage('ошибка при распаковке архива');
-    while(arhiv[i]<>#$ff) do
-    begin
-      inc(i);
-    end;
-    result := FindStep(i);
-    exit;
+    YStep:= false;ShowMessage('ошибка распаковки ');
+    while(arhiv[i]<>#$ff) do inc(i);
+    result := FindStep(i);  exit;
   end;
   inc(i);
   if arhiv[i] <> #0 then
-  begin
-    NeedStep := false;
-    ShowMessage('ошибка при распаковке архива');
-    result := FindStep(index);
-    exit;
-  end;
-  inc(i);
+  begin YStep:= false;ShowMessage('ошибка распаковки');result:=FindStep(index); exit; end;
 
+  inc(i);
   len := byte(arhiv[i]); inc(i); j := 0;
 
   TypeLastFrame := byte(arhiv[i]); inc(i); inc(j);
@@ -662,8 +647,8 @@ begin
   c := byte(arhiv[i]) * $10000;     inc(i);   inc(j);   lt := lt + c;
   c := byte(arhiv[i]) * $1000000;   inc(i);   inc(j);   lt := lt + c;
   DTFrameOffset := lt / (60*60*24); //------------------------------------ врем€ фрагмента
-  DateTimeToString(s,'dd.mm.yy hh:nn:ss',DTFrameOffset);
 
+  DateTimeToString(s,'dd.mm.yy hh:nn:ss',DTFrameOffset);
   DirectFormDlg.edittime.Text := s;
 
   case TypeLastFrame of //------------------------------------- переключение по типу кадра
@@ -685,6 +670,7 @@ begin
         case step of
           1 : ifr := byte(arhiv[i]);
           2 : ifr := ifr + byte(arhiv[i]) * $100;
+
           else
             if (ifr > 0) and (ifr < 4096) then FR3[ifr] := byte(arhiv[i])
             else
@@ -693,83 +679,65 @@ begin
                 ifr := ifr - 4095;
                 FR6[ifr] := byte(arhiv[i]); inc(j); inc(i);
                 FR6[ifr] := FR6[ifr] + byte(arhiv[i]) * $100;
-              end
-              else
-              if (ifr >= 5120) and (ifr < 6144) then
+              end else
+              if (ifr = 5120) then
               begin
-                ifr := ifr - 5119;
-                FR7[ifr] := byte(arhiv[i]); inc(j); inc(i);
-                FR7[ifr] := FR7[ifr] + byte(arhiv[i]) * $100; inc(j); inc(i);
-                FR7[ifr] := FR7[ifr] + byte(arhiv[i]) * $10000; inc(j); inc(i);
-                FR7[ifr] := FR7[ifr] + byte(arhiv[i]) * $1000000;
-              end
-              else
+                FR7 := byte(arhiv[i])       * $1000000; inc(j); inc(i);
+                FR7 := FR7 + byte(arhiv[i]) * $10000;   inc(j); inc(i);
+                FR7 := FR7 + byte(arhiv[i]) * $100; inc(j); inc(i);
+                FR7 := FR7 + byte(arhiv[i]); 
+              end else
               if (ifr >= 6144) and (ifr < 7168) then
               begin
-                ifr := ifr - 6143;
-                FR8[ifr] := byte(arhiv[i]); inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $100; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $10000; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $1000000; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $100000000; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $10000000000; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $1000000000000; inc(j); inc(i);
-                FR8[ifr] := FR8[ifr] + byte(arhiv[i]) * $100000000000000;
-              end
-              else
-              if (ifr >= 7168) and (ifr < 8191) then
-              begin  //-------------------------------------------------------------??????
-              end
+                FR8 := byte(arhiv[i]); inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $100;           inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $10000;         inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $1000000;       inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $100000000;     inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $10000000000;   inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $1000000000000; inc(j); inc(i);
+                FR8 := FR8 + byte(arhiv[i]) * $100000000000000;
+              end else
+              if (ifr >= 7168) and (ifr < 8191) then begin end   //-----------------??????
               else
               if (ifr and $e000) = $2000 then
               begin //-------------------------- коды диагностики состо€ни€ объектов (FR5)
                 w := ifr and $1fff;
-                if (w > 0) and (w < 4096) then
-                begin
-                  FR5[w] := FR5[w] or byte(arhiv[i]);
-                end;
+                if (w > 0) and (w < 4096) then FR5[w] := FR5[w] or byte(arhiv[i]);
               end else
               if (ifr and $e000) = $4000 then
               begin //------------------------------- квитанци€ на команду, причина отказа
                 w := ifr and $1fff;
-                if (w > 0) and (w < 4096) then
-                begin //-------------------------------------------------------???????????
-                end;
-              end
-              else
+                if (w > 0) and (w < 4096) then begin  end; //------------------???????????
+              end else
               if (ifr and $e000) = $8000 then
               begin //---------------------------------------------------------------- FR4
                 w := ifr and $1fff;
                 if (w > 0) and (w < 4096) then
-                begin
-                  FR4[w] := byte(arhiv[i]);
-                  FR4s[w] := DTFrameOffset;
-                end;
+                begin  FR4[w] := byte(arhiv[i]); FR4s[w] := DTFrameOffset;  end;
               end;
               step := 0; ifr := 0; imsg := 0;
             end;
             inc(step);
-          end;
+        end;
 
-          3,4 :
-          begin
-            cmd := byte(arhiv[i]); inc(i); inc(j);
-            ifr := byte(arhiv[i]); inc(i); inc(j);
-            ifr := ifr + byte(arhiv[i]) * $100;
-            case cmd of
-              cmdfr3_ustanovkastrelok,
-              cmdfr3_povtormarhmanevr,
-              cmdfr3_povtormarhpoezd,
-              cmdfr3_marshrutlogic,
-              cmdfr3_marshrutmanevr,
-              cmdfr3_marshrutpoezd :  begin i := i+ 7; j := j+ 7; end;
+      3,4 :
+      begin
+        cmd := byte(arhiv[i]); inc(i); inc(j);
+        ifr := byte(arhiv[i]); inc(i); inc(j);
+        ifr := ifr + byte(arhiv[i]) * $100;
+        case cmd of
+          _ustanovkastrelok,
+          _povtormarhmanevr,
+          _povtormarhpoezd,
+          _marshrutlogic,
+          _marshrutmanevr,
+          _marshrutpoezd  : begin i := i+ 7; j := j+ 7; end;
 
-              cmdfr3_autodatetime,
-              cmdfr3_newdatetime :    begin i := i+ 6; j := j+ 6; end;
-            end;
-
-            CmdMsg(cmd,ifr,i);
-          end;
+          _autoDT, _newDT : begin i := i+ 6; j := j+ 6; end;
+        end;
+        CmdMsg(cmd,ifr,i);
+      end;
 
       5 :
       begin
@@ -777,47 +745,45 @@ begin
         ifr := ifr + byte(arhiv[i]) * $100; inc(i); inc(j);
         imsg := byte(arhiv[i]); inc(i); inc(j);
         imsg := imsg + byte(arhiv[i]) * $100;
+
         if ifr >= $8000 then
-        begin //------------------------------ распаковать протокол действий дежурного
+        begin //---------------------------------- распаковать протокол действий дежурного
           ifr := ifr and $7fff;
           if ifr = 0 then
-          begin //----------------------- пр€мые команды оператора (без подтверждени€)
+          begin //--------------------------- пр€мые команды оператора (без подтверждени€)
             if imsg = 0 then s := '—брос команды <Esc>,<ѕробел>' else s := '';
             if LastFixed < i then
-            begin //---------------------------------------- добавить в список сообщений
-              DateTimeToString(t,'dd-mm-yy hh:nn:ss', DTFrameOffset);
-              s := t + ' > '+ s;
-              LstNN := s + #13#10 + LstNN;
-              NewNeisprav := true;
+            begin //------------------------------------------ добавить в список сообщений
+              DateTimeToString(t,'dd-mm-yy hh:nn:ss', DTFrameOffset); s := t + ' > '+ s;
+              LstNN := s + #13#10 + LstNN;  NewNeisprav := true;
             end;
           end else
           if ifr <= High(ObjUprav) then
           begin
             ID_Obj := ObjUprav[ifr].IndexObj;
-            CreateDspMenu(imsg,i,0);
+            NewMenu_(imsg,i,0);
           end;
-        end else
-        begin //------------------------------------ подтверждение команды или выдача “”
-          CmdMsg(imsg,ifr,i);
-        end;
+        end else CmdMsg(imsg,ifr,i);//---------------- подтверждение команды или выдача “”
       end;
 
       6 :
-      begin //------------------------------------------- –аспаковка текстовых сообщений
+      begin //--------------------------------------------- –аспаковка текстовых сообщений
         case step of
           1 : ifr := byte(arhiv[i]);
           2 : ifr := ifr + byte(arhiv[i]) * $100;
           3 : imsg := byte(arhiv[i]);
           else
+          begin
             imsg := imsg + byte(arhiv[i]) * $100;
             ArcMsg(ifr,imsg,i);
             step := 0; ifr := 0; imsg := 0;
+          end;
         end;
         inc(step);
       end;
 
       11..42 :
-      begin //----------------------------------------------- распаковка реперной записи
+      begin //------------------------------------------------- распаковка реперной записи
         p := byte(arhiv[i]);
         if f4 then begin FR4[ifr] := p; inc(ifr); f4 := false; end
         else begin FR3[ifr] := p; f4 := true; end;
@@ -828,11 +794,13 @@ begin
   result := i;
   if LastFixed < i then LastFixed := i;
 end;
+
 //========================================================================================
 procedure TDirectFormDlg.PathExit(Sender: TObject);
 begin
   config.arcpath := Path.Text;
 end;
+
 //========================================================================================
 procedure TDirectFormDlg.Button1Click(Sender: TObject);
 var
@@ -841,7 +809,7 @@ begin
   OpenDialog.InitialDir := config.arcpath;
   if OpenDialog.Execute then
   begin
-    s := 'arj.exe a a:\arcshn.arj '+ OpenDialog.FileName;
+    s := 'arj.exe a b:\arcshn.arj '+ OpenDialog.FileName;
     cErr := WinExec(pchar(s),SW_SHOW);
     if cErr <= 31 then
     begin

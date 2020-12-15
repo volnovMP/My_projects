@@ -10,7 +10,7 @@ object Stancia: TStancia
   BorderStyle = bsSingle
   Caption = 'Stancia'
   ClientHeight = 125
-  ClientWidth = 763
+  ClientWidth = 764
   Color = clAppWorkSpace
   UseDockManager = True
   DefaultMonitor = dmDesktop
@@ -432,7 +432,7 @@ object Stancia: TStancia
     Left = 728
     Top = 96
     Bitmap = {
-      494C01010F001300040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C01010F001100040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000004000000001002000000000000040
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1031,7 +1031,7 @@ object Stancia: TStancia
     InSize = 80
     OutSize = 80
     PackSize = 28
-    NumStan = 111284898
+    NumStan = 7501261
     Baud = 1200
     BaudRate = cbr1200
     StopBits = sb2_0

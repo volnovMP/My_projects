@@ -52,12 +52,12 @@ var
   i,j,Buf : integer;
 begin
   NomerOZ := StrToInt(NomOZ.Text);
-  NameOZ.Caption := ObjZav[NomerOZ].Title;
-  Buf := ObjZav[NomerOZ].VBufferIndex;
+  NameOZ.Caption := ObjZv[NomerOZ].Title;
+  Buf := ObjZv[NomerOZ].VBufInd;
   Label3.Caption := 'Номер BV=' + IntToStr(Buf);
   for i := 1 to 34 do
   begin
-    if ObjZav[NomerOZ].bParam[i] then j := 1
+    if ObjZv[NomerOZ].bP[i] then j := 1
     else j := 0;
     ParamOZ.Cells[1,i-1] := IntToStr(j);
   end;

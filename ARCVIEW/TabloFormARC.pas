@@ -3,19 +3,8 @@ unit TabloFormARC;
 interface
 
 uses
-  Windows,
-  Messages,
-  SysUtils,
-  Classes,
-  Graphics,
-  Controls,
-  Forms,
-  Dialogs,
-  ExtCtrls,
-  Registry,
-  Menus,
-  MMSystem,
-  ImgList;
+  Windows,  Messages,  SysUtils,  Classes,  Graphics,  Controls,  Forms,  Dialogs,
+  ExtCtrls, Registry,  Menus,  MMSystem, ImgList, StdCtrls;
 
 type
   TTabloMain = class(TForm)
@@ -52,9 +41,6 @@ type
     PopupMenuCmd  : TPopupMenu;
   end;
 
-
-
-
 var
   TabloMain: TTabloMain;
 
@@ -63,7 +49,7 @@ procedure ResetCommands; //------------------------------------ сброс всех актив
 
 const
   CurTablo1   = 1;
-  ReportFileName = 'ARC_VIEW.rpt';
+  RepFileName = 'ARC_VIEW.rpt';
   KeyNameDsp        : string = '\Software\DSPRPCTUMS';
   KeyNameShn        : string = '\Software\SHNRPCTUMS';
   KeyName           : string = '\Software\ARCRPCTUMS';
@@ -218,7 +204,7 @@ begin
   DspMenu.obj := -1;
 
   StartObj  := 1;
-  DiagnozON := false;
+  DiagnozON := true;
   ArcReady := false;
 
   //----------------------------------------------------------------- Загрузка базы данных
@@ -237,8 +223,8 @@ begin
     else
     begin
       i := Screen.Height;
-      if Screen.Height < (configRU[config.ru].Tablo_Size.Y+50) then Height := i
-      else Height := configRU[config.ru].Tablo_Size.Y+50;
+      if Screen.Height < (configRU[config.ru].T_S.Y+50) then Height := i
+      else Height := configRU[config.ru].T_S.Y+50;
     end;
     reg.CloseKey;
   end;
@@ -286,7 +272,7 @@ begin
   if not AppStart then exit;
   AppStart := false;
 
-  if configRU[config.ru].Tablo_Size.X > 0 then
+  if configRU[config.ru].T_S.X > 0 then
   DirectFormDlg.Region.ItemIndex := config.ru-1;
 
   PresetObjParams;  //---- Установить параметры объектов зависимостей в исходное состояние
@@ -316,8 +302,7 @@ end;
 //========================================================================================
 procedure TTabloMain.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
-  if not mem_page
-  then PaintBox1.Canvas.Draw(0,0,tablo2)
+  if not mem_page then PaintBox1.Canvas.Draw(0,0,tablo2)
   else PaintBox1.Canvas.Draw(0,0,tablo1);
 end;
 
@@ -359,15 +344,15 @@ begin
   //------------------------------------------ прорисовка всех отображающих объектов табло
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 0)
-  then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
+  then DisplayItemTablo(i, Tablo.Canvas);
 
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 1)
-  then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
+  then DisplayItemTablo(i, Tablo.Canvas);
 
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 2)
-  then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
+  then DisplayItemTablo(i, Tablo.Canvas);
 
   Tablo.Canvas.UnLock;
 end;
@@ -433,21 +418,21 @@ begin
     for i := 1 to Length(DspMenu.Items) do
       if DspMenu.Items[i].ID = Command then
       begin
-        DspCommand.Command := DspMenu.Items[i].Command;
-        DspCommand.Obj := DspMenu.Items[i].Obj;
-        DspCommand.Active  := true;
+        DspCom.Com := DspMenu.Items[i].Command;
+        DspCom.Obj := DspMenu.Items[i].Obj;
+        DspCom.Active  := true;
         SelectCommand;
         exit;
       end;
   end;
 end;
 
+//========================================================================================
 procedure ResetCommands;
 begin
-
   DspMenu.Ready := false;
   DspMenu.WC := false;
-  DspCommand.Active := false;
+  DspCom.Active := false;
   DspMenu.obj := -1;
   WorkMode.GoTracert := false;
   WorkMode.GoMaketSt := false;
@@ -455,13 +440,13 @@ begin
   Workmode.MarhOtm   := false;
   Workmode.VspStr    := false;
   Workmode.InpOgr    := false;
-  ResetShortMsg; // Сбросить все короткие сообщения
+  RSTMsg; // Сбросить все короткие сообщения
 end;
+
 //========================================================================================
 procedure TTabloMain.FormMouseUp(Sender: TObject; Button: TMouseButton;
 Shift: TShiftState; X, Y: Integer);
 begin
-  //if PopupMenuCmd.PopupComponent <> nil then exit;
   if Button = mbLeft then
   begin
   // нажата левая кнопка мышки
@@ -486,7 +471,7 @@ begin
     begin
       if cur_obj > 0 then
       begin
-        if ObjUPrav[cur_obj].Neighbour[1] > 0 then cur_obj := ObjUPrav[cur_obj].Neighbour[1];
+        if ObjUPrav[cur_obj].Sosed[1] > 0 then cur_obj := ObjUPrav[cur_obj].Sosed[1];
       end else
         cur_obj := StartObj;
         if cur_obj > 0 then SetCursorPos(ObjUPrav[cur_obj].Box.Right-shifts-2, ObjUPrav[cur_obj].Box.Bottom-2);
@@ -496,7 +481,7 @@ begin
     begin
       if cur_obj > 0 then
       begin
-        if ObjUPrav[cur_obj].Neighbour[2] > 0 then cur_obj := ObjUPrav[cur_obj].Neighbour[2];
+        if ObjUPrav[cur_obj].Sosed[2] > 0 then cur_obj := ObjUPrav[cur_obj].Sosed[2];
       end else
         cur_obj := StartObj;
         if cur_obj > 0 then SetCursorPos(ObjUPrav[cur_obj].Box.Right-shifts-2, ObjUPrav[cur_obj].Box.Bottom-2);
@@ -508,7 +493,7 @@ begin
       begin
         if cur_obj > 0 then
         begin
-          if ObjUPrav[cur_obj].Neighbour[3] > 0 then cur_obj := ObjUPrav[cur_obj].Neighbour[3];
+          if ObjUPrav[cur_obj].Sosed[3] > 0 then cur_obj := ObjUPrav[cur_obj].Sosed[3];
         end else
           cur_obj := StartObj;
         if cur_obj > 0 then SetCursorPos(ObjUPrav[cur_obj].Box.Right-shifts-2, ObjUPrav[cur_obj].Box.Bottom-2);
@@ -521,7 +506,7 @@ begin
       begin
         if cur_obj > 0 then
         begin
-          if ObjUPrav[cur_obj].Neighbour[4] > 0 then cur_obj := ObjUPrav[cur_obj].Neighbour[4];
+          if ObjUPrav[cur_obj].Sosed[4] > 0 then cur_obj := ObjUPrav[cur_obj].Sosed[4];
         end else
           cur_obj := StartObj;
         if cur_obj > 0 then SetCursorPos(ObjUPrav[cur_obj].Box.Right-shifts-2, ObjUPrav[cur_obj].Box.Bottom-2);
@@ -548,7 +533,7 @@ begin
           begin
             o := 0; p := 0; z := '';
             if getinteger(i,s,o)   then exit;
-            if getstring(i,s,z)    then exit;
+            if not getstring(i,s,z)    then exit;
             if o = 0 then exit;
             case Length(z) of
               0 : z := '00000000';
@@ -590,7 +575,7 @@ begin
           begin
             o := 0; p := 0; z := '';
             if getinteger(i,s,o)   then exit;
-            if getstring(i,s,z)    then exit;
+            if not getstring(i,s,z)    then exit;
             if o = 0 then exit;
             case Length(z) of
               0 : z := '00000000';
@@ -718,7 +703,7 @@ begin
   LastSyncArc := Date+Time;
   try
     TimerSync.Enabled := false;
-    if NeedStep then
+    if YStep then
     begin
       if SpeedZoom <= 0 then
       begin //------------------------------- сплошная прокрутка без синхронизации времени
@@ -731,7 +716,7 @@ begin
           end;
         end else
         begin
-          NeedStep := false;
+          YStep := false;
           with DirectFormDlg do
           begin
             BtnOpen.Enabled := true;
@@ -757,7 +742,7 @@ begin
             end;
           end else
           begin
-            NeedStep := false;
+            YStep := false;
             with DirectFormDlg do
             begin
               BtnOpen.Enabled := true;
@@ -794,23 +779,23 @@ begin
       begin
         WorkMode.Upravlenie := true;
         WorkMode.LockCmd    := false;
-        WorkMode.RazdUpr    := (FR3[WorkMode.ArmStateSoob] and 1) = 1;
-        WorkMode.MarhUpr    := (FR3[WorkMode.ArmStateSoob] and 2) = 2;
-        WorkMode.MarhOtm    := (FR3[WorkMode.ArmStateSoob] and 4) = 4;
-        WorkMode.InpOgr     := (FR3[WorkMode.ArmStateSoob] and 8) = 8;
+        WorkMode.RazdUpr    := (FR3[WorkMode.ArmStateSoob] and 1)   = 1;
+        WorkMode.MarhUpr    := (FR3[WorkMode.ArmStateSoob] and 2)   = 2;
+        WorkMode.MarhOtm    := (FR3[WorkMode.ArmStateSoob] and 4)   = 4;
+        WorkMode.InpOgr     := (FR3[WorkMode.ArmStateSoob] and 8)   = 8;
         WorkMode.VspStr     := (FR3[WorkMode.ArmStateSoob] and $10) = $10;
-        WorkMode.PushOK     := (FR3[WorkMode.ArmStateSoob] and $20) = $20;
+        WorkMode.KOK_TUMS   := (FR3[WorkMode.ArmStateSoob] and $20) = $20;
         WorkMode.Podsvet    := (FR3[WorkMode.ArmStateSoob] and $40) = $40;
         WorkMode.GoTracert  := (FR3[WorkMode.ArmStateSoob] and $80) = $80;
       end;
 
       //------------------------------------------------- погасить невоспринятые сообщения
-      for i := 1 to High(ObjZav) do
+      for i := 1 to High(ObjZv) do
       begin //---------------------------------------------- Сбросить признаки трассировки
-        case ObjZav[i].TypeObj of
-          3 :   ObjZav[i].bParam[19] := false;//---------------------------------- участок
-          4 :   ObjZav[i].bParam[19] := false;//------------------------------------- путь
-          5 :   ObjZav[i].bParam[23] := false;//--------------------------------- светофор
+        case ObjZv[i].TypeObj of
+          3 :   ObjZv[i].bP[19] := false;//---------------------------------- участок
+          4 :   ObjZv[i].bP[19] := false;//------------------------------------- путь
+          5 :   ObjZv[i].bP[23] := false;//--------------------------------- светофор
         end;
       end;
 
@@ -877,62 +862,42 @@ begin
   result := true;
 end;
 
-//------------------------------------------------------------------------------
-// установить начальные значения переменных в объектах
+//========================================================================================
+//------------------------------------ установить начальные значения переменных в объектах
 procedure PresetObjParams;
-  var
-    i : integer;
+var
+  i : integer;
 begin
-  for i := 1 to High(ObjZav) do
-    case ObjZav[i].TypeObj of
-      2 : begin // стрелка
-        ObjZav[i].bParam[4] := false;
-        ObjZav[i].bParam[5] := false;
-      end;
-      3 : begin // Секция
-        ObjZav[i].bParam[8] := true;
-      end;
-      4 : begin // Путь
-        ObjZav[i].bParam[8] := true;
-      end;
-      5 : begin // Светофор
-        ObjZav[i].iParam[1] := 0;
-        ObjZav[i].iParam[2] := 0;
-        ObjZav[i].iParam[3] := 0;
-      end;
-      15 : begin // АБ
-        ObjZav[i].bParam[9] := true;
-      end;
-      34 : begin // Питание
-        ObjZav[i].bParam[1] := true;
-        ObjZav[i].bParam[2] := true;
-      end;
-      38 : begin // контроль надвига
-        ObjZav[i].bParam[1] := false;
-      end;
-
-    end;
-// Установить признак активности объектов FR3s
-{Технологическое}  for i := 1 to 4096 do FR3s[i] := LastTime;
+  for i := 1 to High(ObjZv) do
+  case ObjZv[i].TypeObj of
+    2 : begin ObjZv[i].bP[4]:= false; ObjZv[i].bP[5] := false; end; //------------ стрелка
+    3 : begin ObjZv[i].bP[8]:= true; end; //--------------------------------------- Секция
+    4 : begin ObjZv[i].bP[8]:= true; end; //----------------------------------------- Путь
+    5 : begin ObjZv[i].iP[1]:= 0; ObjZv[i].iP[2] := 0; ObjZv[i].iP[3] := 0; end;//Светофор
+   15 : begin ObjZv[i].bP[9] := true; end; //------------------------------------------ АБ
+   34 : begin ObjZv[i].bP[1] := true; ObjZv[i].bP[2] := true; end; //------------- Питание
+   38 : begin ObjZv[i].bP[1] := false;  end; //-------------------------- контроль надвига
+  end;
+  for i := 1 to 4096 do FR3s[i] := LastTime; //Установить признак активности объектов FR3s
 end;
 
-//------------------------------------------------------------------------------
-// Изменить район управления
+//========================================================================================
+//-------------------------------------------------------------- Изменить район управления
 procedure ChangeRegion(RU : Byte);
-  var i: Integer; f : Byte;
+var
+  i: Integer;
+  f : Byte;
 begin
-  ChRegion := false;
-  config.ru := RU;
-  for i := 1 to High(ObjZav) do
-  begin // Установить состояния объектов
-    case ObjZav[i].TypeObj of
-      1 : begin // хвост стрелки
-        f := fr4[ObjZav[i].ObjConstI[1] div 8]; // буфер FR4
-        if ((f and $2) = $2) and (ObjZav[i].RU = config.ru) then
-        begin // повесить литер стрелки на макетный шильдик
-          maket_strelki_index := i;
-          maket_strelki_name  := ObjZav[i].Liter;
-        end;
+  ChRegion := false; config.ru := RU;
+  for i := 1 to High(ObjZv) do
+  begin //-------------------------------------------------- Установить состояния объектов
+    case ObjZv[i].TypeObj of
+      1 :
+      begin //-------------------------------------------------------------- хвост стрелки
+        f := fr4[ObjZv[i].ObCI[1] div 8]; //------------------------------------- байт FR4
+        //------------------------------------- повесить литер стрелки на макетный шильдик
+        if ((f and $2) = $2) and (ObjZv[i].RU = config.ru) then
+        begin  maket_strelki_index := i; maket_strelki_name  := ObjZv[i].Liter; end;
       end;
     end;
   end;

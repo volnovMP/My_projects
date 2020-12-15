@@ -77,10 +77,10 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	ReBoot = false;
 
 
-	KOL_STR[0] = 3; //----------------------------------------------- число объектов стрелок
-	KOL_SIG[0] = 5; //---------------------------------------------- число объектов сигналов
-	KOL_DOP[0] = 12;//---------------------------------------- число дополнительных объектов
-	KOL_SP[0] = 9; //----------------------------------------------------- число объектов СП
+	KOL_STR[0] = 1; //----------------------------------------------- число объектов стрелок
+	KOL_SIG[0] = 2; //---------------------------------------------- число объектов сигналов
+	KOL_DOP[0] = 8; //---------------------------------------- число дополнительных объектов
+	KOL_SP[0] = 2; //----------------------------------------------------- число объектов СП
 	KOL_PUT[0] = 1;//-------------------------------------------------- число объектов путей
 	KOL_KONT[0]=5; //-------------------------------------------- число объектов контроллера
 
@@ -163,6 +163,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	{
 		delete Reg;
 	}
+  
 	Otladka1->Show();	Otladka1->Hide();
 	Otladka1->Otlad=0;
 	TODAY=DateToStr(Date());
@@ -203,7 +204,8 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	while(fu!='\n')fu=fgetc(fai);
 	fscanf(fai,"%x",&PRT2);      //----------------------------- порт резервного канала ТУМС
 
-	fu=0;
+ 	fu=0;
+ 	fu=fgetc(fai);
 	while(fu!='\n')fu=fgetc(fai);
 	fscanf(fai,"%x",&PRT3);     //------------------------------------------- порт канала ДЦ
 
@@ -500,13 +502,13 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	PRIEM = new unsigned char[KOL_VO];
 	ZeroMemory(PRIEM,KOL_VO);
 
-	FR4 = new unsigned char[KOL_VO + 1];
-	ZeroMemory(FR4,KOL_VO + 1);
+	FR4_MY = new unsigned char[KOL_VO + 1];
+	ZeroMemory(FR4_MY,KOL_VO + 1);
 
-	ZAFIX_FR4= new unsigned char[KOL_VO + 1];
-	ZeroMemory(ZAFIX_FR4,KOL_VO +1);
+	FR4_SOS = new unsigned char[KOL_VO + 1];
+	ZeroMemory(FR4_SOS,KOL_VO +1);
 
-  for(i=0;i<10;i++) NOVIZNA_FR4[i] = 0;
+    for(i=0;i<10;i++){NOVIZNA_FR4[i] = 0;NOV_SOSED[i] = 0; }
 
 	FillMemory(&TRASSA,sizeof(TRASSA),0);
 	ZeroMemory(NOVIZNA,KOL_NEW);
@@ -757,37 +759,28 @@ void __fastcall TStancia::MARSH_GLOB_LOCAL(void)
 //--------------------------------------------------------- kan - номер канала (0,1)
 int __fastcall TStancia::diagnoze(int st,int kan)
 {
-	int nom_serv,strk,error_diag=0,i;
+	int nom_serv, strk, error_diag = 0, i;
 	unsigned char gru,podgru,nm[15],NOM_ARM[2],bt,kod;
-	while(error_diag!=-1)
+	while(error_diag != -1)
 	{
 		if((st<0)||(st>7))error_diag=-1;
 		if(kan==0)
-		{
-			gru = REG[st][0][4];
-			podgru = REG[st][0][5];
-			bt = REG[st][0][6]&0xf;
-			kod = REG[st][0][7];
-		}
+		{ gru=REG[st][0][4]; podgru=REG[st][0][5]; bt=REG[st][0][6]&0xf; kod=REG[st][0][7]; }
 		else
 		if(kan==1)
-		{
-			gru = REG[st][0][4];
-			podgru = REG[st][0][5];
-			bt = REG[st][0][6]&0xf;
-			kod = REG[st][0][7];
-		}
+		{ gru=REG[st][0][4]; podgru=REG[st][0][5]; bt=REG[st][0][6]&0xf; kod=REG[st][0][7];	}
+
 		strk = TAKE_STROKA(gru,podgru-48,st);
+
 		if(strk < 0) error_diag = -1;
     else
-    {
-			//--------------------------------------------------------- нахождение объекта сервера
+    {//-------------------------------------------------------- нахождение объекта сервера
 			switch(gru)
 			{
-			case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
-			case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
-			case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
-			default: error_diag = -1; break;
+				case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
+				case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
+				case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
+				default: error_diag = -1; break;
 			}
 			nom_serv = nm[bt*2] * 256 + nm[bt*2+1];
 			if(nom_serv > (int)KOL_VO)error_diag = -1;
@@ -795,8 +788,7 @@ int __fastcall TStancia::diagnoze(int st,int kan)
     	{
 				//--------------------------------------------------------- нахождение объекта АРМов
 				for(i = 0; i < 2; i++)NOM_ARM[i] = OUT_OB[nom_serv].byt[i];
-				DIAGNOZ[0] = NOM_ARM[1];
-				DIAGNOZ[1] = NOM_ARM[0]|0x20;
+				DIAGNOZ[0] = NOM_ARM[1]; DIAGNOZ[1] = NOM_ARM[0]|0x20;
 				switch(kod)
 				{
 					case 'P': DIAGNOZ[2] = 1; break;
@@ -836,7 +828,6 @@ int __fastcall TStancia::test_plat(int st,int kan)
 		{
 			for(i = 0; i < 5; i++)BAITY_OLD[i] = baity[i]; //------- перезаписать ненормы заново
 			TIME_OLD = time(NULL); //-----------------------------  значение для времени ненормы
-			return(0);
 		}
 	}
 	else //---------------------------------- если подгруппа отличная от ранее фиксированных
@@ -849,58 +840,57 @@ int __fastcall TStancia::test_plat(int st,int kan)
 
   switch(podgr)
   {
-		case 'p': kod=1; plata=1;   //-------------------------------------- объединение групп
-    					for(i=0;i<3;i++)bits=bits|((baity[i]&0x1f)<<(i*5));
-              break;
-		case 'q': kod=2; plata=1;  //--------------------------------------------- обрыв групп
-							for(i=0;i<3;i++)bits=bits|((baity[i]&0x1f)<<(i*5));
-							break;
-		case 'r': kod=3; plata=9;    //--------------------------------- отсутствие 0 в М201-1
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 's': kod=3; plata=10;   //--------------------------------- отсутствие 0 в М201-2
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 't': kod=3; plata=11;   //--------------------------------- отсутствие 0 в М201-3
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'u': kod=3; plata=12;   //--------------------------------- отсутствие 0 в М201-4
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'v': kod=4; plata=9;  //----------------------------------- отсутствие 1 в M201-1
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'w': kod=4; plata=10; //----------------------------------- отсутствие 1 в M201-2
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
-		case 'x': kod=4; plata=11;  //---------------------------------- отсутствие 1 в M201-3
-							for(i=0;i<4;i++)bits=bits|((baity[i]&0x1f)<<(i*4));
-							break;
+		case 'p': kod =1; break; //-------------------------------------- несоответствия групп
+		case 'r': kod=3; plata = 1; break; //--------------------------- отсутствие 0 в М201-1
+		case 's': kod=3; plata = 2; break; //--------------------------- отсутствие 0 в М201-2
+		case 't': kod=3; plata = 3; break; //--------------------------- отсутствие 0 в М201-3
+		case 'u': kod=3; plata = 4; break; //--------------------------- отсутствие 0 в М201-4
+		case 'v': kod=4; plata = 1; break; //--------------------------- отсутствие 1 в M201-1
+		case 'w': kod=4; plata = 2; break; //--------------------------- отсутствие 1 в M201-2
+		case 'x': kod=4; plata = 3; break; //--------------------------- отсутствие 1 в M201-3
 		default: return(0);
 	}
+	bits = 0;
+  ERR_PLAT[0]=0;	ERR_PLAT[1]=0x14; //---------------------------- базовый адрес сообщения
 
-	ERR_PLAT[0]=0;
-	ERR_PLAT[1]=0x14;
+  if (kod == 1)
+  {
+		plata = baity[0] & 0x1F; //--------------------------------- номер выставленной группы
+    bits = bits | ((baity[3]&0x1f)<<10);
+    bits = bits | ((baity[2]&0x1f)<<5);
+    bits = bits | ((baity[1]&0x1f)); //------------------------- полученное значение групп
 
-	ERR_PLAT[5]=((st+1)&0xf)<<4;
-	ERR_PLAT[5]=ERR_PLAT[5]|(((KORZINA[st]+1)&3)<<2);
-	ERR_PLAT[5]=ERR_PLAT[5] | ( (plata&0xc)>>2 );
+  	ERR_PLAT[2] = ((st+1)&0xf)<<4;
+		ERR_PLAT[2] = ERR_PLAT[2]|(((KORZINA[st]+1)&3)<<2);
+    ERR_PLAT[3] = plata;
+		ERR_PLAT[4] = (bits&0xFF00)>>8;
+    ERR_PLAT[5] = bits&0xFF;
+		return(1);
+  }
+  else
+  {
+    ERR_PLAT[0] = 1;
+		bits = bits | ((baity[3]&0xf)<<12); //-------- полученное значение неправильных данных
+		bits = bits | ((baity[2]&0xf)<<8);
+		bits = bits | ((baity[1]&0xf)<<4);
+ 		bits = bits |  (baity[0]&0xf);
 
-	ERR_PLAT[4]=(plata&0x3)<<6;
-	ERR_PLAT[4]=ERR_PLAT[4] | (kod&0x3f);
-
-	ERR_PLAT[2]=bits&0xFF;
-	ERR_PLAT[3]=(bits&0xFF00)>>8;
-
-	return(1);
+		ERR_PLAT[2] = ((st+1)&0xf)<<4; //---------------------------------------------- стойка
+		ERR_PLAT[2] = ERR_PLAT[2]|(((KORZINA[st]+1)&3)<<2);//------------------------- корзина
+		ERR_PLAT[2] = ERR_PLAT[2]| (plata&0x3); //-------------------------------------- плата
+    ERR_PLAT[3] = kod;
+		ERR_PLAT[4] = (bits&0xFF00)>>8;
+    ERR_PLAT[5] = bits&0xFF;
+		return(1);
+	}
 }
 
 //========================================================================================
 //-- процедура определения номера строки, содержащей номера объектов для сообщения от ТУМС
+int __fastcall TStancia::TAKE_STROKA(unsigned char GRPP,int sb,int tms)
 //------------------------------------------------------------ GRPP - код группы сообщения
 //------------------------------------------------------------------- sb - номер сообщения
 //--------------------------------------------------------------------- tms - номер стойки
-int __fastcall TStancia::TAKE_STROKA(unsigned char GRPP,int sb,int tms)
 {
 	int j,STRK=0;
 	switch(GRPP) //-------------------------------------- Переключатель по группам сообщений
@@ -929,12 +919,13 @@ int __fastcall TStancia::TAKE_STROKA(unsigned char GRPP,int sb,int tms)
 }
 //========================================================================================
 //--------------------------- Процедура заполнения элементов массива FR3 принятыми данными
+void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsigned char tum,char nov)
 //---------------------------------- GRP - код группы принятых данных --------------------
 //--------------------------------- STRKA - строка в списке номеров объектов данной группы
 //---------------------------------- sob - номер принятого сообщения ---------------------
 //---------------------------------- tum - номер стойки ----------------------------------
 //---------------------------------- nov - признак новизны байтов сообщения --------------
-void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsigned char tum,char nov)
+
 {
 	unsigned int kk,nn,i,jj,j,num[15],ii,ij,sgnl=0,i_m,i_s,i_sig;
 	unsigned int str_lev=0,str_prav=0,sp_lev=0,sp_prav=0,koryto=0;
@@ -1154,6 +1145,8 @@ void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsign
 										KVIT_ARMu[2] = 3;
 										add(i_m,8888,12);
 										DeleteMarsh(i_m);
+                    i_m = Nst*3;
+                    break;
                   }
                 }
 							}
@@ -1448,27 +1441,33 @@ void __fastcall TStancia::ARM_OUT(void)
 	n_out = ZAPOLNI_KVIT(ARM,0);
 	//-------------------------------------------- далее до конца заполняется основной канал
 	OBJ_ARMu[N_PAKET].LAST=0;
+
 	if((DIAGNOZ[1])||(DIAGNOZ[2]))
 	{ //------------------------------------------------------- записать в буфер диагностику
-		BUF_OUT_ARM[n_out++]=DIAGNOZ[0]; DIAGNOZ[0]=0;
-		BUF_OUT_ARM[n_out++]=DIAGNOZ[1]; DIAGNOZ[1]=0;
-		BUF_OUT_ARM[n_out++]=DIAGNOZ[2]; DIAGNOZ[2]=0;
+		BUF_OUT_ARM[n_out++] = DIAGNOZ[0]; DIAGNOZ[0]=0;
+		BUF_OUT_ARM[n_out++] = DIAGNOZ[1]; DIAGNOZ[1]=0;
+		BUF_OUT_ARM[n_out++] = DIAGNOZ[2]; DIAGNOZ[2]=0;
 	}
-	if(ERR_PLAT[1])
+
+
+	if(ERR_PLAT[1]>0)
 	{
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[0];ERR_PLAT[0]=0;
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[1];ERR_PLAT[1]=0;
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[2];ERR_PLAT[2]=0;
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[3];ERR_PLAT[3]=0;
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[4];ERR_PLAT[4]=0;
-		BUF_OUT_ARM[n_out++]=ERR_PLAT[5];ERR_PLAT[5]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[0]; ERR_PLAT[0]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[1]; ERR_PLAT[1]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[2]; ERR_PLAT[2]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[3]; ERR_PLAT[3]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[4]; ERR_PLAT[4]=0;
+		BUF_OUT_ARM[n_out++] = ERR_PLAT[5]; ERR_PLAT[5]=0;
 	}
+
+
 	if(NEPAR_OBJ[0]!=0)
 	{
-		BUF_OUT_ARM[n_out++]=NEPAR_OBJ[0];NEPAR_OBJ[0]=0;
-		BUF_OUT_ARM[n_out++]=NEPAR_OBJ[1];NEPAR_OBJ[1]=0;
-		BUF_OUT_ARM[n_out++]=NEPAR_OBJ[2];NEPAR_OBJ[2]=0;
+		BUF_OUT_ARM[n_out++] = NEPAR_OBJ[0];NEPAR_OBJ[0]=0;
+		BUF_OUT_ARM[n_out++] = NEPAR_OBJ[1];NEPAR_OBJ[1]=0;
+		BUF_OUT_ARM[n_out++] = NEPAR_OBJ[2];NEPAR_OBJ[2]=0;
 	}
+
 	for(i = 0; i < KOL_NEW; i++)//---------------------- пройти по перечню имеющейся новизны
 	{
 		if(NOVIZNA[i] == 0)continue;//------------------- если нет новизны перейти к следующей
@@ -1520,7 +1519,7 @@ void __fastcall TStancia::ARM_OUT(void)
 
     if((NOVIZNA_FR4[i]&0xfff)== KOL_VO)
     {
-    	OUT_BYTE = FR4[NOVIZNA_FR4[i]&0xfff];
+    	OUT_BYTE = FR4_MY[NOVIZNA_FR4[i]&0xfff];
 			BUF_OUT_ARM[n_out++] = 9;//--------------- записать в буфер вывода номер для НАС/ЧАС
 			BUF_OUT_ARM[n_out++] = 0;
 			BUF_OUT_ARM[n_out++] = OUT_BYTE;  //------------- записать в буфер состояние объекта
@@ -1547,13 +1546,11 @@ void __fastcall TStancia::ARM_OUT(void)
 				continue; //------------------------ если объект пустой перейти к следующей ячейке
 			}
 
-			OUT_BYTE = FR4[jf];
+			OUT_BYTE = FR4_MY[jf];
 			BUF_OUT_ARM[n_out++]=OUT_OB[jf].byt[1];//----- записать в буфер вывода номер для ...
 			BUF_OUT_ARM[n_out++]=OUT_OB[jf].byt[0]|0x80;//---------------------- данного объекта
 			BUF_OUT_ARM[n_out++]=OUT_BYTE;  //--------------- записать в буфер состояние объекта
     }
-		NOVIZNA_FR4[i] = NOVIZNA_FR4[i]+0x1000; //------ увеличить признак новизны ограничений
-		if((NOVIZNA_FR4[i]&0x3000)==0x3000)NOVIZNA_FR4[i]=0;//- 3 передачи,  убрать из новизны
 		if(n_out>64)break;//------------------------------------ заполнен буфер передачи в АРМ
 	}
  	if(i==10)new_fr4=0; //-------------------------- заполнен перечень номеров, начать снова
@@ -1571,7 +1568,7 @@ void __fastcall TStancia::ARM_OUT(void)
   	if(((OUT_OB[povtor_fr4].byt[1]!=32)||(OUT_OB[povtor_fr4].byt[0]!=32)) &&
    	((OUT_OB[povtor_fr4].byt[1]!=0)||(OUT_OB[povtor_fr4].byt[0]!=0)))
     {
-  		OUT_BYTE = FR4[povtor_fr4];
+  		OUT_BYTE = FR4_MY[povtor_fr4];
 			BUF_OUT_ARM[n_out++]=OUT_OB[povtor_fr4].byt[1];//записать в буфер вывода номер для..
 			BUF_OUT_ARM[n_out++]=OUT_OB[povtor_fr4].byt[0]|0x80;//-------------- данного объекта
 			BUF_OUT_ARM[n_out++]=OUT_BYTE;  //--------------- записать в буфер состояние объекта
@@ -1644,9 +1641,9 @@ void __fastcall TStancia::ARM_OUT(void)
 			BUF_OUT_ARM[n_out++]=OUT_OB[i].byt[1];
 			BUF_OUT_ARM[n_out++]=OUT_OB[i].byt[0];
 			BUF_OUT_ARM[n_out++]=OUT_BYTE;
-			if(FR4[i])
+			if(FR4_MY[i]!=0)
 			{
-				OUT_BYTE=FR4[i];
+				OUT_BYTE = FR4_MY[i];
 				BUF_OUT_ARM[n_out++]=OUT_OB[i].byt[1];//---- записать в буфер вывода АРМ номер для
 				BUF_OUT_ARM[n_out++]=OUT_OB[i].byt[0]|0x80;//--------------------- данного объекта
 				BUF_OUT_ARM[n_out++]=OUT_BYTE;  //------------- записать в буфер состояние объекта
@@ -1719,9 +1716,9 @@ void __fastcall TStancia::ARM_OUT(void)
 
 //========================================================================================
 //----- Программа внесения в буфера каналов сервер-АРМ квитанций приема для передачи в DSP
+int __fastcall TStancia::ZAPOLNI_KVIT(int arm,int knl)
 //------------------------------------------------ arm - индекс АРМа;  knl - индекс канала
 //------ функция возвращает номер байта в буфере передачи в АРМ,  следующего за квитанцией
-int __fastcall TStancia::ZAPOLNI_KVIT(int arm,int knl)
 {
 	int i, n_ou=4;
 	if((KVIT_ARMu[0])||(KVIT_ARMu[1])) //-------------- если есть квитанция для этого канала 
@@ -1913,16 +1910,11 @@ void __fastcall TStancia::RASPAK_ARM(const int bb,unsigned char STAT,int arm)
 		return;
 	}
 }
-/******************************************\
-*  Программа установки системного таймера  *
-*            MAKE_TIME()                   *
-/**********************************************\
-*      ANALIZ_KVIT_ARM(int arm,int stat)       *
-* процедура анализа квитанций,принятых от АРМа *
-* arm - индекс АРМа, закончившего сеанс обмена *
-* stat- код канала связи,осуществившего обмен  *
-\**********************************************/
+//========================================================================================
+//------------------------------------------- процедура анализа квитанций,принятых от АРМа
 void __fastcall TStancia::ANALIZ_KVIT_ARM(int arm,int stat)
+//------------------------------------------- arm - индекс АРМа, закончившего сеанс обмена
+//-------------------------------------------- stat- код канала связи,осуществившего обмен
 {
   int ii,jj,oo,ob;
   if(KVIT_ARM[stat][0]==0)return;
@@ -1969,12 +1961,11 @@ void __fastcall TStancia::ANALIZ_KVIT_ARM(int arm,int stat)
   return;
 }
 //========================================================================================
-//--------------------------------------- MAKE_KOMANDA(int ARM,int STAT,unsigned char ray)
-//  Процедура трансформации раздельных команд из АРМа в коды команд стоек ТУМС                       *
+//------------  Процедура трансформации раздельных команд из АРМа в коды команд стоек ТУМС                       *
+void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
 //--------------------------------------------------  ARM - индекс АРМа, выдавшего команду
 //----------------------------------------- STAT - код канала,по которому получена команда
 //----------------------------------------------------------- ray  - код района управления
-void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
 {
 	unsigned short int obj,obj_serv,ii,tip_ob,job;
 	unsigned char komanda;
@@ -2044,31 +2035,34 @@ void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
     		case 129:
         {
         	NAS = true;
-          FR4[KOL_VO] = FR4[KOL_VO] | 'A';
+          FR4_MY[KOL_VO] = FR4_MY[KOL_VO] | 'A';
           NOVIZNA_FR4[new_fr4++] = KOL_VO;
           if(new_fr4 >=10)new_fr4 = 0;
           break;
         }
+
       	case 130:
         {
         	NAS = false;
-          FR4[KOL_VO] = FR4[KOL_VO] & 0xFE;
+          FR4_MY[KOL_VO] = FR4_MY[KOL_VO] & 0xFE;
           NOVIZNA_FR4[new_fr4++] = KOL_VO;
           if(new_fr4 >=10)new_fr4 = 0;
           break;
         }
+
         case 131:
         {
         	CHAS = true;
-          FR4[KOL_VO] = FR4[KOL_VO] | 'B';
+          FR4_MY[KOL_VO] = FR4_MY[KOL_VO] | 'B';
           NOVIZNA_FR4[new_fr4++] = KOL_VO;
           if(new_fr4 >=10)new_fr4 = 0;
           break;
         }
+
         case 132:
         {
         	CHAS = false;
-          FR4[KOL_VO] = FR4[KOL_VO] & 0xFD;
+          FR4_MY[KOL_VO] = FR4_MY[KOL_VO] & 0xFD;
           NOVIZNA_FR4[new_fr4++] = KOL_VO;
           if(new_fr4 >=10)new_fr4 = 0;
           break;
@@ -2094,7 +2088,7 @@ void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
 
 				case 2: signaly(komanda,obj_serv);break;
 				case 3:
-				case 4: sp_up_and_razd(komanda,obj_serv,ARM);break;
+				case 4: sp_up_razdel(komanda,obj_serv,ARM);break;
 				case 5: puti(komanda,obj_serv);break;
 				case 8: if((komanda==64)||(komanda==65)||(komanda==87)||(komanda==88))
 								prosto_komanda(komanda);
@@ -2113,24 +2107,21 @@ void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
 		{
 			if(komanda==71) //-------------------------------- если немаршрутизированные маневры
 			{
-				KOMANDA_MARS[0]=71;
+				KOMANDA_MARS[0] = 71;
 				job=BD_OSN[1];
-				KOMANDA_MARS[1]=OUT_OB[job].byt[1];
-				KOMANDA_MARS[2]=OUT_OB[job].byt[0];
+				KOMANDA_MARS[1] = OUT_OB[job].byt[1];
+				KOMANDA_MARS[2] = OUT_OB[job].byt[0];
 				job=BD_OSN[2];
-				KOMANDA_MARS[3]=OUT_OB[job].byt[1];
-				KOMANDA_MARS[4]=OUT_OB[job].byt[0];
-				KOMANDA_MARS[5]=(BD_OSN[3]&0xf000)>>12;
-				KOMANDA_MARS[6]=BD_OSN[3]&0xfff;
-				KOMANDA_MARS[7]=0;
-				KOMANDA_MARS[8]=0;
-				KOMANDA_MARS[9]=0;
-				for(ii=0;ii<12;ii++)
-				{
-					KOMANDA_RAZD[ii]=0;
-				}
+				KOMANDA_MARS[3] = OUT_OB[job].byt[1];
+				KOMANDA_MARS[4] = OUT_OB[job].byt[0];
+				KOMANDA_MARS[5] = (BD_OSN[3]&0xf000)>>12;
+				KOMANDA_MARS[6] = BD_OSN[3]&0xfff;
+				KOMANDA_MARS[7] = 0;
+				KOMANDA_MARS[8] = 0;
+				KOMANDA_MARS[9] = 0;
+				for(ii=0;ii<12;ii++) KOMANDA_RAZD[ii]=0;
 				MAKE_MARSH(ARM,STAT);
-				for(ii=0;ii<12;ii++)KOMANDA_MARS[ii]=0;
+				for(ii=0;ii<12;ii++) KOMANDA_MARS[ii]=0;
 			}
 
 			if(komanda==72)otmena_rm(obj_serv);
@@ -2171,12 +2162,11 @@ void __fastcall TStancia::MAKE_KOMANDA(int ARM,int STAT,int ray)
 	for(ii=0;ii<12;ii++)KOMANDA_RAZD[ii]=0;
 	return;
 }
-
 //========================================================================================
 //--------------------------------  Процедура обработки маршрутных команд,принятых от АРМа
+void __fastcall TStancia::MAKE_MARSH(int ARM,int STAT)
 //------------------------------------   ARM - номер(код) АРМа, выдавшего команду маршрута
 //--------------------------------   STAT - номер(код) канала, по которому принята команда
-void __fastcall TStancia::MAKE_MARSH(int ARM,int STAT)
 {
 	unsigned int obj,obj0,nach_marsh,end_marsh,nstrel,ii;
 	unsigned long pol_strel;
@@ -2189,7 +2179,7 @@ void __fastcall TStancia::MAKE_MARSH(int ARM,int STAT)
 		obj0 = obj; //---------------------------------------- начало маршрута в нумерации DSP
 		if((obj<=0)||(obj>= KOL_ARM))//--------------------------- если объект начала вне базы
 		{
-			for(ii=0;ii<12;ii++)KOMANDA_MARS[ii]=0;
+			for(ii=0;ii<12;ii++)KOMANDA_MARS[ii] = 0;
 			return;
 		}
 		komanda = KOMANDA_MARS[0]; //------------------------------------ получить код команды
@@ -2197,26 +2187,26 @@ void __fastcall TStancia::MAKE_MARSH(int ARM,int STAT)
 
 		nach_marsh=INP_OB[obj].byt[0]*256+INP_OB[obj].byt[1];//- получить начало маршрута STAN
 
-		obj = KOMANDA_MARS[3]+KOMANDA_MARS[4]*256; //-------------------------- конец по № DSP
+		obj = KOMANDA_MARS[3] + KOMANDA_MARS[4]*256; //------------------------ конец по № DSP
 
 		if((obj==0)||(obj>=KOL_ARM)) //---------------------------- если объект конца вне базы
 		{
-			for(ii=0;ii<12;ii++)KOMANDA_MARS[ii]=0;
+			for(ii=0;ii<12;ii++)KOMANDA_MARS[ii] = 0;
 			return;
 		}
 		end_marsh = INP_OB[obj].byt[0]*256+INP_OB[obj].byt[1];//----- конец маршрута по № STAN
 
-		nstrel=KOMANDA_MARS[5]; //--------------------------------- число определяющих стрелок
+		nstrel = KOMANDA_MARS[5]; //------------------------------- число определяющих стрелок
 
 		//---------------------------------------- положение определяющих стрелок (до 32 штук)
-		pol_strel=KOMANDA_MARS[6]+(KOMANDA_MARS[7]<<8)+
-		(KOMANDA_MARS[8]<<16)+(KOMANDA_MARS[9]<<24);
+		pol_strel = KOMANDA_MARS[6] + (KOMANDA_MARS[7]<<8) +
+		(KOMANDA_MARS[8]<<16) + (KOMANDA_MARS[9]<<24);
 
 		if(Otladka1->Otlad==5)
 		{
-			Arm_kom=IntToStr(komanda)+"-"+IntToStr(obj0)+"-"+
-			IntToStr(KOMANDA_MARS[3]+KOMANDA_MARS[4]*256)+
-			"-"+IntToStr(nstrel)+"-"+IntToStr(pol_strel);
+			Arm_kom=IntToStr(komanda) + "-"+IntToStr(obj0) + "-"+
+			IntToStr(KOMANDA_MARS[3] + KOMANDA_MARS[4]*256) +
+			"-"+IntToStr(nstrel) + "-" + IntToStr(pol_strel);
 			Edit3->Text=Arm_kom;
 		}
 		RASFASOVKA=0xF;
@@ -2233,10 +2223,10 @@ void __fastcall TStancia::MAKE_MARSH(int ARM,int STAT)
 	return;
 }
  //=======================================================================================
-//---------------------- perevod_strlk - модуль формирования раздельной команды на стрелку
+//-------------------------------------- модуль формирования раздельной команды на стрелку
+void __fastcall TStancia::perevod_strlk(unsigned char command,unsigned int objserv)
 //------------------------------------------ command - байт управляющей команды от сервера
 //------------------- int BD_OSN[16] - строка описания объекта управления для стрелки в БД
-void __fastcall TStancia::perevod_strlk(unsigned char command,unsigned int objserv)
 {
 	unsigned char tums, //----------------------------------------------------- номер стойки
 	gruppa, //----------------------------------------------- код группы для данного объекта
@@ -2250,63 +2240,63 @@ void __fastcall TStancia::perevod_strlk(unsigned char command,unsigned int objse
   switch(command)
 	{
 		//---------------------------------------------------- отключить стрелку от управления
-		case 31:  FR4[objserv]=FR4[objserv]|1;
+		case 31:  FR4_MY[objserv]=FR4_MY[objserv]|1;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		
-		case 32:  FR4[objserv]=FR4[objserv]&0xFE;//------------- включить стрелку в управление
+		case 32:  FR4_MY[objserv]=FR4_MY[objserv]&0xFE;//------- включить стрелку в управление
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 
 		//-------------------------------------------------------- закрыть движение по стрелке
-		case 33:  FR4[objserv]=FR4[objserv]|4;
+		case 33:  FR4_MY[objserv]=FR4_MY[objserv]|4;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//-------------------------------------------------------- открыть движение по стрелке
-		case 34:  FR4[objserv]=FR4[objserv]&0xFB;
+		case 34:  FR4_MY[objserv]=FR4_MY[objserv]&0xFB;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //--- если не передано более 10 новизн, начать с 0
 							return;
 		//------------------------------------------------ закрыть движение по дальней стрелке
-		case 35:  FR4[objserv]=FR4[objserv]|8;
+		case 35:  FR4_MY[objserv]=FR4_MY[objserv]|8;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//------------------------------------------------ открыть движение по дальней стрелке
-		case 36:  FR4[objserv]=FR4[objserv]&0xF7;
+		case 36:  FR4_MY[objserv]=FR4_MY[objserv]&0xF7;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//-------------------------------------------------------- установить макет на стрелку
-		case 37:  FR4[objserv]=FR4[objserv]|2;
+		case 37:  FR4_MY[objserv]=FR4_MY[objserv]|2;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//------------------------------------------------------------- снять стрелку с макета
-		case 38:  FR4[objserv]=FR4[objserv]&0xFD;
+		case 38:  FR4_MY[objserv]=FR4_MY[objserv]&0xFD;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//---------------------------------------- закрыть противошерстное движение по стрелке
-		case 114: FR4[objserv]=FR4[objserv]|0x10;
+		case 114: FR4_MY[objserv]=FR4_MY[objserv]|0x10;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//---------------------------------------- открыть противошерстное движение по стрелке
-		case 115: FR4[objserv]=FR4[objserv]&0xEF;
+		case 115: FR4_MY[objserv]=FR4_MY[objserv]&0xEF;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //--- если не передано более 10 новизн, начать с 0
 							return;
 		//-------------------------------- закрыть противошерстное движение по дальней стрелке
-		case 116: FR4[objserv]=FR4[objserv]|0x20;
+		case 116: FR4_MY[objserv]=FR4_MY[objserv]|0x20;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		//-------------------------------- открыть противошерстное движение по дальней стрелке
-		case 117: FR4[objserv]=FR4[objserv]&0xDF;
+		case 117: FR4_MY[objserv]=FR4_MY[objserv]&0xDF;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
@@ -2332,24 +2322,24 @@ void __fastcall TStancia::perevod_strlk(unsigned char command,unsigned int objse
 		for(int i_m=0;i_m<Nst*3;i_m++)
 		for(int i_s=0;i_s<Nst;i_s++)
 		for(int i_str=0;i_str<10;i_str++)
-		if(MARSHRUT_ALL[i_m].STREL[i_s][i_str] == objserv)
+		if((MARSHRUT_ALL[i_m].STREL[i_s][i_str]&0xfff) == objserv)
 		{
       DeleteMarsh(i_m);
 			add(i_m,8888,13);
       Err++;
+      return;
     }
   }
   bit=(BD_OSN[15]&0xe000)>>13; //выделить номер байта в сообщении = номер бита для команды
 	ZAGRUZ_KOM_UVK(tums, gruppa, podgruppa, bit, kod_cmd);
 	return;
 }
-
 //========================================================================================
-//------------------------------ signaly - модуль формирования раздельных команд на сигнал
+//---------------------------------------- модуль формирования раздельных команд на сигнал
+void __fastcall TStancia::signaly(unsigned char command,unsigned int objserv)
 //------------------------------------------ command - байт управляющей команды от сервера
 //------------------- int BD_OSN[16] - строка описания объекта управления для сигнала в БД
 //--------------------------- unsigned objserv - объект в сервере для управляемого сигнала
-void __fastcall TStancia::signaly(unsigned char command,unsigned int objserv)
 {
 	unsigned char tums,//------------------------------------------------------ номер стойки
 	gruppa, //----------------------------------------------- код группы для данного объекта
@@ -2372,18 +2362,18 @@ void __fastcall TStancia::signaly(unsigned char command,unsigned int objserv)
   switch(command)
 	{
 		//------------------------------------------------------------------ закрытие движения
-		case 33:  FR4[objserv]=FR4[objserv]|4;
+		case 33:  FR4_MY[objserv]=FR4_MY[objserv]|4;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 
-		case 34:  FR4[objserv]=FR4[objserv]&0xFB;
+		case 34:  FR4_MY[objserv]=FR4_MY[objserv]&0xFB;
 							NOVIZNA_FR4[new_fr4++]=objserv;//------ запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //---- если не передано более 10 новизн,начать с 0
 							return;
 		case 95:
-		case 45:  kod_cmd='A';break;
-		case 46:  kod_cmd='B';break;
+		case 45:  kod_cmd='A';FR3[objserv].byt[13] = 1; break;    //------- открыть маневровый
+		case 46:  kod_cmd='B';FR3[objserv].byt[15] = 1; break; //------------ открыть поездной
 
 		case 47:  kod_cmd='E';//---------------------------------- отмена маневрового маршрута
 							ii=0;
@@ -2581,7 +2571,6 @@ void __fastcall TStancia::signaly(unsigned char command,unsigned int objserv)
   ZAGRUZ_KOM_UVK(tums,gruppa,podgruppa,bit,kod_cmd);
   return;
 }
-
 //========================================================================================
 //----------------------------- ZAGRUZ_KOM_UVK - модуль загрузки раздельной команды в ТУМС
 void __fastcall TStancia::ZAGRUZ_KOM_UVK(char tms,char grp,char pdgrp,char bt,char kd_cmd)
@@ -2624,33 +2613,28 @@ void __fastcall TStancia::ZAGRUZ_KOM_UVK(char tms,char grp,char pdgrp,char bt,ch
 	KOMANDA_ST[tms-1][3] = pdgrp;
 	for(j=4;j<10;j++)KOMANDA_ST[tms-1][j] = '|';
 	KOMANDA_ST[tms-1][3+bt] = kd_cmd;
-	KOMANDA_ST[tms-1][10] = check_summ(KOMANDA_ST[tms-1]);
+	KOMANDA_ST[tms-1][10] = check_summ(KOMANDA_ST[tms-1]);   //------------- не имеет смысла
 	KOMANDA_ST[tms-1][11] = ')';
 	KOMANDA_ST[tms-1][12] = 0;
 	return;
 }
-/****************************************************\
-*         int check_summ(unsigned char reg[12])      *
-* процедура подсчета контрольной суммы для ТУМС      *
-\****************************************************/
+//========================================================================================
+//------------------------------------------ процедура подсчета контрольной суммы для ТУМС
 char __fastcall TStancia::check_summ(const char *reg)
 {
   char sum=0;
   int ic;
-  for(ic=1;ic<10;ic++)sum=sum^reg[ic];
+  for(ic=1;ic<9;ic++)sum=sum^reg[ic];
   sum=sum|0x40;
   return(sum);
 }
 
 //========================================================================================
-//--------------- sp_up_and_razd модуль формирования раздельных команд на СП,УП и разделка
+//------------------------------ модуль формирования раздельных команд на СП,УП и разделка
+void __fastcall TStancia::sp_up_razdel(unsigned char command,unsigned int objserv,int arm)
+{
 //------------------------------------------ command - байт управляющей команды от сервера
 //--------------------- int BD_OSN[16] - строка описания объекта управления для СП,УП и РИ
-void __fastcall TStancia::sp_up_and_razd(	unsigned char command,
-																					unsigned int objserv,
-																					int arm)
-{
-
 	unsigned char tums,//------------------------------------------------------ номер стойки
 	gruppa, //----------------------------------------------- код группы для данного объекта
 	podgruppa, //------------------------------------------------------------- код подгруппы
@@ -2671,7 +2655,7 @@ void __fastcall TStancia::sp_up_and_razd(	unsigned char command,
 							New_For_ARM(objserv);
 							return;
 						 //закрытие движения
-		case 33:  FR4[objserv]=FR4[objserv]|4;
+		case 33:  FR4_MY[objserv]=FR4_MY[objserv]|4;
 							NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 							READ_BD(objserv);
@@ -2679,12 +2663,12 @@ void __fastcall TStancia::sp_up_and_razd(	unsigned char command,
 							{
 								str_prav = BD_OSN[3]&0xff;
 								READ_BD(str_prav); sp_prav =(BD_OSN[6]&0xFF00)>>8;
-								FR4[sp_prav]=FR4[sp_prav]|4;
+								FR4_MY[sp_prav]=FR4_MY[sp_prav]|4;
 								NOVIZNA_FR4[new_fr4++]=sp_prav;//запомнить номер обновленного объекта
 								if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 							}
 							return;
-		case 34:  FR4[objserv]=FR4[objserv]&0xFB;
+		case 34:  FR4_MY[objserv]=FR4_MY[objserv]&0xFB;
 							NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 							READ_BD(objserv);
@@ -2692,39 +2676,39 @@ void __fastcall TStancia::sp_up_and_razd(	unsigned char command,
 							{
 								str_prav = BD_OSN[3]&0xff;
 								READ_BD(str_prav); sp_prav =(BD_OSN[6]&0xFF00)>>8;
-								FR4[sp_prav]=FR4[sp_prav]&0xFB;
+								FR4_MY[sp_prav]=FR4_MY[sp_prav]&0xFB;
 								NOVIZNA_FR4[new_fr4++]=sp_prav;//запомнить номер обновленного объекта
 								if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 							}
 
 							return;
         //закрытие движение на электротяге
-		case 118: FR4[objserv]=FR4[objserv]|8;
+		case 118: FR4_MY[objserv]=FR4_MY[objserv]|8;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               return;
     //открыть движение на электротяге
-		case 119: FR4[objserv]=FR4[objserv]&0xF7;
+		case 119: FR4_MY[objserv]=FR4_MY[objserv]&0xF7;
 							NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               return;
    //закрытие движения на электротяге переменного тока
-    case 120:  FR4[objserv]=FR4[objserv]|2;
+    case 120:  FR4_MY[objserv]=FR4_MY[objserv]|2;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               return;
     //открыть движение на электротяге переменного тока
-    case 121: FR4[objserv]=FR4[objserv]&0xFD;
+    case 121: FR4_MY[objserv]=FR4_MY[objserv]&0xFD;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               return;
    //закрытие движения на электротяге постоянного тока
-    case 122:  FR4[objserv]=FR4[objserv]|1;
+    case 122:  FR4_MY[objserv]=FR4_MY[objserv]|1;
 							NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 							return;
     //открыть движение на электротяге постоянного тока
-    case 123: FR4[objserv]=FR4[objserv]&0xFE;
+    case 123: FR4_MY[objserv]=FR4_MY[objserv]&0xFE;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               return;
@@ -2787,105 +2771,105 @@ void __fastcall TStancia::puti(unsigned char command,unsigned int objserv)
 							}
               return;
     //закрытие движения по пути
-		case 33:  FR4[objserv]=FR4[objserv]|4;
+		case 33:  FR4_MY[objserv]=FR4_MY[objserv]|4;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
 								job=BD_OSN[1];
-                FR4[job]=FR4[job]|4;
+                FR4_MY[job]=FR4_MY[job]|4;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
               return;
     //открыть движение по пути
-    case 34:  FR4[objserv]=FR4[objserv]&0xFB;
+    case 34:  FR4_MY[objserv]=FR4_MY[objserv]&0xFB;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]&0xFB;
+                FR4_MY[job]=FR4_MY[job]&0xFB;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
               return;
     //закрытие движение на электротяге по пути
-    case 118: FR4[objserv]=FR4[objserv]|8;
+    case 118: FR4_MY[objserv]=FR4_MY[objserv]|8;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]|8;
+                FR4_MY[job]=FR4_MY[job]|8;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
 			  }
               return;
     //открыть движение на электротяге по пути
-    case 119: FR4[objserv]=FR4[objserv]&0xF7;
+    case 119: FR4_MY[objserv]=FR4_MY[objserv]&0xF7;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
 							if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]&0xF7;
+                FR4_MY[job]=FR4_MY[job]&0xF7;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
               return;
    //закрытие движения на электротяге переменного тока по пути
-    case 120:  FR4[objserv]=FR4[objserv]|2;
+    case 120:  FR4_MY[objserv]=FR4_MY[objserv]|2;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]|2;
+                FR4_MY[job]=FR4_MY[job]|2;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
               return;
     //открыть движение на электротяге переменного тока по пути
-    case 121: FR4[objserv]=FR4[objserv]&0xFD;
+    case 121: FR4_MY[objserv]=FR4_MY[objserv]&0xFD;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
                READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]&0xFD;
+                FR4_MY[job]=FR4_MY[job]&0xFD;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
 							return;
    //закрытие движения на электротяге постоянного тока по пути
-    case 122:  FR4[objserv]=FR4[objserv]|1;
+    case 122:  FR4_MY[objserv]=FR4_MY[objserv]|1;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]|1;
+                FR4_MY[job]=FR4_MY[job]|1;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
               return;
     //открыть движение на электротяге постоянного тока по пути
-    case 123: FR4[objserv]=FR4[objserv]&0xFE;
+    case 123: FR4_MY[objserv]=FR4_MY[objserv]&0xFE;
               NOVIZNA_FR4[new_fr4++]=objserv;//запомнить номер обновленного объекта
               if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               READ_BD(job);
               if(BD_OSN[1]!=0)
               {
                 job=BD_OSN[1];
-                FR4[job]=FR4[job]&0xFE;
+                FR4_MY[job]=FR4_MY[job]&0xFE;
                 NOVIZNA_FR4[new_fr4++]=job;//запомнить номер обновленного объекта
                 if(new_fr4>=10)new_fr4=0; //если не передано более 10 новизн,начать с 0
               }
@@ -3281,7 +3265,7 @@ unsigned int NACH,int END,int Nstrel,unsigned long POL)
 											tek_strel++;
 										}
 										else
-										if(((BD_OSN[7]==1)&&(shag==-1))|| //если стрелка пошерстная
+										if(((BD_OSN[7]==1)&&(shag==-1))|| //---------- если стрелка пошерстная
 										((BD_OSN[7]==0)&&(shag==1)))
 										{
 											if(stroka_tek!=stroka_pred)//если предыдущий объект в другой строке
@@ -3356,53 +3340,63 @@ unsigned int NACH,int END,int Nstrel,unsigned long POL)
 								{
 									MARSHRUT_ALL[i_m].SP_UP[tums][ind_sp[tums]++] = ii;
 								}
-								if(BD_OSN[0]==2)//если объект сигнал «
+								if(BD_OSN[0]==2) //------------------------------------ если объект сигнал
 								{
 									switch(shag)
-									{ //нечетное направление
-										case 1: switch(kod_marsh)
-														{ //маневровый
-															case 'a':
-															case 'd':
-																				kod_beg=256;
-																				kod_end=1;
-																				break;
-															//поездной
-															case 'b': kod_beg=4096;
-																				kod_end=16;
-																				break;
-															default:  ERROR_MARSH=1010; break;
-														}
-														break;
-										//четное направление
-										case -1:  switch(kod_marsh)
-															{ //маневровый
-																case 'a':
-																case 'd': kod_beg=1024; kod_end=4; break;
-																//поездной
-																case 'b': kod_beg=16384; kod_end=64; break;
-																default:  ERROR_MARSH=1010; break;
-															}
-															break;
-										 default: ERROR_MARSH=1010;break;
+									{ 
+										case 1: 
+											switch(kod_marsh) //------------------------------- нечетный маршрут
+											{
+												case 'a','d':  //------------------------------ маневровый маршрут
+													kod_beg = 256;
+													kod_end = 1;
+													break;														
+												case 'b': //------------------------------------- поездной маршрут
+													kod_beg = 4096;
+													kod_end = 16;
+													break;
+												default:  
+													ERROR_MARSH=1010; 
+													break;
+											}
+											break;
+										
+										case -1:  
+											switch(kod_marsh) //--------------------------------- четный маршрут
+											{ 
+												case 'a','d': //--------------------------------------- маневровый
+													kod_beg = 1024; 
+													kod_end = 4; 
+													break;
+												case 'b': //--------------------------------------------- поездной
+													kod_beg = 16384; 
+													kod_end = 64; 
+													break;
+												default: 
+													ERROR_MARSH = 1010; 
+													break;
+												}
+												break;
+										 default: 
+											 ERROR_MARSH = 1010;
+											 break;
 									}
-									if(ERROR_MARSH>1000)break;
-									if((BD_OSN[11]&kod_beg)==kod_beg)//если есть такое начало
+									if(ERROR_MARSH > 1000) break;
+									if((BD_OSN[11]&kod_beg) == kod_beg) //----------- если есть такое начало
 									{
-										TRASSA[jj].object=TRASSA[jj].object|0x8000;
-										MARSHRUT_ALL[i_m].SIG[tums][ind_sig[tums]++]=ii;
+										TRASSA[jj].object = TRASSA[jj].object|0x8000;
+										MARSHRUT_ALL[i_m].SIG[tums][ind_sig[tums]++] = ii;
 									}
 
-									if((BD_OSN[11]&kod_end)==kod_end)//еслеи есть такой конец
+									if((BD_OSN[11]&kod_end) == kod_end) //------------ если есть такой конец
 									TRASSA[jj].object=TRASSA[jj].object|0x4000;
 
-									//если у сигнала есть поездное показание
+									//------------------------------- если у сигнала есть поездное показание
 									if(BD_OSN[6]) TRASSA[jj].object=TRASSA[jj].object|0x2000;
+									
+									TRASSA[jj].podgrup=BD_OSN[15]&0x00ff; //------------------ код подгруппы
 
-									//взять код подгруппы
-									TRASSA[jj].podgrup=BD_OSN[15]&0x00ff;
-
-									//взять код номера байта для битовой команды
+									//--------------------------- взять код номера байта для битовой команды
 									TRASSA[jj].kod_bit=(((BD_OSN[15]&0xe000)>>13)-1)|0x40;
 
 									if((PROHOD==1)&&((BD_OSN[11]&kod_end)==kod_end))
@@ -3411,7 +3405,7 @@ unsigned int NACH,int END,int Nstrel,unsigned long POL)
 										if((BD_OSN[1]==1)&&(shag==1))return(ERROR_MARSH);
 									}
 								}
-								ii=ii+shag;
+								ii = ii+shag;
 								break;
 			}//конец переключений по типу объекта базы
 			if(ERROR_MARSH>1000)break;
@@ -3433,32 +3427,44 @@ unsigned int NACH,int END,int Nstrel,unsigned long POL)
 				if(BD_OSN[0]==2)//если вышли на сигнал
 				{
 					switch(shag)
-					{ //-------------------------------------- нечетное направление
-						case 1:
+					{ 
+						case 1: //----------------------------------------------- нечетное направление
 							switch(kod_marsh)
-							{ //маневровый
-								case 'a':
-								case 'd':	kod_beg=256; kod_end=1;  break;
-
-								//поездной
-								case 'b': kod_beg=4096;	kod_end=16; break;
-								default:  ERROR_MARSH=1010;break;
+							{ 
+								case 'a','d':	//----------------------------------------------- маневровый
+									kod_beg = 256; 
+									kod_end = 1;  
+									break;							
+								case 'b': 	//--------------------------------------------------- поездной
+									kod_beg = 4096;	
+									kod_end = 16; 
+									break;
+								default:  
+									ERROR_MARSH = 1010;
+									break;
 							}
 							break;
-						//---------------------------------------- четное направление
-						case -1:
+						
+						case -1: //------------------------------------------------ четное направление
 							switch(kod_marsh)
-							{ //маневровый
-								case 'a':
-								case 'd': kod_beg=1024; kod_end=4; break;
-
-								//поездной
-								case 'b': kod_beg=16384;	kod_end=64;  break;
-								default:  ERROR_MARSH=1010;break;
+							{ 
+								case 'a','d': //----------------------------------------------- маневровый
+									kod_beg = 1024; 
+									kod_end = 4; 
+									break;								
+								case 'b': //----------------------------------------------------- поездной
+									kod_beg = 16384;
+									kod_end = 64; 
+									break;
+								default:  
+									ERROR_MARSH = 1010;
+									break;
 							}
 							break;
 
-							default:  ERROR_MARSH=1010;break;
+							default:  
+								ERROR_MARSH = 1010;
+								3break;
 					}
 					if(ERROR_MARSH>1000)break;
 
@@ -4035,16 +4041,12 @@ void __fastcall TStancia::sbros_kom(void)
   int i,j;
 	for(j=0;j<12;j++)
 	{
-		KOMANDA_MARS[j]=0;
-		KOMANDA_RAZD[j]=0;
+		KOMANDA_MARS[j] = 0;
+		KOMANDA_RAZD[j] = 0;
 	}
-	for(i=0;i<Nst;i++)
-	for(j=0;j<15;j++)
-	{
-			KOMANDA_ST[i][j]=0;
-	}
-	for(i=0;i<3;i++)DIAGNOZ[i]=0;
-	for(i=0;i<6;i++)ERR_PLAT[i]=0;
+	for(i=0;i<Nst;i++)for(j=0;j<15;j++)KOMANDA_ST[i][j] = 0;
+	for(i=0;i<3;i++) DIAGNOZ[i] = 0;
+	for(i=0;i<6;i++) ERR_PLAT[i] = 0;
 	return;
 }
 //========================================================================================
@@ -4151,6 +4153,8 @@ void __fastcall TStancia::TimerMainTimer(TObject *Sender)
 				TextHintTek=TextHintTek + "Нет связи с АРМ-соседом";
 				TrayIcon11->BalloonHint = "Нет связи с АРМ-соседом ";
 				TrayIcon11->ShowBalloonHint();
+        ZeroMemory(FR4_SOS,KOL_VO+1);
+        for(i=0;i<10;i++)NOV_SOSED[i] = 0;
 			}
 			else TextHintTek=TextHintTek + "Связь с АРМ-соседом";
 		}
@@ -4230,11 +4234,7 @@ void __fastcall TStancia::TimerMainTimer(TObject *Sender)
 	else SVAZ = SVAZ&0xBF;
 
 	SOSED_IN++;
-	if(SOSED_IN>=10)
-	{
-		SOSED_IN=10;
-		SVAZ=SVAZ|0x10;
-	}
+	if(SOSED_IN>=10){SOSED_IN=10;SVAZ=SVAZ|0x10;}
 	else SVAZ=SVAZ&0xEF;
 
 	if(povtor_novizna >= KOL_ARM)povtor_novizna = 0;
@@ -4361,7 +4361,7 @@ void __fastcall TStancia::TimerMainTimer(TObject *Sender)
   if( DEL_TRASS_MARSH == -1)
   {
     TimerKOK->Enabled = false;
-		Timer250->Enabled = false;
+//		Timer250->Enabled = false;
 		TimerMain->Enabled = false;
 		for(i=0;i<200;i++)
     {
@@ -4418,16 +4418,15 @@ void __fastcall TStancia::TimerMainTimer(TObject *Sender)
     }
  	 	DEL_TRASS_MARSH = 0;
     TimerKOK->Enabled = true;
-		Timer250->Enabled = true;
+//		Timer250->Enabled = true;
 		TimerMain->Enabled = true;
   }
-	NOVIZNA_FR4[new_fr4++] = NextObj++;
+ /*	NOVIZNA_FR4[new_fr4++] = NextObj++;
   if (new_fr4>9) new_fr4 = 0;
   if (NextObj > KOL_VO) NextObj = 1;
+  */
   return;
 }
-
-
 //========================================================================================
 //-------- Процедура обработки команд автодействия,принятых от АРМа     MAKE_AVTOD(int ob)
 void __fastcall TStancia::MAKE_AVTOD(int ob)
@@ -4477,7 +4476,6 @@ void __fastcall TStancia::MAKE_AVTOD(int ob)
 #endif
   return;
 }
-
 //------------------------------------------------------------------------
 void __fastcall TStancia::Edit5DblClick(TObject *Sender)
 {
@@ -4496,10 +4494,10 @@ void __fastcall TStancia::Edit5DblClick(TObject *Sender)
 }
 //========================================================================================
 //---------- Процедура обработки в трассе ДЗ "стрелка в пути" (возможно  из другой стойки)
+int __fastcall TStancia::ANALIZ_ST_IN_PUT(int nom_tras, int kom, int st,int marsh,int &ind)
 //------------------------- nom_tras - индекс ообъекта ДЗ в трассе анализируемого маршрута
 //----------------------- kom - код маршрутной команды предназначенный для передачи в ТУМС
 //-------- st - номер стойки, к которой относится данный объект ДЗ (может быть от 0 до 15)
-int __fastcall TStancia::ANALIZ_ST_IN_PUT(int nom_tras, int kom, int st,int marsh,int &ind)
 {
 	int ii,Error;
   long DT;
@@ -4949,9 +4947,14 @@ void  __fastcall TStancia::SosedOutOsn(void)
 		if(NOVIZNA_FR4[i]!=0)
 		{
 			j = NOVIZNA_FR4[i]&0xfff;
-			BUF_OUT_SOSED[n_bait++]=j&0x00ff;
+      if (FR4_MY[j] == FR4_SOS[j])
+      {
+      	NOVIZNA_FR4[i] = 0;
+        continue;
+      }
+    	BUF_OUT_SOSED[n_bait++]=j&0x00ff;
 			BUF_OUT_SOSED[n_bait++]=(j&0xff00)>>8;
-			BUF_OUT_SOSED[n_bait++]=FR4[j];
+			BUF_OUT_SOSED[n_bait++]=FR4_MY[j];
 			if(n_bait>=25)break;
 		}
 	}
@@ -4964,38 +4967,41 @@ void  __fastcall TStancia::SosedOutOsn(void)
 			BUF_OUT_SOSED[n_bait++]=i&0x00ff; //---------------------------------------- младший
 			BUF_OUT_SOSED[n_bait++]=(i&0xff00)>>8; //----------------------------------- старший
 
-			if(NAS) FR4[i] = FR4[i] | 'A';
-			else FR4[i] = FR4[i] & 0xFE;
+			if(NAS) FR4_MY[i] = FR4_MY[i] | 'A';
+			else FR4_MY[i] = FR4_MY[i] & 0xFE;
 
-			if(CHAS) FR4[i] = FR4[i] | 'B';
-			else FR4[i] = FR4[i] & 0xFD;
+			if(CHAS) FR4_MY[i] = FR4_MY[i] | 'B';
+			else FR4_MY[i] = FR4_MY[i] & 0xFD;
 
-			BUF_OUT_SOSED[n_bait++]=FR4[i];
+			BUF_OUT_SOSED[n_bait++]=FR4_MY[i];
 
 			POVTOR_FR4_SOSEDU = 0;
-			for(i=0;i<10;i++)Limit->StrGrFr4->Cells[0][i]="";
 		}
 
 		for(i = POVTOR_FR4_SOSEDU; i <= KOL_VO; i++)
 		{
-			//---------------------------------------------------------- взять состояние объекта 
-			BUF_OUT_SOSED[n_bait++]=i&0x00ff; //---------------------------------------- младший
-			BUF_OUT_SOSED[n_bait++]=(i&0xff00)>>8; //----------------------------------- старший
-			BUF_OUT_SOSED[n_bait++]=FR4[i];
-			if(Stancia->Visible)
-			{
-				if(FR4[i]!=0)
+    	if(FR4_MY[i] != FR4_SOS[i])
+      {
+				//-------------------------------------------------------- взять состояние объекта 
+				BUF_OUT_SOSED[n_bait++] = i&0x00ff; //------------------------------------ младший
+				BUF_OUT_SOSED[n_bait++] = (i&0xff00)>>8; //------------------------------- старший
+				BUF_OUT_SOSED[n_bait++] = FR4_MY[i];
+				if(Stancia->Visible)
 				{
-					if (i==KOL_VO) Limit->StrGrFr4->Cells[0][i%10]= "НАСЧАС";
-					else Limit->StrGrFr4->Cells[0][i%10]=PAKO[i];
+					if(FR4_MY[i]!=0)
+					{
+						if (i==KOL_VO) Limit->StrGrFr4->Cells[0][i]= "НАСЧАС";
+						else Limit->StrGrFr4->Cells[0][i]=PAKO[i];
+					}
+          else Limit->StrGrFr4->Cells[0][i]="";
+					Stancia->SetFocus();
 				}
-				Stancia->SetFocus();
+				if(n_bait>=25)break;
 			}
-			if(n_bait>=25)break;
-		}
+    }
 		POVTOR_FR4_SOSEDU = i;
-	}
-	BUF_OUT_SOSED[25]=0;
+  }
+  BUF_OUT_SOSED[25]=0;
 	BUF_OUT_SOSED[26]=CalculateCRC8(&BUF_OUT_SOSED[1],24);
 	BUF_OUT_SOSED[27]=0x55;
 	if(Otladka1->Otlad==5)
@@ -5016,10 +5022,65 @@ void  __fastcall TStancia::SosedOutRez(void)
 	char Pkz[11];
 	if (STATUS == 0)
 	{
-		BUF_OUT_SOSED[0]=0xAA;
-		n_bait=25;
-		if(Norma_Sosed)for(i=1;i<26;i++)BUF_OUT_SOSED[i]=i;//- последовательность нормы обмена
-		else for(i=1;i<26;i++)BUF_OUT_SOSED[i]=n_bait--;//-- последовательность ненормы обмена
+  	BUF_OUT_SOSED[0]=0xAA;
+		n_bait = 1;
+		for(i=0;i<10;i++)
+		{
+			if(NOV_SOSED[i]!=0)
+			{
+				j = NOV_SOSED[i]&0xfff;
+      	FR4_MY[j] = FR4_SOS[j];
+      	NOV_SOSED[i] = 0;
+    		BUF_OUT_SOSED[n_bait++]=j&0x00ff;
+				BUF_OUT_SOSED[n_bait++]=(j&0xff00)>>8;
+				BUF_OUT_SOSED[n_bait++]=FR4_MY[j];
+				if(n_bait>=25)break;
+			}
+		}
+
+		if(n_bait<=22)
+		{
+			if(POVTOR_FR4_SOSEDU >= KOL_VO)
+			{
+				i = KOL_VO;
+				BUF_OUT_SOSED[n_bait++]=i&0x00ff; //-------------------------------------- младший
+				BUF_OUT_SOSED[n_bait++]=(i&0xff00)>>8; //--------------------------------- старший
+
+				if(NAS) FR4_MY[i] = FR4_MY[i] | 'A';
+				else FR4_MY[i] = FR4_MY[i] & 0xFE;
+
+				if(CHAS) FR4_MY[i] = FR4_MY[i] | 'B';
+				else FR4_MY[i] = FR4_MY[i] & 0xFD;
+
+				BUF_OUT_SOSED[n_bait++]=FR4_MY[i];
+
+				POVTOR_FR4_SOSEDU = 0;
+			}
+
+			for(i = POVTOR_FR4_SOSEDU; i <= KOL_VO; i++)
+			{
+        if(Stancia->Visible)
+      	{
+					if(FR4_MY[i]!=0)
+          {
+						if (i==KOL_VO) Limit->StrGrFr4->Cells[0][i]= "НАСЧАС";
+						else Limit->StrGrFr4->Cells[0][i]=PAKO[i];
+					}
+          else Limit->StrGrFr4->Cells[0][i]="";
+					Stancia->SetFocus();
+      	}
+    		if(FR4_MY[i] != FR4_SOS[i])
+      	{
+					//------------------------------------------------------ взять состояние объекта 
+					BUF_OUT_SOSED[n_bait++] = i&0x00ff; //---------------------------------- младший
+					BUF_OUT_SOSED[n_bait++] = (i&0xff00)>>8; //----------------------------- старший
+					BUF_OUT_SOSED[n_bait++] = FR4_MY[i];
+					if(n_bait>=25)break;
+				}
+    	}
+			POVTOR_FR4_SOSEDU = i;
+  	}
+  	BUF_OUT_SOSED[25]=0;
 		BUF_OUT_SOSED[26]=CalculateCRC8(&BUF_OUT_SOSED[1],24);
 		BUF_OUT_SOSED[27]=0x55;
 		if(Otladka1->Otlad==5)
@@ -5030,18 +5091,7 @@ void  __fastcall TStancia::SosedOutRez(void)
 		}
 		i = ArmPort1->PutBlock(BUF_OUT_SOSED,28);
 		for(j=0;j<28;j++)BUF_OUT_SOSED[j] = 0;
-
-		for(i=0;i<10;i++)	Limit->StrGrFr4->Cells[0][i%10]="";
-
-		for(i = POVTOR_FR4_SOSEDU ;i < KOL_ARM;i++)
-		{
-			if(Stancia->Visible)
-			{
-				if(FR4[i]!=0)
-				Limit->StrGrFr4->Cells[0][i%10]=PAKO[i];
-				Stancia->SetFocus();
-			}
-		}
+		BUF_OUT_SOSED[0]=0xAA;
 	}
 }
 
@@ -5201,10 +5251,16 @@ void __fastcall TStancia::FormClose(TObject *Sender, TCloseAction &Action)
 #endif
 
 #if RBOX == 1
-	PORTA->ClosePort();
-	PORTB->ClosePort();
-	delete PORTA;
-	delete PORTB;
+	if((PRT5!=0)&&(PRT6!=0))
+	{
+		if(PORTA->PortIsOpen&&PORTB->PortIsOpen)
+  	{
+			PORTA->ClosePort();
+			PORTB->ClosePort();
+  	}
+		delete PORTA;
+		delete PORTB;
+	}    
 #endif
 	Serv1->Close();
 	delete Flagi;
@@ -5225,8 +5281,8 @@ void __fastcall TStancia::FormClose(TObject *Sender, TCloseAction &Action)
 	delete[] FR3;
 	delete[] PEREDACHA;
 	delete[] PRIEM;
-	delete[] FR4;
-	delete[] ZAFIX_FR4;
+	delete[] FR4_MY;
+  delete[] FR4_SOS;
 	delete[] AVTOD;
 	delete[] POOO;
 	for(i=0;i<Nst;i++)
@@ -5250,14 +5306,14 @@ void __fastcall TStancia::TimerDCTimer(TObject *Sender)
 	//DC_PORT->WriteBuffer(BUF_OUT_DC,70);
 	//for(i=0;i<70;i++)BUF_OUT_DC[i]=0;
 
+
 #if RBOX != 1
   if((!Upr_DC)&&(KNOPKA_OK_ARM == 0))KNOPKA_OK0 = 0;
 #endif
 
 	if(zagruzka!=0)//-------------------------------- если загрузка данных из ТУМС выполнена
 	{
-		if(BUF_IN_SOSED[0] == 0xAA)
-		SosedIn();
+		if(BUF_IN_SOSED[0] == 0xAA)SosedIn();
 		if(OLD_STATUS == STATUS) //------------------------------- если статус АРМа не менялся
 		{
 			if(STATUS==1)SosedOutOsn();
@@ -5286,13 +5342,16 @@ void __fastcall TStancia::TimerDCTimer(TObject *Sender)
 		OLD_STATUS = STATUS;
 	}
 
+#ifndef DC_COM
+	return;
+#endif
   for(i = 0; i < 30; i++)
   {
   	if((noviznaDC[i] > 0) && (peredalDC[i] == 0))
     {
-    	for(j=0;j<11;j++)Packet_DC[j] = VVOD_DC[i][j];
+    	for(j=0;j<11;j++)Packet_DC[j] = VVOD_DC[i][j]; //-------- заполнить пакет ДЦ данными
 
-     	Packet_DC[9] = check_summ(VVOD_DC[i]);
+     	Packet_DC[9] = check_summ(VVOD_DC[i]); //---------------- вставить контрольную сумму
       Lb2->Caption = Packet_DC;
       Port_DC->PutBlock(Packet_DC,11);
       peredalDC[i]++;
@@ -5371,7 +5430,7 @@ void __fastcall TStancia::FormActivate(TObject *Sender)
 	InitializeCriticalSection(&NOM_PACKET_ZAP);
 
   TimerKOK->Enabled = true; //---------------------------------------- запустить опрос КОК
-	Timer250->Enabled = true;
+//	Timer250->Enabled = true;
 	TimerMain->Enabled = true;
 }
 //========================================================================================
@@ -5518,14 +5577,14 @@ void __fastcall TStancia::SosedIn(void)
 	}
 	else
 	{
-		if(STATUS==0)
+		if(STATUS==0) //-----------------------резервный АРМ получает ограничения от основного
 		{
 			//------------------------------------------------------------- работа с приемом FR4
 			for(i=0;i<8;i++)
 			{
 				j = BUF_IN_SOSED[3*i+1];        //---------------------------------------- младший
 				j = j|(BUF_IN_SOSED[3*i+2]<<8); //---------------------------------------- старший
-
+        if (j == 0) continue;
         if (j == KOL_VO)
         {
         	ByteFr4 = BUF_IN_SOSED[3*i+3];
@@ -5538,40 +5597,62 @@ void __fastcall TStancia::SosedIn(void)
         }
         else
         {
-					if(j >= (int)KOL_ARM) continue;
+					if(j > (int)KOL_ARM) continue;
 					ByteFr4 = BUF_IN_SOSED[3*i+3];
+          NOV_SOSED[new_sos++]=j;
+          if(new_sos >=10) new_sos=0;
         }
 
 				if(Otladka1->Otlad==5)
-				{
-					if(ByteFr4!=0)Limit->StrGrFr4->Cells[0][j%10]=PAKO[j];
-				}
-				if(FR4[j] != ByteFr4)
+        if(ByteFr4!=0)Limit->StrGrFr4->Cells[0][j]=PAKO[j];
+        else Limit->StrGrFr4->Cells[0][j]="";
+
+				if(FR4_MY[j] != ByteFr4)
 				{
 					NOVIZNA_FR4[new_fr4++]=j;
-					FR4[j]=ByteFr4;
+          FR4_SOS[j] = ByteFr4;
 					if(new_fr4 >=10) new_fr4=0;
+          NOV_SOSED[new_sos++]=j;
+          if(new_sos >=10) new_sos=0;
 				}
 			}
 		}
-		else
+		else //------------------------------------- основной АРМ получает ответ от Резервного
 		{
+        	//------------------------------------------------------------- работа с приемом FR4
 			for(i=0;i<8;i++)
 			{
-				if((BUF_IN_SOSED[i+2]-BUF_IN_SOSED[i+1]) != 1)break;
+				j = BUF_IN_SOSED[3*i+1];        //---------------------------------------- младший
+				j = j|(BUF_IN_SOSED[3*i+2]<<8); //---------------------------------------- старший
+
+        if((j==0) || (j >= (int)KOL_ARM)) continue;
+				ByteFr4 = BUF_IN_SOSED[3*i+3];
+
+
+				if(Otladka1->Otlad==5)
+				{
+					if(ByteFr4!=0)Limit->StrGrFr4->Cells[0][j]=PAKO[j];
+          else Limit->StrGrFr4->Cells[0][j]="";
+				}
+
+       	FR4_SOS[j] = ByteFr4;
 			}
-			if(i<8)Norma_Sosed = false;
-		}
-		SOSED_IN = 0;
+
+      if(Otladka1->Otlad==5)
+			{
+				if(ByteFr4!=0)Limit->StrGrFr4->Cells[0][j]=PAKO[j];
+        else Limit->StrGrFr4->Cells[0][j]="";
+			}
+    }
+		SOSED_IN = 0;  //--------------------- подтвердить признак наличия связи с АРМ соседом
 		for(i=0;i<28;i++)
 		{
-			Pkz[i]=BUF_IN_SOSED[i]|0x40;
-			BUF_IN_SOSED[i]=0;
+			Pkz[i]=BUF_IN_SOSED[i]|0x40;	BUF_IN_SOSED[i]=0;
 		}
 		Pkz[10]=0;
 		if(Otladka1->Otlad==5)Lb4->Caption=Pkz;
 
-	}
+  }
 }
 //========================================================================================
 void __fastcall TStancia::Serv1ReadPacket(TObject *Sender, BYTE *Packet, int &Size)
@@ -5607,6 +5688,7 @@ void __fastcall TStancia::FormCreate(TObject *Sender)
 		CommPortOpt1->Open = true;
 		if(!CommPortOpt1->FOpen)exit;
 	}
+
 	if(ArmPort1->ComNumber != 0)
 	{
 		ArmPort1->Open = true;
@@ -5626,24 +5708,26 @@ void __fastcall TStancia::FormCreate(TObject *Sender)
   {
 		//	TCom_Port *PORTA = new TCom_Port(this);
 		//	TCom_Port *PORTB = new TCom_Port(this);
-		if((PRT5!=0) & (PRT6!=0))
+		if((PRT5!=0)&&(PRT6!=0))
 		{
 			PORTA = new TCom_Port(this);
 			PORTB = new TCom_Port(this);
 			PORTA->PortName = "COM" + IntToStr(PRT5);
 			PORTB->PortName = "COM" + IntToStr(PRT6);
 
-			PORTA->OpenPort();
-			if(!PORTA->PortIsOpen)portA = "0000";
-
-			PORTB->OpenPort();
-			if(!PORTB->PortIsOpen)portB = "0000";
+			if(PORTA->OpenPort())
+      {
+				if(!PORTA->PortIsOpen)portA = "0000";
+      }
+      if(PORTB->OpenPort())
+      {
+				if(!PORTB->PortIsOpen)portB = "0000";
+      }
 		}
 	}
+  Limit->StrGrFr4->RowCount = KOL_VO + 1;
 }
-//---------------------------------------------------------------------------
-
-
+//========================================================================================
 void __fastcall TStancia::Edit7Enter(TObject *Sender)
 {
 	int nom_serv,nom_arm,ij;
@@ -5660,9 +5744,7 @@ void __fastcall TStancia::Edit7Enter(TObject *Sender)
 		FR3[nom_serv].byt[2*ij+1] = fr3_inv[ij]-48;
 	}
 }
-
 //========================================================================================
-//----------------------------------------------------------------------------------------
 void __fastcall TStancia::CommPortOpt1DataReceivedOpt(TObject *Sender, BYTE *Packet,
       bool Priznak)
 {
@@ -5737,8 +5819,295 @@ void __fastcall TStancia::CommPortOpt1DataReceivedOpt(TObject *Sender, BYTE *Pac
 	}
 }
 //========================================================================================
-//----- таймер малого цикла для анализа принятых данных от УВК и выдачи команд и квитанций
+void __fastcall TStancia::TimerOtladTimer(TObject *Sender)
+{
+	int soob,kk,i;
+	char GRUPPA;
+	char strka[] = "          ";
+	TRect VV;
+	if(Otladka1->Otlad==5)
+	{
+		for (i = 0; i < 10; i++)
+		{
+			VV = SG1->CellRect(i,0);
+			if (Buf_Zaniat[0][i])SG1->Canvas->Brush->Color = clRed;
+			else SG1->Canvas->Brush->Color = clLime;
+			SG1->Canvas->FillRect(VV);
+		}
+		if(FIXATOR_KOM[0][0]!=0)
+		{
+			Edit4->Text = FIXATOR_KOM[0];
+			if(FIXATOR_KOM[0][14] <= 15) //--------------------------- если уже записано в архив
+			FIXATOR_KOM[0][14] = 55;  //-------------------------------- можно сбросить фиксатор
+		}
+		if(KK!=0)
+		{
+			Edit10->Text = KK;
+      KK = "";
+		}
+//		Kvit_Ot_TUMS[i_st][ij]=0;
+	}
 
+
+	for(soob=0;soob<45;soob++)
+	if((soob!=45)&&(soob!=44)) //--------------- если сообщение обычное или непарафазность
+	{
+		GRUPPA =  Stroki_TUMS[0][soob][8];
+		if(Otladka1->Otlad==5)
+		{
+			switch(GRUPPA)
+			{
+				case 'C':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clLime;
+					break;
+				case 'E':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clYellow;
+					break;
+				case 'Q':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clFuchsia;
+					break;
+				case 'F':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clSilver;
+					break;
+				case 'I':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clWhite;
+					break;
+				case 'L':
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clOlive;
+					break;
+			}
+			if((GRUPPA!='z')&&(GRUPPA!='Z'))
+			{
+				if(Tums1->Visible)
+				{
+					VV=Tums1->DrG1->CellRect(0,soob);
+					Tums1->DrG1->Canvas->FillRect(VV);
+					Tums1->DrG1->Canvas->Font->Color=clBlack;
+					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,IntToStr(soob+1));
+					VV=Tums1->DrG1->CellRect(1,soob);
+					Tums1->DrG1->Canvas->FillRect(VV);
+					strncpy(strka,&Stroki_TUMS[0][soob][7],9);
+					strka[9]=0;
+					Tums1->DrG1->Canvas->Font->Color=clBlack;
+					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,strka);
+					VV = Tums1->DrG1->CellRect(2,soob);
+					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,"");
+					Tums1->SetFocus();
+				}
+			}
+			else
+			{
+				if(Tums1->Visible)
+				{
+					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clWhite;
+					VV=Tums1->DrG1->CellRect(2,soob);
+					strncpy(strka,&Stroki_TUMS[0][soob][7],9);
+					strka[9]=0;
+					Tums1->DrG1->Canvas->Font->Color=clBlack;
+					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,strka);
+					Tums1->SetFocus();
+				}
+			}
+		}
+	}
+}
+//========================================================================================
+void __fastcall TStancia::Button3Click(TObject *Sender)
+{
+	if(Tums1->Visible)
+	{
+		Tums1->Visible = false;
+		Tums1->Hide();
+	}
+	else
+	{
+		Tums1->Visible = true;
+		Tums1->Show();
+	}
+}
+//========================================================================================
+void __fastcall TStancia::Button4Click(TObject *Sender)
+{
+#ifdef ARPEX
+	return;
+#endif
+
+#if RBOX == 0
+	Button4->Enabled = true;
+	if(STATUS == 1)
+	{
+		STATUS = 0;
+		Button4->Caption = "Резервный";
+	}
+	else
+	{
+		STATUS = 1;
+		Button4->Caption = "Основной";
+	}
+#endif
+}
+//========================================================================================
+void __fastcall TStancia::Button5Click(TObject *Sender)
+{
+#ifdef ARPEX
+	return;
+#endif
+
+#if RBOX == 0
+	if((KNOPKA_OK0 == 1)&&(!Upr_DC))
+	{
+		KNOPKA_OK0 = 0;
+    KNOPKA_OK_ARM = 0;
+		Button5->Caption = "ОК отжата";
+	}
+	else
+	{
+		if(!Upr_DC)
+    {
+    	KNOPKA_OK0 = 1;
+      KNOPKA_OK_ARM = 1;
+			Button5->Caption = "ОК нажата";
+    }
+	}
+#endif
+}
+//========================================================================================
+//------------------------------------- функция установки привилегий для текущего процесса
+bool __fastcall SetPrivilege(char* aPrivilegeName, bool aEnabled)
+//------------------------------------------- aPrivilegeName : string = имя для привилегии
+//------------------------- aEnabled : boolean = признак включения / отключения привелегии
+
+{
+  TOKEN_PRIVILEGES TPPrev, TPNew ; //---------------------- структуры атрибутов привелегий
+  HANDLE Token; //--------------------------------------------------------- маркер доступа
+  DWORD dwRetLen;
+  bool Result;
+  Result = false;
+
+  // открыть маркер доступа для текущего процесса с маской включения/отключения привилегий
+  Result=OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&Token);
+
+  TPNew.PrivilegeCount = 1;
+
+  //------------- установить уникальный локальный идентификатор для именованной привилегии
+  if(LookupPrivilegeValue(0, aPrivilegeName, &TPNew.Privileges[0].Luid))
+  {
+    if(aEnabled) //----------------------------------------- если надо включить привилегию
+    TPNew.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;  //--------- привилегию включить
+    else TPNew.Privileges[0].Attributes = 0;                 // иначе выключить привилегию
+
+    dwRetLen = 0;
+
+    //--------------- модифицировать привилегии маркера доступа Token в соответствие с TP
+    Result = AdjustTokenPrivileges(Token, false, &TPNew, sizeof(TPPrev),&TPPrev,&dwRetLen);
+  }
+  CloseHandle(Token);
+  return Result;
+}
+//============================================================= Приняты данные из порта ДЦ
+void __fastcall TStancia::Port_DCDataReceived(TObject *Sender, char *Packet, int Count,
+      int NPAK)
+{
+  unsigned char kod1,kod2,komanda_TUM[12],KS1_crc,KS2_crc;
+  int beg,end,i,j,k;
+#ifdef DC_COM
+	if (Otladka1->Otlad == 5)
+  {
+  	Lb1->Caption = Packet;
+  }
+
+  if((Count==11) && (STATUS == 1) && Upr_DC)
+  {
+	  kod1 = Packet[2]&0xF;
+  	kod2 = Packet[3]&0xF;
+	  kod2 = (kod1<<4)|kod2;
+  	switch(kod2)	//---------------------------- переключатель по коду принятой команды ДЦ
+		{
+	  	case 0x13: beg =  94; end =  99; break;
+  	 	case 0x14: beg = 100; end = 107; break;
+  		case 0x15: beg = 108; end = 116; break;
+	  	case 0x16: beg = 117; end = 128; break;
+  		case 0x17: beg = 129; end = 133; break;
+  		case 0x23: beg = 134; end = 134; break;
+	  	case 0x24: beg = 135; end = 146; break;
+  		case 0x25: beg = 147; end = 158; break;
+  		case 0x26: beg = 159; end = 159; break;
+			case 0x30: beg =   1; end =   9; break;
+  		case 0x31: beg =  10; end =  19; break;
+  		case 0x32: beg =  20; end =  26; break;
+	  	case 0x53: beg =  27; end =  31; break;
+  		case 0x54: beg =  32; end =  39; break;
+  		case 0x55: beg =  40; end =  47; break;
+	  	case 0x56: beg =  48; end =  53; break;
+  		case 0x57: beg =  54; end =  58; break;
+  		case 0x58: beg =  59; end =  64; break;
+	  	case 0x59: beg =  65; end =  66; break;
+  		case 0x5A: beg =  67; end =  69; break;
+  		case 0x5B: beg =  70; end =  72; break;
+	  	case 0x5C: beg =  73; end =  73; break;
+  		case 0x69: beg =  74; end =  83; break;
+  		case 0x6A: beg =  84; end =  93; break;
+      case 0xC3: beg = 160; end = 160; break;
+	  }
+
+  	for(i = beg - 1; i < end; i++)
+	  {
+  		for(j=0;j<11;j++)
+    	{
+    		if(KOMANDA_DC[i].Com_DC[j] != Packet[j])break;
+	    }
+  	  if(j==11)break;
+  	}
+
+  	if(j==11)
+  	{
+    	if(KOMANDA_DC[i].Otv == '1')
+    	{
+    		Nach_otv = true;
+      	if(Upr_DC)KNOPKA_OK0 = 1;
+      	Sleep(190);
+      	Kon_otv = false;
+    	}
+    	else
+    	if((KOMANDA_DC[i].Otv == '2') && (Nach_otv))
+    	{
+    		Nach_otv = false;
+      	Kon_otv = true;
+    	}
+    	else
+    	{
+    		Kon_otv = false;
+      	KNOPKA_OK0 = 0;
+    	}
+
+   		KS1_crc = CalculateCRC8(Packet,11);
+    	if(KS1_crc == KOMANDA_DC[i].KS_DC)
+    	{
+    		for(k=0;k<12;k++)komanda_TUM[k] = KOMANDA_DC[i].Com_ARM[k];
+      	KS2_crc = CalculateCRC8(&komanda_TUM,12);
+      	if(KS2_crc == KOMANDA_DC[i].KS_ARM)
+      	{
+        	komanda_TUM[10] = KS2_crc;
+        	for(k=0;k<12;k++)
+        	{
+        		KOMANDA_ST[0][k] = komanda_TUM[k];
+          	komanda_TUM[k] = 0;
+        	}
+      		Timer_KOK_DC = Time_tek + 20.0/86400;
+        	k = 0;
+      	}
+    	}
+  	}
+	}
+  if(Count==6)
+  {
+  	i = Packet[3] - 48;
+    if(i<45)priniatoDC[i] = 1;
+		Norma_DC = 3;
+  }
+#endif
+}
+//========================================================================================
 void __fastcall TStancia::Timer250Timer(TObject *Sender)
 {
 	int i,i_st,ik,j,jj,ii,kk = -1,ijk,JJ[11],grup_test;
@@ -5754,16 +6123,20 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 
 #if RBOX == 1
 		//----------------------------- анализ состояния кнопки "ОК" и переключателя "Осн/Рез"
-		PORTA->StrFromComm(&portA); //----------------------------- принять символы из порта А
-		PORTB->StrFromComm(&portB); //----------------------------- принять символы из порта B
+  	if((PRT5!=0)&&(PRT6!=0))
+		{
+    	if(PORTA->PortIsOpen&&PORTB->PortIsOpen)
+    	{
+    		PORTA->StrFromComm(&portA); //------------------------- принять символы из порта А
+				PORTB->StrFromComm(&portB); //------------------------- принять символы из порта B
+     		PORTA->StrToComm(OutPortA);//-------------------- выдать в порт А буквы "АААААААА"
+				PORTB->StrToComm(OutPortB);//-------------------- выдать в порт B буквы "BBBBBBBB"
+				//------------------------- обновление таймеров приема данных от кнопочной станции
+				if((portA.c_str()[0] == 'A')||(portA.c_str()[0] == 'B')) TimerA = T_TIME;
 
-		PORTA->StrToComm(OutPortA);//------------------------ выдать в порт А буквы "АААААААА"
-		PORTB->StrToComm(OutPortB);//------------------------ выдать в порт B буквы "BBBBBBBB"
-
-		//----------------------------- обновление таймеров приема данных от кнопочной станции
-		if((portA.c_str()[0] == 'A')||(portA.c_str()[0] == 'B')) TimerA = T_TIME;
-
-		if((portB.c_str()[0] == 'A')||(portB.c_str()[0] == 'B')) TimerB = T_TIME;
+				if((portB.c_str()[0] == 'A')||(portB.c_str()[0] == 'B')) TimerB = T_TIME;
+    	}
+		}
 #endif
 
 	cikl_marsh++;
@@ -5795,6 +6168,7 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		Timer250->Enabled = true;
 	}
 	*/
+
   double DEL_KOK = (Timer_KOK_DC - Time_tek);
 
   if((DEL_KOK < 0.3/86400) && (DEL_KOK>0.1/86400))
@@ -5809,7 +6183,7 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
   	{
   		for(ij = 0; ij < KOL_OUT; ij++)
       {
-      	if((FR3[ij].byt[29]>=48) && (((FR3[ij].byt[28]&0xF0)>>4) == (i_st+1))) 
+      	if((FR3[ij].byt[29]>=48) && (((FR3[ij].byt[28]&0xF0)>>4) == (i_st+1)))
 				{
           ii = FR3[ij].byt[29]-48;
         	FR3[ij].byt[11]=1; //----------------------------------- навязать непарафазность
@@ -5879,14 +6253,12 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 
 			for(ij=0;ij<9;ij++)REG[i_st][0][ij+1] = Soob[ij];
 
-			if((Soob[1]=='R')&&((Soob[2]=='y')||(Soob[2]=='Y')))kk = 45; //--------- ненорма СЦБ
+			if((Soob[1]=='R')&&((Soob[2]=='y')||(Soob[2]=='Y')))kk = 44; //--------- ненорма СЦБ
 			else
-			if((Soob[1]=='J')&&((Soob[2]>111)&&(Soob[2]<121)))kk = 44;//----------- ненорма плат
+			if((Soob[1]=='J')&&((Soob[2]>111)&&(Soob[2]<121)))kk = 45;//----------- ненорма плат
 			else if(Soob[2]>=48)kk = Soob[2]-48;
 
 			if(kk<0)return;
-      if(kk==45)kk=44;
-
 
 			for(ij=0;ij<18;ij++)
 			Stroki_TUMS[i_st][kk][ij] = Soob_TUMS[i_st][First_Soob_TUMS[i_st]][ij];
@@ -5960,15 +6332,8 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 
             if(OUT_DC[kk].paramDC[i][j] < 0 )continue;
             if(novizna != 0)peredalDC[i_st*30 + kk] = 0; //----- обнулить признак передачи
-
-          }
+					}
         }
-      /*
-       	for(j=4;j<9;j++)
-        {
-        	VVOD_DC[kk][j] = VVOD[i_st][kk][j-4]; //------------------- запись данных для ДЦ
-        }
-        */
       }
 #endif
 			MYTHX = Stroki_TUMS[i_st][kk][15]; //----------------------- выделить принятый MYTHX
@@ -5978,14 +6343,14 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 			//--------------------------------------------------- ДИАГНОСТИКА СЦБ --------------
 			if(kk==44)
 			{
-				for(ij=0;ij<9;ij++)REG[i_st][0][ij+1] = Soob[ij];
-				if(diagnoze(i_st,0)== -1) { for(jj=0;jj<3;jj++)DIAGNOZ[jj]=0;}
+				for(ij=0;ij<9;ij++) REG[i_st][0][ij+1] = Soob[ij];
+				if(diagnoze(i_st,0)== -1) {for(jj=0;jj<3;jj++)DIAGNOZ[jj]=0;}
 			}
 
-			if(kk == 44) //------------------------------------------------- сообщение о модулях
+			if(kk == 45) //------------------------------------------------- сообщение о модулях
 			{
 				for(ij=0;ij<9;ij++)REG[i_st][0][ij+1] = Soob[ij];
-				if(test_plat(i_st,0) != 0) {for(jj=0;jj<6;jj++)ERR_PLAT[jj]=0;}
+				if(test_plat(i_st,0) != 1) {for(jj=0;jj<6;jj++)ERR_PLAT[jj]=0;}
 			}
 
 			//-------------------------------------------------- если сообщение о непарафазности
@@ -6062,31 +6427,12 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 
 						if(ik<5)//----------------------------- если есть указание на непарафазный бит
 						{
-							if(grup_test != 'L') //-------------------------------- если это не сам ТУМС
-							{
 								NEPAR_OBJ[0] = OUT_OB[num[j]].byt[1];
 								NEPAR_OBJ[1] = OUT_OB[num[j]].byt[0] | 0x10;//-- объекту даем номер + 4096
 								NEPAR_OBJ[2] = Soob[j+3] & 0x1f;
-							}
-							else//--------------------------- если непарафазность в объектах контроллера
-							{
-								if(STROKA == (i_st+1)*5 - 1) //если последняя строка контролллерных данных
-								{
-									NEPAR_OBJ[0] = OUT_OB[num[j]].byt[1];
-									NEPAR_OBJ[1] = OUT_OB[num[j]].byt[0] | 0x10;
-									NEPAR_OBJ[2] = Soob[j+3] & 0x1f;
-								}
-								else
-								{
-									NEPAR_OBJ[0] = STROKA*5+j+1;
-									NEPAR_OBJ[1] = 0x14;
-									NEPAR_OBJ[2] = i_st<<4;
-									NEPAR_OBJ[2] = NEPAR_OBJ[2] | (Soob[j+3] & 0x1f);
-								}
-							}
 						}
 					}
-					VVOD_NEPAR[i_st][kk][j]=Soob[j+3]; //------------ записать данные в массив ввода
+					VVOD_NEPAR[i_st][kk][j] = Soob[j+3]; //---------- записать данные в массив ввода
 				}
 			}
 			else
@@ -6286,300 +6632,5 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		}
 	}
 }
-//---------------------------------------------------------------------------
 
-void __fastcall TStancia::TimerOtladTimer(TObject *Sender)
-{
-	int soob,kk,i;
-	char GRUPPA;
-	char strka[] = "          ";
-	TRect VV;
-	if(Otladka1->Otlad==5)
-	{
-		for (i = 0; i < 10; i++)
-		{
-			VV = SG1->CellRect(i,0);
-			if (Buf_Zaniat[0][i])SG1->Canvas->Brush->Color = clRed;
-			else SG1->Canvas->Brush->Color = clLime;
-			SG1->Canvas->FillRect(VV);
-		}
-		if(FIXATOR_KOM[0][0]!=0)
-		{
-			Edit4->Text = FIXATOR_KOM[0];
-			if(FIXATOR_KOM[0][14] <= 15) //--------------------------- если уже записано в архив
-			FIXATOR_KOM[0][14] = 55;  //-------------------------------- можно сбросить фиксатор
-		}
-		if(KK!=0)
-		{
-			Edit10->Text = KK;
-      KK = "";
-		}
-//		Kvit_Ot_TUMS[i_st][ij]=0;
-	}
-
-
-	for(soob=0;soob<45;soob++)
-	if((soob!=45)&&(soob!=44)) //--------------- если сообщение обычное или непарафазность
-	{
-		GRUPPA =  Stroki_TUMS[0][soob][8];
-		if(Otladka1->Otlad==5)
-		{
-			switch(GRUPPA)
-			{
-				case 'C':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clLime;
-					break;
-				case 'E':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clYellow;
-					break;
-				case 'Q':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clFuchsia;
-					break;
-				case 'F':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clSilver;
-					break;
-				case 'I':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clWhite;
-					break;
-				case 'L':
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clOlive;
-					break;
-			}
-			if((GRUPPA!='z')&&(GRUPPA!='Z'))
-			{
-				if(Tums1->Visible)
-				{
-					VV=Tums1->DrG1->CellRect(0,soob);
-					Tums1->DrG1->Canvas->FillRect(VV);
-					Tums1->DrG1->Canvas->Font->Color=clBlack;
-					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,IntToStr(soob+1));
-					VV=Tums1->DrG1->CellRect(1,soob);
-					Tums1->DrG1->Canvas->FillRect(VV);
-					strncpy(strka,&Stroki_TUMS[0][soob][7],9);
-					strka[9]=0;
-					Tums1->DrG1->Canvas->Font->Color=clBlack;
-					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,strka);
-					VV = Tums1->DrG1->CellRect(2,soob);
-					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,"");
-					Tums1->SetFocus();
-				}
-			}
-			else
-			{
-				if(Tums1->Visible)
-				{
-					if(Tums1->Visible)Tums1->DrG1->Canvas->Brush->Color=clWhite;
-					VV=Tums1->DrG1->CellRect(2,soob);
-					strncpy(strka,&Stroki_TUMS[0][soob][7],9);
-					strka[9]=0;
-					Tums1->DrG1->Canvas->Font->Color=clBlack;
-					Tums1->DrG1->Canvas->TextRect(VV,VV.Left+2,VV.Top+1,strka);
-					Tums1->SetFocus();
-				}
-			}
-		}
-	}
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStancia::Button3Click(TObject *Sender)
-{
-	if(Tums1->Visible)
-	{
-		Tums1->Visible = false;
-		Tums1->Hide();
-	}
-	else
-	{
-		Tums1->Visible = true;
-		Tums1->Show();
-	}
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStancia::Button4Click(TObject *Sender)
-{
-#ifdef ARPEX
-	return;
-#endif
-
-#if RBOX == 0
-	Button4->Enabled = true;
-	if(STATUS == 1)
-	{
-		STATUS = 0;
-		Button4->Caption = "Резервный";
-	}
-	else
-	{
-		STATUS = 1;
-		Button4->Caption = "Основной";
-	}
-#endif
-}
-
-//---------------------------------------------------------------------------
-
-void __fastcall TStancia::Button5Click(TObject *Sender)
-{
-#ifdef ARPEX
-	return;
-#endif
-
-#if RBOX == 0
-	if((KNOPKA_OK0 == 1)&&(!Upr_DC))
-	{
-		KNOPKA_OK0 = 0;
-    KNOPKA_OK_ARM = 0;
-		Button5->Caption = "ОК отжата";
-	}
-	else
-	{
-		if(!Upr_DC)
-    {
-    	KNOPKA_OK0 = 1;
-      KNOPKA_OK_ARM = 1;
-			Button5->Caption = "ОК нажата";
-    }
-	}
-#endif
-}
-//---------------------------------------------------------------------------
-//========================================================================================
-//------------------------------------- функция установки привилегий для текущего процесса
-//------------------------------------------- aPrivilegeName : string = имя для привилегии
-//------------------------- aEnabled : boolean = признак включения / отключения привелегии
-bool __fastcall SetPrivilege(char* aPrivilegeName, bool aEnabled)
-{
-  TOKEN_PRIVILEGES TPPrev, TPNew ; //---------------------- структуры атрибутов привелегий
-  HANDLE Token; //--------------------------------------------------------- маркер доступа
-  DWORD dwRetLen;
-  bool Result;
-  Result = false;
-
-  // открыть маркер доступа для текущего процесса с маской включения/отключения привилегий
-  Result=OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,&Token);
-
-  TPNew.PrivilegeCount = 1;
-
-  //------------- установить уникальный локальный идентификатор для именованной привилегии
-  if(LookupPrivilegeValue(0, aPrivilegeName, &TPNew.Privileges[0].Luid))
-  {
-    if(aEnabled) //----------------------------------------- если надо включить привилегию
-    TPNew.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;  //--------- привилегию включить
-    else TPNew.Privileges[0].Attributes = 0;                 // иначе выключить привилегию
-
-    dwRetLen = 0;
-
-    //--------------- модифицировать привилегии маркера доступа Token в соответствие с TP
-    Result = AdjustTokenPrivileges(Token, false, &TPNew, sizeof(TPPrev),&TPPrev,&dwRetLen);
-  }
-  CloseHandle(Token);
-  return Result;
-}
-//============================================================= Приняты данные из порта ДЦ
-
-
-void __fastcall TStancia::Port_DCDataReceived(TObject *Sender, char *Packet, int Count,
-      int NPAK)
-{
-  unsigned char kod1,kod2,komanda_TUM[12],KS1_crc,KS2_crc;
-  int beg,end,i,j,k;
-#ifdef DC_COM
-	if (Otladka1->Otlad == 5)
-  {
-  	Lb1->Caption = Packet;
-  }
-
-  if((Count==11) && (STATUS == 1) && Upr_DC)
-  {
-	  kod1 = Packet[2]&0xF;
-  	kod2 = Packet[3]&0xF;
-	  kod2 = (kod1<<4)|kod2;
-  	switch(kod2)	//---------------------------- переключатель по коду принятой команды ДЦ
-		{
-	  	case 0x13: beg =  94; end =  99; break;
-  	 	case 0x14: beg = 100; end = 107; break;
-  		case 0x15: beg = 108; end = 116; break;
-	  	case 0x16: beg = 117; end = 128; break;
-  		case 0x17: beg = 129; end = 133; break;
-  		case 0x23: beg = 134; end = 134; break;
-	  	case 0x24: beg = 135; end = 146; break;
-  		case 0x25: beg = 147; end = 158; break;
-  		case 0x26: beg = 159; end = 159; break;
-			case 0x30: beg =   1; end =   9; break;
-  		case 0x31: beg =  10; end =  19; break;
-  		case 0x32: beg =  20; end =  26; break;
-	  	case 0x53: beg =  27; end =  31; break;
-  		case 0x54: beg =  32; end =  39; break;
-  		case 0x55: beg =  40; end =  47; break;
-	  	case 0x56: beg =  48; end =  53; break;
-  		case 0x57: beg =  54; end =  58; break;
-  		case 0x58: beg =  59; end =  64; break;
-	  	case 0x59: beg =  65; end =  66; break;
-  		case 0x5A: beg =  67; end =  69; break;
-  		case 0x5B: beg =  70; end =  72; break;
-	  	case 0x5C: beg =  73; end =  73; break;
-  		case 0x69: beg =  74; end =  83; break;
-  		case 0x6A: beg =  84; end =  93; break;
-      case 0xC3: beg = 160; end = 160; break;
-	  }
-
-  	for(i = beg - 1; i < end; i++)
-	  {
-  		for(j=0;j<11;j++)
-    	{
-    		if(KOMANDA_DC[i].Com_DC[j] != Packet[j])break;
-	    }
-  	  if(j==11)break;
-  	}
-
-  	if(j==11)
-  	{
-    	if(KOMANDA_DC[i].Otv == '1')
-    	{
-    		Nach_otv = true;
-      	if(Upr_DC)KNOPKA_OK0 = 1;
-      	Sleep(190);
-      	Kon_otv = false;
-    	}
-    	else
-    	if((KOMANDA_DC[i].Otv == '2') && (Nach_otv))
-    	{
-    		Nach_otv = false;
-      	Kon_otv = true;
-    	}
-    	else
-    	{
-    		Kon_otv = false;
-      	KNOPKA_OK0 = 0;
-    	}
-
-   		KS1_crc = CalculateCRC8(Packet,11);
-    	if(KS1_crc == KOMANDA_DC[i].KS_DC)
-    	{
-    		for(k=0;k<12;k++)komanda_TUM[k] = KOMANDA_DC[i].Com_ARM[k];
-      	KS2_crc = CalculateCRC8(&komanda_TUM,12);
-      	if(KS2_crc == KOMANDA_DC[i].KS_ARM)
-      	{
-        	komanda_TUM[10] = KS2_crc;
-        	for(k=0;k<12;k++)
-        	{
-        		KOMANDA_ST[0][k] = komanda_TUM[k];
-          	komanda_TUM[k] = 0;
-        	}
-      		Timer_KOK_DC = Time_tek + 20.0/86400;
-        	k = 0;
-      	}
-    	}
-  	}
-	}
-  if(Count==6)
-  {
-  	i = Packet[3] - 48;
-    if(i<45)priniatoDC[i] = 1;
-		Norma_DC = 3;
-  }
-#endif  
-}
 
