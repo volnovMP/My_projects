@@ -263,7 +263,8 @@ begin
     if reg.ValueExists('configkanal') then sMsg := reg.ReadString('configkanal')
     else begin err := true; reportf('Нет ключа "configkanal"'); end;
 
-    KanalSrv[1].config := sMsg; KanalSrv[2].config := sMsg;
+    KanalSrv[1].config := sMsg;
+    KanalSrv[2].config := sMsg;
 
     //------------------------------------------------------------- труба для связи с STAN
     if reg.ValueExists('namepipein') then KanalSrv[1].nPipe:= reg.ReadString('namepipein')
@@ -276,7 +277,10 @@ begin
     else
     if (KanalSrv[1].nPipe <> 'null') or (KanalSrv[2].nPipe <> 'null') then KanalType := 1
     else
-      begin err := true; reportf('Неверно определен тип канала связи с сервером'); end;
+      begin
+        err := true;
+        reportf('Неверно определен тип канала связи с сервером');
+      end;
 
     if reg.ValueExists('AnsverTimeOut') then
     AnsverTimeOut := reg.ReadDateTime('AnsverTimeOut')
@@ -351,14 +355,26 @@ begin
     DesktopSize.Y := Screen.DesktopHeight;
 
     if reg.ValueExists('kanal1') then
-    begin i := reg.ReadInteger('kanal1'); KanalSrv[1].Index := i; end
-    else
-    begin KanalSrv[1].Index := 0; err := true; reportf('Нет ключа "kanal1"'); end;
+    begin
+      i := reg.ReadInteger('kanal1');
+      KanalSrv[1].Index := i;
+    end  else
+    begin
+      KanalSrv[1].Index := 0;
+      err := true;
+      reportf('Нет ключа "kanal1"');
+    end;
 
     if reg.ValueExists('kanal2') then
-    begin i := reg.ReadInteger('kanal2'); KanalSrv[2].Index := i; end
-    else
-    begin KanalSrv[2].Index := 0; err := true; reportf('Нет ключа "kanal2"'); end;
+    begin
+      i := reg.ReadInteger('kanal2');
+      KanalSrv[2].Index := i;
+    end  else
+    begin
+      KanalSrv[2].Index := 0;
+      err := true;
+      reportf('Нет ключа "kanal2"');
+    end;
 
     if reg.ValueExists('cur_id') then //-------- Разрешить проверку ключа тестового режима
     config.cur_id := reg.ReadInteger('cur_id')
@@ -596,7 +612,8 @@ procedure TTabloMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
   ec : cardinal;
 begin
-  if WorkMode.Upravlenie and ((StateRU and $40) = $40) then
+  if (WorkMode.Upravlenie and ((StateRU and $40) = $40)) or WorkMode.PushRU
+  then
   begin
   //-- при включенном управлении с АРМа и включенном сервере не завершать работу программы
     if (LastRcv + MaxTimeOutRecave) > LastTime then
@@ -668,6 +685,8 @@ procedure TTabloMain.FormPaint(Sender: TObject);
 var
   i,x,y : integer;
   p : TPoint;
+  OldColor : TColor;
+  OldStyle : TFontStyles;
   n : Boolean;
 begin
   try
@@ -723,22 +742,26 @@ begin
     then x := configRU[config.ru].Tablo_Size.X;
     y := configRU[config.ru].Tablo_Size.Y;
 
+    OldColor := canvas.Font.Color;
+    OldStyle := canvas.Font.Style;
+    canvas.Font.Style := [fsBold];
+
     for i := 1 to High(shortmsg) do
     begin
       canvas.Brush.Style := bsSolid;
-      canvas.Font.Style := [];
-      if shortmsg[i] <> '' then
+       if shortmsg[i] <> '' then
       begin
-        //---------------------------------------------------- Вывести короткие сообщения
+        //----------------------------------------- Вывести короткие сообщения под экраном
         canvas.Brush.Color := shortmsgcolor[i];
         if canvas.Brush.Color = 0 then
         canvas.Brush.Color := bkgndcolor;
-        canvas.FillRect(rect((i-1)*X, Y-15, i*X-32, Y));
+        canvas.FillRect(rect((i-1)*X, Y-20, i*X-32, Y));
         if canvas.Brush.Color <> 255 then canvas.Font.Color  := clBlack
         else canvas.Font.Color  := clWhite;
         TekFontSize := canvas.Font.Size;
-        canvas.Font.Size := 10;
-        canvas.TextOut((i-1)*X+3, Y-15,shortmsg[i]);//-------------------- вывод сообщения
+        //canvas.Font.Size := 12;
+        canvas.Font.Height := 20;
+        canvas.TextOut((i-1)*X+3, Y-20,shortmsg[i]);//-------------------- вывод сообщения
         canvas.Brush.Color := clWhite; canvas.FillRect(rect(i*X-32, Y-15, i*X-16, Y));
         canvas.Brush.Color := clRed; canvas.FillRect(rect(i*X-31, Y-14, i*X-27, Y-1));
         canvas.Brush.Color := clGreen; canvas.FillRect(rect(i*X-26, Y-14, i*X-22, Y-1));
@@ -763,7 +786,9 @@ begin
         ilGlobus.Draw(canvas, i*X-16, Y-15, GlobusIndex);
       end;
     end;
-  
+
+    canvas.Font.Color := OldColor;
+    canvas.Font.Style := OldStyle;
 
     //------------------------------------------------------------- поиск курсора на табло
     if FindCursor then
@@ -2018,7 +2043,11 @@ begin
 
     VK_F4 :
     begin //-------------------------------------------------- Сброс фиксируемых сообщений
-      if Shift = [] then begin sound := false; ResetFixMessage; end;
+      if Shift = [] then
+      begin
+        sound := false;
+        ResetFixMessage;
+      end;
     end;
 
     VK_F5 :
@@ -2034,7 +2063,7 @@ begin
     begin
       if Shift = [ssShift,ssAlt,ssCtrl] then
       begin //--------------------- отключить управление в случае экстренной необходимости
-        if Application.MessageBox('Подтвердите завершение работы РМ-ДСП','РМ-ДСП',MB_OKCANCEL) = IDOK then
+        if Application.MessageBox('Подтвердите завершение работы','РМ-ДСП',MB_OKCANCEL) = IDOK then
         begin
           ReBoot := false;
           Application.Terminate;
@@ -2062,7 +2091,9 @@ begin
           (DesktopSize.Y >= configru[1].Tablo_Size.Y) then
 {$ENDIF}
           begin
-            InsNewArmCmd($7fec,0); NewRegion := 1; ChRegion := true;
+            InsNewArmCmd($7fec,0);
+            NewRegion := 1;
+            ChRegion := true;
           end;
         end;
         if config.ru <> 2 then
@@ -2072,7 +2103,9 @@ begin
           (DesktopSize.Y >= configru[2].Tablo_Size.Y) then
 {$ENDIF}
           begin
-            InsNewArmCmd($7feb,0); NewRegion := 2; ChRegion := true;
+            InsNewArmCmd($7feb,0);
+            NewRegion := 2;
+            ChRegion := true;
           end;
         end;
       end;
@@ -2235,10 +2268,12 @@ begin
     end;
 
     VK_F12 ://-------------------------------------------------- Сброс фиксируемого звонка
-    begin InsNewArmCmd($7fe8,0); sound := false; end;
+    begin
+      InsNewArmCmd($7fe8,0);
+      sound := false;
+    end;
 
-  else
-    inherited;
+    else inherited;
   end;
 end;
 

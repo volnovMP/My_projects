@@ -165,8 +165,8 @@ begin
   end;
 end;
 
-//------------------------------------------------------------------------------
-// загрузить объекты управления
+//========================================================================================
+//----------------------------------------------------------- загрузить объекты управления
 function LoadOU(FileName: string; start: Integer) : integer;
   var
     sl2  : TStringList; s,p,r : string; i,j : integer; z : integer;
@@ -312,8 +312,10 @@ end;
 //========================================================================================
 //---------------------------------------------------------- загрузить объекты отображения
 function LoadOV(FileName: string; start: Integer) : integer;
-  var sl3  : TStringList; s,p,r :
-  string; i,j,k : integer; z : integer;
+var
+  sl3           : TStringList;
+  s, p, r       : string;
+  i,j,k,z,hvost : integer;
 begin
   result := -1;
   z := start-1;
@@ -372,17 +374,18 @@ begin
           //-------------------------------------------------- запоминаем позицию в строке
           k := j;
           p := '';
-          while (s[j] <> ';') and (s[j] <> ':') do
+          while (s[j] <> ';') and (s[j] <> ':') do //собираем строку до любого разделителя
           begin
             p := p + s[j];
             inc(j);
             if j > Length(s) then break;
           end;
-          if s[j] = ':' then
+
+          if s[j] = ':' then //-------------------------------- если разделитель для точки
           begin
             ObjView[z].Points[1].X := StrToint(p);
             j := k;
-          end else
+          end else  //--------------------------------------- если разделитель для объекта
           begin
             inc(j);
             ObjView[z].Name := p;
@@ -531,37 +534,50 @@ begin
           // Загрузить константу 6
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjView[z].ObjConstI[6] := StrToint(p) except exit end;
+
           // Загрузить константу 7
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjView[z].ObjConstI[7] := StrToint(p) except exit end;
+
           // Загрузить константу 8
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjView[z].ObjConstI[8] := StrToint(p) except exit end;
+
           // Загрузить константу 9
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjView[z].ObjConstI[9] := StrToint(p) except exit end;
+
           // Загрузить константу 10
           p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
           try ObjView[z].ObjConstI[10] := StrToint(p) except exit end;
-         // Загрузить константу 11
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[11] := StrToint(p) except exit end;
-     // Загрузить константу 12
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[12] := StrToint(p) except exit end;
-     // Загрузить константу 13
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[13] := StrToint(p) except exit end;
-     // Загрузить константу 14
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[14] := StrToint(p) except exit end;
-     // Загрузить константу 15
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[15] := StrToint(p) except exit end;
-     // Загрузить константу 16
-          p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
-          try ObjView[z].ObjConstI[16] := StrToint(p) except exit end;
 
+          hvost := length(s) - j;
+          if hvost > 10 then
+          begin
+            // Загрузить константу 11
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[11] := StrToint(p) except exit end;
+
+            // Загрузить константу 12
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[12] := StrToint(p) except exit end;
+
+            // Загрузить константу 13
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[13] := StrToint(p) except exit end;
+
+            // Загрузить константу 14
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[14] := StrToint(p) except exit end;
+
+            // Загрузить константу 15
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[15] := StrToint(p) except exit end;
+
+            // Загрузить константу 16
+            p := ''; while s[j] <> ';' do begin p := p + s[j]; inc(j); if j > Length(s) then break; end; inc(j);
+            try ObjView[z].ObjConstI[16] := StrToint(p) except exit end;
+          end;
           // Загрузить контрольную сумму
           p := '';
           while s[j] <> ';' do
@@ -569,7 +585,8 @@ begin
           ObjView[z].CRC := StrTointDef('$'+p,0);
         end;
       end;
-      result := sl3.Count; // Вернуть количество загруженных объектов
+      result := z;
+      //sl3.Count; // Вернуть количество загруженных объектов
     end;
   finally
     sl3.Free;
@@ -680,19 +697,6 @@ begin
   end;
 end;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 //------------------------------------------------------------------------------
 // сохранить буфер отображения
 function SaveBV(FileName: string; start, len: Integer) : integer;
@@ -774,10 +778,11 @@ function SaveOZ(FileName: string; start, len: Integer) : integer;
     i,j : integer;
     s,n : string;
 begin
-  result := 0; if len = 0 then exit;
+  result := 0;
+  if len = 0 then exit;
   sl8 := TStringList.Create;
   try
-  // Сформировать фрагмент БД OZ
+    //-------------------------------------------------------- Сформировать фрагмент БД OZ
     for i := start to start+len-1 do
     begin
       s := IntToStr(ObjZav[i].TypeObj)+ ';'+
@@ -805,13 +810,13 @@ begin
 
       ObjZav[i].CRC1 := CalculateCRC16(pchar(s),Length(s));
 
-      s := s + IntToHex(ObjZav[i].CRC1,4)+ ';';  // контрольная сумма строки
+      s := s + IntToHex(ObjZav[i].CRC1,4)+ ';';  //-------------- контрольная сумма строки
 
       s := s + ' -' + IntToStr(i);
 
       sl8.Add(s);
     end;
-    // Сформировать заголовок фрагмента БД OZ
+    //--------------------------------------------- Сформировать заголовок фрагмента БД OZ
     n := ''; i := Length(FileName);
     while i > 0 do
       if FileName[i] = '\' then break else dec(i);
@@ -822,15 +827,15 @@ begin
       inc(i);
     end;
     s := n+ ' '+ IntToStr(start)+ ' '+ IntToStr(len)+ sl8.Text;
-    i := CalculateCRC32(pchar(s),Length(s));     // контрольная сумма фрагмента
+    i := CalculateCRC32(pchar(s),Length(s));     //----------- контрольная сумма фрагмента
     s := n+ ' '+ IntToStr(start)+ ' '+ IntToStr(len)+ ' '+ IntToHex(i,8);
     sl8.Insert(0,s);
     sl8.SaveToFile(FileName);
     s := sl8.Text;
-    i := CalculateCRC32(pchar(s),Length(s)); // контрольная сумма файла
+    i := CalculateCRC32(pchar(s),Length(s)); //------------------- контрольная сумма файла
     FrameHeade(n,1,start,len,i);
   finally
-    result := sl8.Count; // вернуть количество сохраненных объектов
+    result := sl8.Count; //----------------------- вернуть количество сохраненных объектов
     sl8.Free;
   end;
 end;
@@ -987,27 +992,65 @@ begin
   end;
 end;
 
-//------------------------------------------------------------------------------
-// сформировать описание фрагмента в файле проекта
+//========================================================================================
+//---------------------------------------- сформировать описание фрагмента в файле проекта
 function FrameHeade(FileName: string; group, start, len, crc: Integer) : Boolean;
-  var i : integer; s : string;
+var
+  i : integer;
+  s : string;
 begin
   s := FileName+ ';'+ IntToStr(start)+ ';'+ IntToStr(len)+ ';'+ IntToHex(crc,8)+ ';';
   case group of
-    1 : begin // OZ
-      i := 1; while i <= High(hdrOZ) do begin if hdrOZ[i] = '' then begin hdrOZ[i] := s; break; end else inc(i); end;
+    1 :
+    begin //--------------------------------------------------------------------------- OZ
+      i := 1;
+      while i <= High(hdrOZ) do
+      begin
+        if hdrOZ[i] = '' then
+        begin
+          hdrOZ[i] := s;
+          break;
+        end else inc(i);
+      end;
     end;
 
-    2 : begin // OV
-      i := 1; while i <= High(hdrOV) do begin if hdrOV[i] = '' then begin hdrOV[i] := s; break; end else inc(i); end;
+    2 :
+    begin //--------------------------------------------------------------------------- OV
+      i := 1;
+      while i <= High(hdrOV) do
+      begin
+        if hdrOV[i] = '' then
+        begin
+          hdrOV[i] := s;
+          break;
+        end else inc(i);
+      end;
     end;
 
-    3 : begin // OU
-      i := 1; while i <= High(hdrOU) do begin if hdrOU[i] = '' then begin hdrOU[i] := s; break; end else inc(i); end;
+    3 :
+    begin //--------------------------------------------------------------------------- OU
+      i := 1;
+      while i <= High(hdrOU) do
+      begin
+        if hdrOU[i] = '' then
+        begin
+          hdrOU[i] := s;
+          break;
+        end else inc(i);
+      end;
     end;
 
-    4 : begin // BV
-      i := 1; while i <= High(hdrBV) do begin if hdrBV[i] = '' then begin hdrBV[i] := s; break; end else inc(i); end;
+    4 :
+    begin //--------------------------------------------------------------------------- BV
+      i := 1;
+      while i <= High(hdrBV) do
+      begin
+        if hdrBV[i] = '' then
+        begin
+          hdrBV[i] := s;
+          break;
+        end else inc(i);
+      end;
     end;
   end;
   result := true;

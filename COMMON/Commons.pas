@@ -15,7 +15,7 @@ procedure ArcMsg(Obj : integer; Msg : SmallInt; Offset : Integer);
 {$ENDIF}
 
 procedure ReportF(Rep : string); //-------------------- сохранить строку в файле протокола
-function GetColor(param : SmallInt) : TColor; external 'MyDLL1';
+function GetColor1(param : SmallInt) : TColor; external 'MyDLL1';
 function IsTestMode : Boolean;
 function GetShortMsg(nlex, index : integer; arg : string; cvt : integer) : string;
 procedure ShowShortMsg(index, x, y : integer; arg : string);
@@ -41,29 +41,36 @@ procedure InsNewArmCmd(Obj,Cmd : Word); //------------------ добавить команду ме
 //---------------------------------------------------------- Определение цветов для РМ-ДСП
 const
   //             blue         green      red
-  armcolor1  =   0 * 65536 +   0 * 256 + 255;  //---------------------------- lt red = 255
-  armcolor2  =   0 * 65536 + 255 * 256 +   0;  //------------------------ lt green = 65280
-  armcolor3  = 255 * 65536 +   0 * 256 +   0;  //---------------------- lt blue = 16711680
-  armcolor4  =   0 * 65536 +   0 * 256 + 191;  //------------------------------- red = 191
-  armcolor5  =   0 * 65536 + 191 * 256 +   0;   //-------------------------- greey = 48896
-  armcolor6  = 191 * 65536 +   0 * 256 +   0;   //------------------------ blue = 12517376
-  armcolor7  =   0 * 65536 + 255 * 256 + 255; //--------------------------- желтый = 65535
-  armcolor8  = 127 * 65536 + 127 * 256 + 127; //--------------------------- gray = 8355711
-  armcolor9  = 255 * 65536 + 255 * 256 + 255; //------------------------------------ белый
-  armcolor10 = 255 * 65536 +   0 * 256 + 127; //---------------------------------- magenta
-  armcolor11 = 255 * 65536 +   0 * 256 + 255; //------------------------------- lt magenta
-  armcolor12 =  95 * 65536 +  95 * 256 +  95; //---------------------- черный (нет данных)
-  armcolor13 =   1 * 65536 + 135 * 256 + 205; //------------------------------------ brown
-  armcolor14 = 255 * 65536 + 255 * 256 +   0;  //--------------------- циан (непарафазный)
+  armcolor1  =   0 * 65536 +   0 * 256 + 255;  //----------------------- lt red = 0x0000FF
+  armcolor2  =   0 * 65536 + 255 * 256 +   0;  //--------------------- lt green = 0x00FF00
+  armcolor3  = 255 * 65536 +   0 * 256 +   0;  //-----------------------lt blue = 0xFF0000
+  armcolor4  =   0 * 65536 +   0 * 256 + 191;  //-------------------------- red = 0x0000BF
+  armcolor5  =   0 * 65536 + 191 * 256 +   0;   //----------------------- green = 0x00BF00
+  armcolor6  = 191 * 65536 +   0 * 256 +   0;   //------------------------ blue = 0xBF0000
+  armcolor7  =   0 * 65536 + 255 * 256 + 255; //------------------------ желтый = 0x00FFFF
+  armcolor8  = 127 * 65536 + 127 * 256 + 127; //---------------------------gray = 0x7F7F7F
+  armcolor9  = 255 * 65536 + 255 * 256 + 255; //------------------------- белый = 0xFFFFFF
+  armcolor10 = 255 * 65536 +   0 * 256 + 127; //----------------------- magenta = 0xFF007F
+  armcolor11 = 255 * 65536 +   0 * 256 + 255; //-------------------- lt magenta = 0xFF00FF
+  armcolor12 =  95 * 65536 +  95 * 256 +  95; //----------- черный (нет данных) = 0x5F5F5F
+  armcolor13 =   1 * 65536 + 135 * 256 + 205; //------------------------- brown = 0x0187CD
+  armcolor14 = 255 * 65536 + 255 * 256 +   0;  //---------- циан (непарафазный) = 0xFFFF00
 {$IFDEF RMARC}
-  armcolor15 = 160 * 65536 + 196 * 256 + 196;//-------------------------------- фон архива
+  armcolor15 = 160 * 65536 + 196 * 256 + 196;//--------------------- фон архива = 0xA0C4C4
 {$ELSE}
- armcolor15 = 191 * 65536 + 191 * 256 + 191;  //-------------------------------------- фон
+ armcolor15 = 191 * 65536 + 191 * 256 + 191;  //--------------------------- фон = 0xBFBFBF
 {$ENDIF}
-  armcolor16 = 239 * 65536 + 239 * 256 + 239;
-  armcolor17 =  63 * 65536 +  63 * 256 +  63;
-  armcolor18 = 205 * 65536 + 205 * 256 + 205;
-  armcolor19 = 209 * 65536 + 209 * 256 + 209;
+  armcolor16 = 239 * 65536 + 239 * 256 + 239; //------------------------------- = 0xEFEFEF
+  armcolor17 =  63 * 65536 +  63 * 256 +  63; //------------------------------- = 0x3F3F3F
+  armcolor18 = 205 * 65536 + 205 * 256 + 205; //------------------------------- = 0xEFEFEF
+  armcolor19 = 209 * 65536 + 209 * 256 + 209; //------------------------------- = 0xCDCDCD
+
+  armcolor25 =   0 * 65536 + 16 * 256 + 128;//-------- цвет для синего мигнания = 0x001080
+  armcolor26 =   0 * 65536 + 32 * 256 + 128;//-------- цвет для белого мигнания = 0x002080
+  armcolor27 =   0 * 65536 + 48 * 256 + 128;//------- цвет для желтого мигнания = 0x003080
+  armcolor28 =   0 * 65536 + 64 * 256 + 128;//------ цвет для красного мигнания = 0x004080
+  armcolor29 =   0 * 65536 + 80 * 256 + 128;//------ цвет для зеленого мигнания = 0x005080
+  armcolor30 = 240 * 65536 + 96 * 256 + 128; //-- цвет восклицательного(логика) = 0x006080
 
   bkgndcolor  = armcolor15; //-------------------------------------------------- фон табло
   focuscolor  = armcolor19; //------------------- фон выделенной строки в списке сообщений
@@ -257,8 +264,7 @@ begin
     case k of
       $400 :
       begin //------------------------------------------------------ текст берется из LEX2
-        if (ObjZav[Obj].TypeObj = 33) or (ObjZav[Obj].TypeObj = 36)
-        then ss := MsgList[m]
+        if (ObjZav[Obj].TypeObj = 33) or (ObjZav[Obj].TypeObj = 36) then ss := MsgList[m]
         else ss := GetShortMsg(2,m,ObjZav[Obj].Liter,Cvt);
       end;
 
@@ -268,9 +274,9 @@ begin
       end;
 
     else //------------------------------------------------------------------------ из LEX
-        if (ObjZav[Obj].TypeObj = 33) or
-        (ObjZav[Obj].TypeObj = 36) or
-        (ObjZav[Obj].TypeObj = 51)
+        if (ObjZav[Obj].TypeObj = 33) or //--------------------- дискретный датчик или ...
+        (ObjZav[Obj].TypeObj = 36) or    //-------------------- кнопка с датчиками или ...
+        (ObjZav[Obj].TypeObj = 51)        //------------------------------ сборка датчиков
         then ss := MsgList[m]
         else ss := GetShortMsg(1,m,ObjZav[Obj].Liter,Cvt);
     end;
@@ -601,7 +607,7 @@ begin
     begin
       shortMsg[i] := Msg;
       if not WorkMode.Upravlenie then shortMsgColor[i]  := 0
-      else shortMsgColor[i] := GetColor(clr);
+      else shortMsgColor[i] := GetColor1(clr);
     end
     else shortMsg[i] := '';
   end;
@@ -662,7 +668,7 @@ begin
       end;
     end;
     FixMessage.Msg[1] := s + ' > ' + msg;
-    FixMessage.Color[1] := GetColor(color);
+    FixMessage.Color[1] := GetColor1(color);
     FixMessage.MarkerLine := 1;
     FixMessage.StartLine := 1;
     if FixMessage.Count < High(FixMessage.Msg) then inc(FixMessage.Count);
@@ -682,8 +688,8 @@ begin
 {$ENDIF}
 end;
 
-//------------------------------------------------------------------------------
-// Сбросить строку фиксируемого сообщения
+//========================================================================================
+//------------------------------------------------- Сбросить строку фиксируемого сообщения
 procedure ResetFixMessage;
 {$IFDEF RMDSP}  var i : integer; {$ENDIF}
 begin

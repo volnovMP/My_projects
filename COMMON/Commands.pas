@@ -293,8 +293,8 @@ begin
     begin //---------------- Включение/выключение режима вспомогательного перевода стрелок
       ResetTrace; //--------------------------------------------- Сбросить набраную трассу
       WorkMode.GoMaketSt := false;
-      WorkMode.RazdUpr := true;
-      WorkMode.MarhUpr := false;
+   //   WorkMode.RazdUpr := true;
+  //    WorkMode.MarhUpr := false;
       WorkMode.MarhOtm := false;
       WorkMode.InpOgr  := false;
       WorkMode.VspStr  := not WorkMode.VspStr;
@@ -523,9 +523,11 @@ begin
         if SendCommandToSrv(ObjServ,ComServ,DspCommand.Obj) then
         begin
           IncrementKOK;
-          InsArcNewMsg(DspCommand.Obj,$2000+350,7);//---- "Выдана команда переключения ИК"
-          AddFixMessage(GetShortMsg(1,350,ObjZav[DspCommand.Obj].Liter,7),4,2);
           ResetShortMsg;
+          InsArcNewMsg(DspCommand.Obj,$2000+350,7);//---- "Выдана команда переключения ИК"
+          msg := GetShortMsg(1,350,ObjZav[DspCommand.Obj].Liter,7);
+          ShowShortMsg(350,LastX,LastY,''); 
+          AddFixMessage(msg,4,2);
         end;
         result := true;
         exit;
@@ -756,7 +758,7 @@ begin
           ObjZav[DspCommand.Obj].bParam[23] := false;
           InsArcNewMsg(ObjZav[DspCommand.Obj].BaseObject,20,2);
           ShowShortMsg(20, LastX, LastY, ObjZav[ObjZav[DspCommand.Obj].BaseObject].Liter);
-          shortmsgcolor[1] := GetColor(2);
+          shortmsgcolor[1] := GetColor1(2);
         end;
       end;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

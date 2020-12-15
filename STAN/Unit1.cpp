@@ -46,6 +46,8 @@ void __fastcall TVVOD_DAY::SETUPClick(TObject *Sender)
   ndt = EncodeTime(UpDown4->Position-1,UpDown5->Position,UpDown6->Position,0);
   nd = EncodeDate(UpDown3->Position,UpDown2->Position,UpDown1->Position);
   DateTimeToSystemTime(nd + ndt,uts);
+  uts.wHour++;
   SetLocalTime(&uts);
+  VVOD_DAY->Close();
 }
 //---------------------------------------------------------------------------

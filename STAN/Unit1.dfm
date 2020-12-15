@@ -155,7 +155,7 @@ object VVOD_DAY: TVVOD_DAY
     MaxLength = 4
     ParentFont = False
     TabOrder = 4
-    Text = '2012'
+    Text = '2'#160'012'
   end
   object UpDown3: TUpDown
     Left = 103

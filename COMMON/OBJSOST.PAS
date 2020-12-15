@@ -14,7 +14,8 @@ uses
   TypeALL;
 
 procedure DisplayItemTablo(Obj: POVStruct; form: TCanvas);
-procedure DrawSP(form : TCanvas; Buf,Utol  : SmallInt; ptr:array of TPoint; ptr1,ptr2 : TPoint);
+procedure DrawSP(form : TCanvas; Buf,Utol  : SmallInt; ptr:array of TPoint);
+// ptr1,ptr2 : TPoint);
 function GetPenStyle(param : SmallInt) : TPenStyle;
 function GetBrushStyle(param : SmallInt) : TBrushStyle;
 function GetFontStyle(param : SmallInt) : TFontStyles;
@@ -244,11 +245,16 @@ end;
 //========================================================================================
 //------------------------------------------------------- нарисовать статическую линию (1)
 procedure DisplayStatLine(Obj: POVStruct;form: TCanvas);
+var
+  Stil1 : TPenStyle;
+  Stil2 : TBrushStyle;
 begin
-  form.Pen.Color   := GetColor(Obj.ObjConstI[1]);
+  Stil1 := form.Pen.Style;
+  Stil2 := form.Brush.Style;
+  form.Pen.Color   := GetColor1(Obj.ObjConstI[1]);
   form.Pen.Style   := GetPenStyle(Obj.ObjConstI[2]);
   form.Pen.Width   := Obj.ObjConstI[3];
-  form.Brush.Color := GetColor(Obj.ObjConstI[4]);
+  form.Brush.Color := GetColor1(Obj.ObjConstI[4]);
   form.Brush.Style := GetBrushStyle(Obj.ObjConstI[5]);
   form.MoveTo(Obj.Points[1].x, Obj.Points[1].y);
   form.LineTo(Obj.Points[2].x, Obj.Points[2].y);
@@ -265,14 +271,16 @@ begin
       end;
     end;
   end;
+  form.Pen.Style := Stil1;
+  form.Brush.Style := Stil2;
 end;
 //========================================================================================
 //----------------------------------------------------- нарисовать статическую надпись (2)
 procedure DisplayStatText(Obj: POVStruct;form: TCanvas);
 begin
-  form.font.Color  := GetColor(Obj.ObjConstI[1]);
+  form.font.Color  := GetColor1(Obj.ObjConstI[1]);
   form.font.Style  := GetFontStyle(Obj.ObjConstI[2]);
-  form.Brush.Color := GetColor(Obj.ObjConstI[3]);
+  form.Brush.Color := GetColor1(Obj.ObjConstI[3]);
   form.Brush.Style := GetBrushStyle(Obj.ObjConstI[4]);
   form.font.Size   := Obj.ObjConstI[5];
   form.TextOut(Obj.Points[1].x, Obj.Points[1].y, Obj.Title);
@@ -281,10 +289,10 @@ end;
 //------------------------ нарисовать статическую фигуру: рамку, эллипс, многоугольник (3)
 procedure DisplayStatFigur(Obj: POVStruct;form: TCanvas);
 begin
-  form.pen.Color   := GetColor(Obj.ObjConstI[1]);
+  form.pen.Color   := GetColor1(Obj.ObjConstI[1]);
   form.Pen.Style   := GetPenStyle(Obj.ObjConstI[2]);
   form.Pen.Width   := Obj.ObjConstI[3];
-  form.Brush.Color := GetColor(Obj.ObjConstI[4]);
+  form.Brush.Color := GetColor1(Obj.ObjConstI[4]);
   form.Brush.Style := GetBrushStyle(Obj.ObjConstI[5]);
   case Obj.ObjConstI[6] of
     1 : form.Ellipse(rect(Obj.Points[1],Obj.Points[2])); //------------------ круг, эллипс
@@ -477,7 +485,7 @@ end;
 procedure DispKnop1to2(Obj: POVStruct;form: TCanvas);
 var
   deltaX,x1,y1,Buffer,Param1,Param2,Zavis,Cod : integer;
-  Text : string;
+  Text,TextKnop : string;
 begin
   Cod := 255; //----------------------------------------------- сначала - недопустимый код 
   Buffer :=  Obj.ObjConstI[1];
@@ -515,19 +523,19 @@ begin
   case Cod of
     0:
     begin
-      form.Brush.Color := GetColor(Obj.ObjConstI[2]);
-      form.Font.Color := GetColor(Obj.ObjConstI[8]);
+      form.Brush.Color := GetColor1(Obj.ObjConstI[2]);
+      form.Font.Color := GetColor1(Obj.ObjConstI[8]);
       ObjZav[Zavis].bParam[27] := false;
       ObjZav[Zavis].Timers[1].Active := false;
       ObjZav[Zavis].Timers[1].First := 0;
       if ObjZav[Obj.ObjConstI[16]].ObjConstI[9] > 0 then
-      Text := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[9]];
+      TextKnop := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[9]];
     end;
 
     1,2:    //---------------------------------------- объекты не соответствуют друг-другу
     begin
-      if tab_page then form.Brush.Color := GetColor(Obj.ObjConstI[2])
-      else form.Brush.Color := GetColor(Obj.ObjConstI[5]);
+      if tab_page then form.Brush.Color := GetColor1(Obj.ObjConstI[2])
+      else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
 
       if not ObjZav[Zavis].bParam[27] then //-- если данная ненорма не фиксировалась ранее
       if ObjZav[Zavis].Timers[1].Active then //-------- если ранее был запущен таймер и ...
@@ -550,13 +558,13 @@ begin
 
     3:
     begin
-      form.Brush.Color := GetColor(Obj.ObjConstI[5]);
-      form.Font.Color := GetColor(Obj.ObjConstI[11]);
+      form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+      form.Font.Color := GetColor1(Obj.ObjConstI[11]);
       ObjZav[Zavis].bParam[27] := false;
       ObjZav[Zavis].Timers[1].Active := false;
       ObjZav[Zavis].Timers[1].First := 0;
       if ObjZav[Obj.ObjConstI[16]].ObjConstI[8] > 0 then
-      Text := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[8]];
+      TextKnop := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[8]];
     end;
   end;
 
@@ -652,7 +660,7 @@ begin
   begin
     x1 := form.TextWidth(Text) div 2;
     y1 := form.TextHeight(Text) div 2;
-    form.TextOut(obj.Points[1].X-x1,obj.Points[1].Y-y1,Text);
+    form.TextOut(obj.Points[1].X-x1,obj.Points[1].Y-y1,TextKnop);
   end
 end;
 //==================================== 10 ================================================
@@ -663,26 +671,30 @@ var
 begin
   Utol := Obj.ObjConstI[2];
   VidBuf := Obj.ObjConstI[1];
+
   if Obj.Points[5].X > 0 then
-  DrawSP(form,VidBuf,Utol,[Obj.Points[2],Obj.Points[3],Obj.Points[4],Obj.Points[5]],Obj.Points[6],Obj.Points[1])
+  DrawSP(form,VidBuf,Utol,[Obj.Points[2],Obj.Points[3],Obj.Points[4],Obj.Points[5]])
+//  ,Obj.Points[6],Obj.Points[1])
   else
     if Obj.Points[4].X > 0 then
-    DrawSP(form,Obj.ObjConstI[1],Utol,[Obj.Points[2],Obj.Points[3],Obj.Points[4]],Obj.Points[6],Obj.Points[1])
-    else DrawSP(form,Obj.ObjConstI[1],Utol,[Obj.Points[2],Obj.Points[3]],Obj.Points[6],Obj.Points[1]);
+    DrawSP(form,VidBuf,Utol,[Obj.Points[2],Obj.Points[3],Obj.Points[4]])
+    //,Obj.Points[6],Obj.Points[1])
+    else DrawSP(form,VidBuf,Utol,[Obj.Points[2],Obj.Points[3]]);
+    //,Obj.Points[6],Obj.Points[1]);
 
   if Obj.Points[1].X > 0 then
   begin //-------------------------------------------------------- Нарисовать литер секции
     x1 := -1;
-    if OVBuffer[Obj.ObjConstI[1]].Param[29]
+    if OVBuffer[VidBuf].Param[29]
     then x1 := 24//----------------------------------- Закрыто для движения на электротяге
     else
-      if OVBuffer[Obj.ObjConstI[1]].Param[30] and OVBuffer[Obj.ObjConstI[1]].Param[31]
-      then x1 := 2  //---------------------------- Закрыто для движения на 2-х родах тяги
+      if OVBuffer[VidBuf].Param[30] and OVBuffer[VidBuf].Param[31]
+      then x1 := 2  //----------------------------- Закрыто для движения на 2-х родах тяги
       else
-        if OVBuffer[Obj.ObjConstI[1]].Param[30]
+        if OVBuffer[VidBuf].Param[30]
         then x1 := 26 //----------------------------------- Закрыто для движения на пер.т.
         else
-          if OVBuffer[Obj.ObjConstI[1]].Param[31]
+          if OVBuffer[VidBuf].Param[31]
           then x1 := 25; //------------------------------- Закрыто для движения на пост.т.
 
   if x1 > -1 then
@@ -719,24 +731,24 @@ begin
     end;
   end;
 
-  if OVBuffer[Obj.ObjConstI[1]].Param[32]
-  then form.Font.Color := armcolor1
+  if OVBuffer[VidBuf].Param[32] then form.Font.Color := armcolor1 //- закрыто для движения
   else form.Font.Color := clBlack;
 
-  if OVBuffer[Obj.ObjConstI[1]].Param[9] then
-  begin //---------------------------------------------- Предварительная команда РИ секции
+  if OVBuffer[VidBuf].Param[9] then //-------- Предварительная команда РИ секции выполнена
+  begin
     form.Brush.Style := bsSolid;
     form.Brush.Color := armcolor9;
   end
-  else  form.Brush.Style := bsClear;//-------------- Нет предварительной команды РИ секции
+  else  form.Brush.Style := bsClear;//--- Нет выполнения предварительной команды РИ секции
 
   form.Font.Size := 8; form.font.Style := [];
   form.TextOut(Obj.Points[1].X, Obj.Points[1].Y, Obj.Title);
 
-  if OVBuffer[Obj.ObjConstI[1]].Param[13] and OVBuffer[Obj.ObjConstI[1]].Param[18] then
+  if OVBuffer[VidBuf].Param[13] and OVBuffer[VidBuf].Param[18] then
   begin
    if tab_page then form.Font.Color := armcolor1
    else form.Font.Color := clBlack;
+
    x1 := form.TextWidth(Obj.Title);
    form.font.Style := [fsBold];
    if x1>10 then form.TextOut(Obj.Points[1].X+ x1, Obj.Points[1].Y, '!');
@@ -748,469 +760,292 @@ procedure DisplayStrelka(Obj: POVStruct;form: TCanvas);
 label
   str1;
 var
-  ObjZ,Hvost,x1,x2,y1,y2,ris_dop_zam,bufer,delta,tangens : integer;
+  ObjZ,Hvost,x1,x2,y1,y2,ris_dop_zam,bufer,delta,ugol,BufP,BufM : integer;
   TheRect : TRect;
+  ImaT,BT : TPoint; //----------------------- литерная и базовая точки изображения стрелки
+  T1,T2,M1,M2 : TPoint; //-------------------------------- точки переключателя стрелки +/-
+  Cherta : array[1..2] of TPoint;
 begin
   ris_dop_zam := 1;
   form.Pen.Style := psSolid;
-  tangens := Obj.ObjConstI[10];
-  ObjZ := Obj.ObjConstI[16]; //-------------------------- стрелка маршрута (тип объекта 2)
-  Hvost := ObjZav[ObjZ].BaseObject; //--------------- хвост стрелкиё(указывается в макете)
-  bufer := Obj.ObjConstI[4];
+  ugol := Obj.ObjConstI[10];
+  ObjZ := Obj.ObjConstI[16]; //-------------------- стрелка в зависимостях (тип объекта 2)
+  Hvost := ObjZav[ObjZ].BaseObject; // хвост стрелки в зависимостях (указывается в макете)
+  bufer := Obj.ObjConstI[4]; //------------------------------------------------ видеобуфер
 
   OVBuffer[bufer].Param[28] := ObjZav[ObjZ].bParam[33];  //------------------ автодействие
 
-  if OVBuffer[bufer].Param[31] then //----------------------------- если cтрелка на макете
-  begin
-    TabloMain.ImageList.Draw(form,obj.Points[2].X-6,obj.Points[2].Y-6,0);
-    maket_strelki_index := Hvost;
-    maket_strelki_name  := ObjZav[maket_strelki_index].Liter;
-  end else //--------------------------------------------------- если стрелка не на макете
-  if maket_strelki_index = Hvost  then
-  begin
-    maket_strelki_index := 0;
-    maket_strelki_name  := '';
-  end;
+  BT := Obj.Points[2]; //-------------------------------- координата базовой точки стрелки
+  ImaT := Obj.Points[1]; //----------------------------------- координата литерала стрелки
 
   form.Brush.Style := bsSolid;
-
-  if not OVBuffer[bufer].Param[16] then
-  begin //-------------------------------------------------- Проверить активизацию объекта
-    form.Pen.Color := armcolor12;
-    form.Pen.Width := 3;
-    form.Font.Color := armcolor12;
-    goto str1;
-  end;
-
-  if OVBuffer[bufer].Param[1] then
-  begin //--------------------------------------------------------- Непарафазность стрелки
-    form.Pen.Color := armcolor14;  form.Pen.Width := 3; form.Font.Color := armcolor14;
-    goto str1;
-  end else
   begin //----------------------------------------------- Наличие макета на стрелке или МУ
     //----------------------------------------------- Наличие контроля плюсового положения
     if OVBuffer[Bufer].Param[2] and not OVBuffer[Bufer].Param[3]
     then form.Font.Color := armcolor5 //------------------------------------------ зеленый
     //---------------------------------------------- Наличие контроля минусового положения
     else
-    if OVBuffer[Bufer].Param[3] and
-    not OVBuffer[Bufer].Param[2]
+    if OVBuffer[Bufer].Param[3] and not OVBuffer[Bufer].Param[2]
     then form.Font.Color := armcolor7 //------------------------------------------- желтый
     //------------------------------------------------------ Отсутствие контроля положения
     else form.Font.Color := armcolor4;//------------------------------------------ красный
   end;
-
+ {
   //------------------------------------ сначала стереть все признаки наложенных замыканий
   form.Pen.Width := 1;
   form.Brush.Color := armcolor15; //-------------------------------------------- цвет фона
-  TheRect := Rect(Obj.Points[2].X-5,obj.Points[2].Y-5,obj.Points[2].X+6,obj.Points[2].Y+6);
+  TheRect:= Rect(BT.X-5,BT.Y-5,BT.X+6,BT.Y+6);
   form.FrameRect(TheRect);
+  }
+  if not OVBuffer[bufer].Param[16] then
+  begin //------------------------------------------- неактивная стрелка =  толстый черный
+    form.Pen.Color := armcolor12; form.Pen.Width := 3; form.Font.Color := armcolor12;
+  end else
+  if OVBuffer[bufer].Param[1] then
+  begin //------------------------------------------ Непарафазность стрелки = толстый циан
+    form.Pen.Color := armcolor14;  form.Pen.Width := 3; form.Font.Color := armcolor14;
+  end else form.Pen.Width := 1;
+
+
 
 //--------------------------------------------------------------- Нарисовать литер стрелки
-str1:
   form.Font.Size := 8; form.Font.Style := [fsBold]; form.Brush.Style := bsClear;
-  if OVBuffer[Bufer].Param[11] then // если признак "аварийный перевод стрелки"
+  if OVBuffer[Bufer].Param[11] then //----------- если признак "аварийный перевод стрелки"
   begin //-------------------------------- нажата кнопка вспомогательного перевода стрелки
     form.Pen.Color := armcolor9;  form.Pen.Width := 1;
     x1 := form.TextWidth(Obj.Title)+2;
     y1 := form.TextHeight(Obj.Title);
-    form.RoundRect(Obj.Points[1].X-1,Obj.Points[1].Y,Obj.Points[1].X+x1,Obj.Points[1].Y+y1,7,10);
+    form.RoundRect(ImaT.X-1,ImaT.Y,ImaT.X+x1,ImaT.Y+y1,7,10);
   end;
-  form.TextOut(Obj.Points[1].X,Obj.Points[1].Y,Obj.Title);
+  form.TextOut(ImaT.X,ImaT.Y,Obj.Title);
   form.Font.Style := [];
-  form.Pen.Color := 0; form.Pen.Width := 2;
-  //-------------------------------------изображение "хвостиков" указателей плюсовой ветви
+  form.Pen.Color := 0; form.Pen.Width := 1;
+
+  //------------------------------------------------ изображение указателей плюсовой ветви
   case Obj.ObjConstI[1] of //-----------------------------переключатель по коду начертания
-    1 :
-    begin
-      form.MoveTo(Obj.Points[2].X+5,Obj.Points[2].Y+3);
-      form.LineTo(Obj.Points[2].X+10,Obj.Points[2].Y+3);
-    end;
-    2 :
-    begin
-      delta := 7 + (6000 div tangens);
-      form.MoveTo(Obj.Points[2].X+6,Obj.Points[2].Y+5);
-      form.LineTo(Obj.Points[2].X + delta,Obj.Points[2].Y+11);
-    end;
-    3 :
-    begin
-      form.MoveTo(Obj.Points[2].X+5,Obj.Points[2].Y-2);
-      form.LineTo(Obj.Points[2].X+10,Obj.Points[2].Y-2);
-    end;
-    4 :
-    begin
-      delta := 6 + (6000 div tangens);
-      form.MoveTo(Obj.Points[2].X+6,Obj.Points[2].Y-5);
-      form.LineTo(Obj.Points[2].X + delta ,Obj.Points[2].Y-11);
-    end;
-    5 :
-    begin
-      form.MoveTo(Obj.Points[2].X-5,Obj.Points[2].Y+3);
-      form.LineTo(Obj.Points[2].X-10,Obj.Points[2].Y+3);
-    end;
-    6 :
-    begin
-      delta := 6 + (6000 div tangens);
-      form.MoveTo(Obj.Points[2].X-6,Obj.Points[2].Y+5);
-      form.LineTo(Obj.Points[2].X- delta,Obj.Points[2].Y+11);
-    end;
-    7 :
-    begin
-      form.MoveTo(Obj.Points[2].X-5,Obj.Points[2].Y-2);
-      form.LineTo(Obj.Points[2].X-10,Obj.Points[2].Y-2);
-    end;
-    8 :
-    begin
-      delta := 6 + (6000 div tangens);
-      form.MoveTo(Obj.Points[2].X-6,Obj.Points[2].Y-5);
-      form.LineTo(Obj.Points[2].X - delta,Obj.Points[2].Y-11);
-    end;
-  end;
-
-  x1 := 0; x2 := 0; y1 := 0; y2 := 0;
-  //#################################################### Нарисовать плюсовую ветку стрелки
-  case Obj.ObjConstI[1] of //---------------------------- переключатель по коду начертания
-    1 :
-    begin //-------------------------------------- Получить смещения для 1-ой конфигурации
-      if OVBuffer[Bufer].Param[2] and
-      not OVBuffer[Bufer].Param[3] then
-      begin //--------------------------------------------------------------- если в плюсе
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end
-      else//---------------------------------------------------------------- если в минусе
-      if not OVBuffer[Bufer].Param[2] and
-      OVBuffer[Bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X+2; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end else
-      begin   //-------------------------------------------------------- если без контроля
-        x1 := Obj.Points[2].X+4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
-    end;
+    1 :  begin  form.MoveTo(BT.X + 10,BT.Y+4); form.LineTo(BT.X + 16,BT.Y+4); end;
 
     2 :
-    begin     //---------------------------------- Получить смещения для 2-ой конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[Obj.ObjConstI[4]].Param[3] then
+    begin
+      if ugol = 45 then
       begin
-        x1 := Obj.Points[2].X+2; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end
-      else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
+        form.MoveTo(BT.X + 8,BT.Y+4);
+        form.LineTo(BT.X + 13,BT.Y+9); form.LineTo(BT.X + 8,BT.Y+4);
       end else
+      if ugol = 60 then
       begin
-        x1 := Obj.Points[2].X+4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
+        form.MoveTo(BT.X + 8,BT.Y + 9);
+        form.LineTo(BT.X + 6,BT.Y+4); form.LineTo(BT.X + 8,BT.Y + 9);
       end;
+    end;
+
+    3 : begin form.MoveTo(BT.X + 10,BT.Y-4); form.LineTo(BT.X + 16,BT.Y-4); end;
+
+    4 :
+    begin
+      if ugol = 45 then
+      begin
+        form.MoveTo(BT.X + 8,BT.Y-4);
+        form.LineTo(BT.X + 13,BT.Y-9); form.LineTo(BT.X + 8,BT.Y-4);
+      end else
+      if ugol = 60 then
+      begin
+        form.MoveTo(BT.X + 8,BT.Y - 9);
+        form.LineTo(BT.X + 6,BT.Y-4); form.LineTo(BT.X + 8,BT.Y - 9);
+      end;
+    end;
+
+    5 : begin form.MoveTo(BT.X - 10,BT.Y+4); form.LineTo(BT.X - 16,BT.Y+4); end;
+
+    6 :
+    begin
+      if ugol = 45 then
+      begin
+        form.MoveTo(BT.X - 8,BT.Y+4);
+        form.LineTo(BT.X - 13,BT.Y+9); form.LineTo(BT.X - 8,BT.Y+4);
+      end else
+      if ugol = 60 then
+      begin
+        form.MoveTo(BT.X - 8,BT.Y + 9);
+        form.LineTo(BT.X - 6,BT.Y+4); form.LineTo(BT.X - 8,BT.Y + 9);
+      end;
+    end;
+
+    7 : begin form.MoveTo(BT.X - 10,BT.Y-4); form.LineTo(BT.X - 16,BT.Y-4); end;
+
+    8 :
+    begin
+      if ugol  = 45 then
+      begin
+        form.MoveTo(BT.X - 8,BT.Y-4);
+        form.LineTo(BT.X - 13 ,BT.Y-9);form.LineTo(BT.X - 8,BT.Y-4);
+      end else
+      if ugol = 60 then
+      begin
+        form.MoveTo(BT.X - 8,BT.Y-9);
+        form.LineTo(BT.X - 6,BT.Y-4);  form.LineTo(BT.X - 8,BT.Y-9);
+      end;
+    end;
+  end;
+
+  T1.X := 0; T1.Y := 0;
+  T2.X := 0; T2.Y := 0;
+
+  //====================== РИСУЕМ ВЕТКУ СТРЕЛКИ, НЕ ДАЮЩУЮ ОТКЛОНЕНИЯ ====================
+  case Obj.ObjConstI[1] of //------------------------------------------ по коду начертания
+    1 :
+    begin //-------------------------- Получить смещение разрывчика  для 1-ой конфигурации
+      if OVBuffer[Bufer].Param[2] and not OVBuffer[Bufer].Param[3] then //--- если в плюсе
+      begin T1 := BT; T2.X := BT.X + 7; T2.Y := BT.Y; end else
+
+      if not OVBuffer[Bufer].Param[2] and OVBuffer[Bufer].Param[3] then //-- если в минусе
+      begin
+        if ugol = 45 then
+        begin
+          T1.X := BT.X + 1; T1.Y := BT.Y - 6;
+          T2.X := BT.X + 7; T2.Y := BT.Y;
+        end else
+        if ugol = 60 then
+        begin
+          T1.X := BT.X + 5; T1.Y := BT.Y - 5;
+          T2.X := BT.X + 7; T2.Y := BT.Y;
+        end;
+      end else
+      begin T1.X := BT.X + 4;T1.Y := BT.Y; T2.X := 0;  T2.Y := 0; end;// если без контроля
+    end;
+
+    2 :
+    begin     //---------------------- Получить смещение разрывчика для 2-ой конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //------- в плюсе
+      begin
+        if ugol = 45 then
+        begin T1.X := BT.X + 1; T1.Y := BT.Y - 6; T2.X := BT.X + 7; T2.Y := BT.Y; end else
+        if ugol = 60 then
+        begin T1.X := BT.X + 5; T1.Y := BT.Y - 5; T2.X := BT.X + 7; T2.Y := BT.Y; end;
+      end  else
+
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin  T1 := BT; T2.X := BT.X + 7; T2.Y := BT.Y;   end else
+      begin  T1.X := BT.X+4; T1.Y := BT.Y; T2.X := 0;   T2.Y := 0; end; //--- без контроля
     end;
 
     3 :
-    begin //--------------------------------------- Получить смещения для 3-й конфигурации
+    begin //---------------------------- Получить смещение разрывчика для 3-й конфигурации
       if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+      begin T1 := BT; T2.X := BT.X+7; T2.Y := BT.Y; end else  //------------------ в плюсе
+
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then  //------ в минусе
       begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
+        if ugol = 45 then
+        begin  T1.X := BT.X+2; T1.Y := BT.Y+5; T2.X := BT.X + 7; T2.Y := BT.Y;  end else
+
+        if ugol = 60 then
+        begin   T1.X := BT.X + 5; T1.Y := BT.Y + 5; T2.X := BT.X + 7; T2.Y := BT.Y; end;
       end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
       begin
-        x1 := Obj.Points[2].X+2; y1 := Obj.Points[2].Y+5;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X+4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
+        T1.X := BT.X+4; T1.Y := BT.Y;    T2.X := 0;      T2.Y := 0;    end;
     end;
 
     4 :
-    begin  //-------------------------------------- Получить смещения для 4-й конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+    begin     //---------------------- Получить смещение разрывчика для 2-ой конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //------- в плюсе
       begin
-        x1 := Obj.Points[2].X+2; y1 := Obj.Points[2].Y+5;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X+4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
+        if ugol = 45 then
+        begin T1.X := BT.X + 1; T1.Y := BT.Y + 6; T2.X := BT.X + 7; T2.Y := BT.Y; end else
+        if ugol = 60 then
+        begin T1.X := BT.X + 5; T1.Y := BT.Y + 5; T2.X := BT.X + 7; T2.Y := BT.Y; end;
+      end  else
+
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin  T1 := BT; T2.X := BT.X + 7; T2.Y := BT.Y;   end else
+      begin  T1.X := BT.X+4; T1.Y := BT.Y; T2.X := 0;   T2.Y := 0; end; //--- без контроля
     end;
 
+
     5 :
-    begin  //------------------------------------- Получить смещения для 5-ой конфигурации
+    begin  //-------------------------- Получить смещение разрывчика для 5-ой конфигурации
       if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+      begin T1 := BT; T2.X := BT.X - 7; T2.Y := BT.Y; end else
+
+      if not OVBuffer[Bufer].Param[2] and OVBuffer[Bufer].Param[3] then //-- если в минусе
       begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
+        if ugol = 45 then
+        begin
+          T1.X := BT.X - 1; T1.Y := BT.Y - 6;
+          T2.X := BT.X - 7; T2.Y := BT.Y;
+        end else
+        if ugol = 60 then
+        begin
+          T1.X := BT.X - 5; T1.Y := BT.Y - 5;
+          T2.X := BT.X - 7; T2.Y := BT.Y;
+        end;
       end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X-2; y1 := Obj.Points[2].Y-5;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X-4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
+      begin T1.X := BT.X - 4;T1.Y := BT.Y; T2.X := 0;  T2.Y := 0; end;// если без контроля
     end;
 
     6 :
-    begin  //------------------------------------- Получить смещения для 6-ой конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+    begin     //---------------------- Получить смещение разрывчика для 6-ой конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //------- в плюсе
       begin
-        x1 := Obj.Points[2].X-2; y1 := Obj.Points[2].Y-5;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X-4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
+        if ugol = 45 then
+        begin T1.X := BT.X - 1; T1.Y := BT.Y - 6; T2.X := BT.X - 7; T2.Y := BT.Y; end else
+        if ugol = 60 then
+        begin T1.X := BT.X - 5; T1.Y := BT.Y - 5; T2.X := BT.X - 7; T2.Y := BT.Y; end;
+      end  else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin  T1 := BT; T2.X := BT.X - 7; T2.Y := BT.Y;   end else
+      begin  T1.X := BT.X-4; T1.Y := BT.Y; T2.X := 0;   T2.Y := 0; end; //--- без контроля
     end;
 
     7 :
-    begin   //------------------------------------- Получить смещения для 7-й конфигурации
+    begin   //-------------------------- Получить смещение разрывчика для 7-й конфигурации
       if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+      begin T1 := BT; T2.X := BT.X-7; T2.Y := BT.Y; end else  //------------------ в плюсе
+
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then  //------ в минусе
       begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
+        if ugol = 45 then
+        begin T1.X := BT.X - 2; T1.Y := BT.Y + 5; T2.X := BT.X - 7; T2.Y := BT.Y; end else
+
+        if ugol = 60 then
+        begin  T1.X := BT.X - 5; T1.Y := BT.Y + 5; T2.X := BT.X - 7; T2.Y := BT.Y; end;
       end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X-2; y1 := Obj.Points[2].Y+5;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X-4; y1 := Obj.Points[2].Y; x2 := 0; y2 := 0;
-      end;
+      begin T1.X := BT.X - 4;  T1.Y := BT.Y;  T2.X := 0;  T2.Y := 0; end;
     end;
 
     8 :
-    begin   //------------------------------------- Получить смещения для 8-й конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
+    begin   //-------------------------- Получить смещение разрывчика для 8-й конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //------- в плюсе
       begin
-        x1 := Obj.Points[2].X-2; y1 := Obj.Points[2].Y+5;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;   y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-4; y2 := Obj.Points[2].Y;
-      end else
-      begin
-        x1 := Obj.Points[2].X-4; y1 := Obj.Points[2].Y;
-        x2 := 0;                 y2 := 0;
-      end;
+        if ugol = 45 then
+        begin T1.X := BT.X - 1; T1.Y := BT.Y + 6; T2.X := BT.X - 7; T2.Y := BT.Y; end else
+        if ugol = 60 then
+        begin T1.X := BT.X - 5; T1.Y := BT.Y + 5; T2.X := BT.X - 7; T2.Y := BT.Y; end;
+      end  else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin  T1 := BT; T2.X := BT.X - 7; T2.Y := BT.Y;   end else
+      begin  T1.X := BT.X-4; T1.Y := BT.Y; T2.X := 0;   T2.Y := 0; end; //--- без контроля
     end;
   end;
 
-  if (x2 > 0) and (y2 > 0) then
-  DrawSP(form,Obj.ObjConstI[2],0,[Point(x1,y1),Point(x2,y2),Obj.Points[3]],Obj.Points[6],Obj.Points[1])
-  else    DrawSP(form,Obj.ObjConstI[2],0,[Point(x1,y1),Obj.Points[3]],Obj.Points[6],Obj.Points[1]);
+  BufP := Obj.ObjConstI[2];
 
-  if ((Obj.Points[6].X > 0) and (Obj.ObjConstI[8] = 0))then
-  begin
-    form.MoveTo(Obj.Points[2].X,Obj.Points[2].Y);
-    form.LineTo(Obj.Points[6].X,Obj.Points[6].Y);
-  end;
+  if (T2.X > 0) and (T2.Y > 0) then DrawSP(form,BufP,0,[T1,T2,Obj.Points[3]])
+  else DrawSP(form,BufP,0,[T1,Obj.Points[3]]);
+
+
+  if ((Obj.Points[6].X > 0) and (Obj.ObjConstI[8] = 0))then //псевдо-СП и окраска по плюсу
+  begin form.MoveTo(BT.X,BT.Y);form.LineTo(Obj.Points[6].X,Obj.Points[6].Y); end;
 
   if ((form.Pen.Color = armcolor1)or(form.Pen.Color = armcolor7)) and
-  (form.Pen.Width = 3) and (not OVBuffer[bufer].Param[28])
-  then ris_dop_zam := 0;
-
-  //--------------------------------------------------- Нарисовать минусовую ветку стрелки
-  case Obj.ObjConstI[1] of
-    1 :
-    begin  //------------------------------------- Получить смещения для 1-ой конфигурации
-      if OVBuffer[bufer].Param[2] and //----------------------------- если ПК и
-      not OVBuffer[bufer].Param[3] then //------------------------------- не МК
-      begin
-        x1 := Obj.Points[2].X-3; y1 := Obj.Points[2].Y+4;
-        x2 := Obj.Points[2].X+2; y2 := Obj.Points[2].Y+4;
-      end else
-      if not OVBuffer[bufer].Param[2] and  //--------------------- если не ПК и
-      OVBuffer[bufer].Param[3] then //-------------------------------------- МК
-      begin
-        x1 := Obj.Points[2].X; y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+2; y2 := Obj.Points[2].Y+4;
-      end else
-      begin
-        x1 := Obj.Points[2].X+2;  y1 := Obj.Points[2].Y+4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    2 :  //--------------------------------------- Получить смещения для 2-ой конфигурации
-    begin
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+2;  y2 := Obj.Points[2].Y+4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X-3; y1 := Obj.Points[2].Y+4;
-        x2 := Obj.Points[2].X+2; y2 := Obj.Points[2].Y+4;
-      end else
-      begin
-        x1 := Obj.Points[2].X+2;  y1 := Obj.Points[2].Y+4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    3 :  //---------------------------------------- Получить смещения для 3-й конфигурации
-    begin
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X-3; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X+2; y2 := Obj.Points[2].Y-4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+2;  y2 := Obj.Points[2].Y-4;
-      end else
-      begin
-        x1 := Obj.Points[2].X+2;  y1 := Obj.Points[2].Y-4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    4 :
-    begin
-      //------------------------------------------- Получить смещения для 4-й конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X+2;  y2 := Obj.Points[2].Y-4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X-3; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X+2; y2 := Obj.Points[2].Y-4;
-      end else
-      begin
-        x1 := Obj.Points[2].X+2;  y1 := Obj.Points[2].Y-4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    5 :
-    begin
-      //------------------------------------------ Получить смещения для 5-ой конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X+3; y1 := Obj.Points[2].Y+4;
-        x2 := Obj.Points[2].X-2; y2 := Obj.Points[2].Y+4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-2;  y2 := Obj.Points[2].Y+4;
-      end else
-      begin
-        x1 := Obj.Points[2].X-2;  y1 := Obj.Points[2].Y+4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    6 :
-    begin
-      //------------------------------------------ Получить смещения для 6-ой конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-2;  y2 := Obj.Points[2].Y+4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X+3; y1 := Obj.Points[2].Y+4;
-        x2 := Obj.Points[2].X-2; y2 := Obj.Points[2].Y+4;
-      end else
-      begin
-        x1 := Obj.Points[2].X-2;  y1 := Obj.Points[2].Y+4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    7 :
-    begin
-      //------------------------------------------- Получить смещения для 7-й конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X+3; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X-2; y2 := Obj.Points[2].Y-4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-2;  y2 := Obj.Points[2].Y-4;
-      end else
-      begin
-        x1 := Obj.Points[2].X-2;  y1 := Obj.Points[2].Y-4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-
-    8 :
-    begin
-      //------------------------------------------- Получить смещения для 8-й конфигурации
-      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X;    y1 := Obj.Points[2].Y;
-        x2 := Obj.Points[2].X-2;  y2 := Obj.Points[2].Y-4;
-      end else
-      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then
-      begin
-        x1 := Obj.Points[2].X+3; y1 := Obj.Points[2].Y-4;
-        x2 := Obj.Points[2].X-2; y2 := Obj.Points[2].Y-4;
-      end else
-      begin
-        x1 := Obj.Points[2].X-2;  y1 := Obj.Points[2].Y-4;
-        x2 := 0;                  y2 := 0;
-      end;
-    end;
-  end;
-
-  if (x2 > 0) and (y2 > 0) then
-  begin
-    if Obj.Points[5].X > 0 then
-    DrawSP(form,Obj.ObjConstI[3],0,[Point(x1,y1),Point(x2,y2),Obj.Points[4],Obj.Points[5]],Obj.Points[6],Obj.Points[1])
-    else DrawSP(form,Obj.ObjConstI[3],0,[Point(x1,y1),Point(x2,y2),Obj.Points[4]],Obj.Points[6],Obj.Points[1]);
-  end else
-  begin
-    if Obj.Points[5].X > 0 then
-    DrawSP(form,Obj.ObjConstI[3],0,[Point(x1,y1),Obj.Points[4],Obj.Points[5]],Obj.Points[6],Obj.Points[1])
-    else DrawSP(form,Obj.ObjConstI[3],0,[Point(x1,y1),Obj.Points[4]],Obj.Points[6],Obj.Points[1]);
-  end;
-
-  if ((Obj.Points[6].X > 0) and (Obj.ObjConstI[8] = 1))then
-  begin
-    form.MoveTo(Obj.Points[2].X,Obj.Points[2].Y);
-    form.LineTo(Obj.Points[6].X,Obj.Points[6].Y);
-  end;
-
-  if((form.Pen.Color = armcolor1)or(form.Pen.Color = armcolor7))and(form.Pen.Width = 3)
+  (form.Pen.Width = 3) and (not OVBuffer[bufer].Param[28]) and
+  (not ObjZav[Hvost].bParam[4]) and (not ObjZav[ObjZ].bParam[4])
   then ris_dop_zam := 0;
 
   if ris_dop_zam = 1 then
   begin
-   form.Brush.Color := armcolor8;     
-   TheRect := Rect(obj.Points[2].X-5,obj.Points[2].Y-5,obj.Points[2].X+6,obj.Points[2].Y+6);
+   form.Brush.Color := armcolor8;
+   TheRect := Rect(BT.X-5,BT.Y-5,BT.X+6,BT.Y+6);
    if OVBuffer[bufer].Param[6] then     //---------- охранность при трассировке
    begin //----- требование перевода охранной стрелки в охранное положение при трассировке
     form.Brush.Color := armcolor9; //----------------------------------------- перо  белое
@@ -1223,6 +1058,8 @@ str1:
     form.FrameRect(TheRect);
    end;
 
+   OVBuffer[bufer].Param[7] := ObjZav[Hvost].bParam[4] or ObjZav[ObjZ].bParam[4];
+
    if OVBuffer[bufer].Param[7] or OVBuffer[bufer].Param[28]  then //- замыкание в охранном
    begin //------------- охранная стрелка замкнута в охранное положение или в автодействии
     form.Brush.Color := armcolor8;
@@ -1231,7 +1068,260 @@ str1:
    end;
   end;
 
-  //--------------------------------------------------------------- Ограничения на стрелку
+  if OVBuffer[bufer].Param[31] then //----------------------------- если cтрелка на макете
+  begin
+    form.Pen.Style := psSolid;
+    TabloMain.ImageList.Draw(form,obj.Points[2].X-6,obj.Points[2].Y-6,0);
+    maket_strelki_index := Hvost;
+    maket_strelki_name  := ObjZav[maket_strelki_index].Liter;
+  end else //--------------------------------------------------- если стрелка не на макете
+  if maket_strelki_index = Hvost  then
+  begin
+    maket_strelki_index := 0;
+    maket_strelki_name  := '';
+  end;
+
+  M1.X := 0; M1.Y := 0;
+  M2.X := 0; M2.Y := 0;
+  //=========================== РИСУЕМ ОТКЛОНЯЮЩУЮ ВЕТКУ СТРЕЛККИ ========================
+  case Obj.ObjConstI[1] of
+    1 :
+    begin  //------------------------------------- Получить смещения для 1-ой конфигурации
+      if OVBuffer[bufer].Param[2] and  not OVBuffer[bufer].Param[3] then //------- в плюсе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X - 4; M1.Y := BT.Y+3; M2.X := BT.X + 3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X - 5; M1.Y := BT.Y+4; M2.X := BT.X+2; M2.Y := BT.Y+4; end;
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin
+        if ugol = 45 then
+        begin  M1 := BT; M2.X := BT.X+3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X+2; M2.Y := BT.Y+5; end;
+      end else //------------------------------------------------------------ без контроля
+      begin
+        if ugol = 45 then
+        begin  M1.X := BT.X+3;  M1.Y := BT.Y+3;  M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin  M1.X := BT.X+2;  M1.Y := BT.Y+4;  M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    2 :  //--------------------------------------- Получить смещения для 2-ой конфигурации
+    begin
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //стрелка в плюсе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X+3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X+1; M2.Y := BT.Y+3; end else
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X-4; M1.Y := BT.Y+3; M2.X := BT.X+3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-5; M1.Y := BT.Y+4; M2.X := BT.X+2; M2.Y := BT.Y+4; end;
+      end else
+      begin //------------------------------------------------------- стрелка без контроля
+        if ugol = 45 then
+        begin M1.X := BT.X+3; M1.Y := BT.Y+3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+2; M1.Y := BT.Y+4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    3 :  //---------------------------------------- Получить смещения для 3-й конфигурации
+    begin
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then // стрелка в плюсе
+      begin
+         if ugol = 45 then
+        begin M1.X := BT.X-4; M1.Y := BT.Y-3; M2.X := BT.X+3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-5; M1.Y := BT.Y-4; M2.X := BT.X+2; M2.Y := BT.Y-4; end;
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X+3;  M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X+1;  M2.Y := BT.Y-3; end else
+      end else //---------------------------------------------------- стрелка без контроля
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X+3; M1.Y := BT.Y-3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+2; M1.Y := BT.Y-4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    4 :  //--------------------------------------- Получить смещения для 4-ой конфигурации
+    begin
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //стрелка в плюсе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X+3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X+1; M2.Y := BT.Y-3; end else
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X-4; M1.Y := BT.Y-3; M2.X := BT.X+3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-5; M1.Y := BT.Y-4; M2.X := BT.X+2; M2.Y := BT.Y-4; end;
+      end else
+      begin //------------------------------------------------------- стрелка без контроля
+        if ugol = 45 then
+        begin M1.X := BT.X+3; M1.Y := BT.Y-3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+2; M1.Y := BT.Y-4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    5 :
+    begin  //------------------------------------- Получить смещения для 5-ой конфигурации
+      if OVBuffer[bufer].Param[2] and  not OVBuffer[bufer].Param[3] then //------- в плюсе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X + 4; M1.Y := BT.Y+3; M2.X := BT.X - 3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X + 5; M1.Y := BT.Y+4; M2.X := BT.X-2; M2.Y := BT.Y+4; end;
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //------- в минусе
+      begin
+        if ugol = 45 then
+        begin  M1 := BT; M2.X := BT.X-3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X-2; M2.Y := BT.Y+4; end;
+      end else //------------------------------------------------------------ без контроля
+      begin
+        if ugol = 45 then
+        begin  M1.X := BT.X-3;  M1.Y := BT.Y+3;  M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin  M1.X := BT.X-2;  M1.Y := BT.Y+4;  M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    6 :  //--------------------------------------- Получить смещения для 6-ой конфигурации
+    begin
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //стрелка в плюсе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X-3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X-1; M2.Y := BT.Y+3; end else
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X+4; M1.Y := BT.Y+3; M2.X := BT.X-3; M2.Y := BT.Y+3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+5; M1.Y := BT.Y+4; M2.X := BT.X-2; M2.Y := BT.Y+4; end;
+      end else
+      begin //------------------------------------------------------- стрелка без контроля
+        if ugol = 45 then
+        begin M1.X := BT.X-3; M1.Y := BT.Y+3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-2; M1.Y := BT.Y+4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    7 :
+    begin
+      //------------------------------------------- Получить смещения для 7-й конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then // стрелка в плюсе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X+4; M1.Y := BT.Y-3; M2.X := BT.X-3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+5; M1.Y := BT.Y-4; M2.X := BT.X-2; M2.Y := BT.Y-4; end;
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X-3;  M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X-2;  M2.Y := BT.Y-4; end else
+      end else //---------------------------------------------------- стрелка без контроля
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X-3; M1.Y := BT.Y-3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-2; M1.Y := BT.Y-4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+
+    8 :
+    begin //--------------------------------------- Получить смещения для 8-й конфигурации
+      if OVBuffer[bufer].Param[2] and not OVBuffer[bufer].Param[3] then  //стрелка в плюсе
+      begin
+        if ugol = 45 then
+        begin M1 := BT; M2.X := BT.X-3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1 := BT; M2.X := BT.X-2; M2.Y := BT.Y-4; end else
+      end else
+      if not OVBuffer[bufer].Param[2] and OVBuffer[bufer].Param[3] then //стрелка в минусе
+      begin
+        if ugol = 45 then
+        begin M1.X := BT.X+4; M1.Y := BT.Y-3; M2.X := BT.X-3; M2.Y := BT.Y-3; end else
+        if ugol = 60 then
+        begin M1.X := BT.X+5; M1.Y := BT.Y-4; M2.X := BT.X-2; M2.Y := BT.Y-4; end;
+      end else
+      begin //------------------------------------------------------- стрелка без контроля
+        if ugol = 45 then
+        begin M1.X := BT.X-3; M1.Y := BT.Y-3; M2.X := 0; M2.Y := 0; end else
+        if ugol = 60 then
+        begin M1.X := BT.X-2; M1.Y := BT.Y-4; M2.X := 0; M2.Y := 0; end;
+      end;
+    end;
+  end;
+
+  BufM := Obj.ObjConstI[3];
+  if (M2.X > 0) and (M2.Y > 0) then //----------------------------- стрелка имеет контроль
+  begin
+    if Obj.Points[5].X > 0 then
+    begin
+      case Obj.ObjConstI[1] of
+        1,2,5,6 : DrawSP(form,BufM,0,[M1,M2,Obj.Points[4],Obj.Points[5]])
+        else DrawSP(form,BufM,0,[Obj.Points[5],Obj.Points[4],M2,M1]);
+      end;
+    end  else
+    begin
+      case Obj.ObjConstI[1] of
+        1,2,5,6 : DrawSP(form,BufM,0,[M1,M2,Obj.Points[4]])
+        else DrawSP(form,BufM,0,[Obj.Points[4],M2,M1]);
+      end;
+    end;
+  end else //-------------------------------------------------------- стрелка без контроля
+  begin
+    if Obj.Points[5].X > 0 then
+    begin
+      case Obj.ObjConstI[1] of
+        1,2,5,6 : DrawSP(form,BufM,0,[M1,Obj.Points[4],Obj.Points[5]])
+        else DrawSP(form,BufM,0,[Obj.Points[5],Obj.Points[4],M1]);
+      end;
+    end else
+    begin
+      case Obj.ObjConstI[1] of
+        1,2,5,6 : DrawSP(form,BufM,0,[M1,Obj.Points[4]])
+        else DrawSP(form,BufM,0,[Obj.Points[4],M1]);
+      end;
+    end;
+  end;
+
+  if ((Obj.Points[6].X > 0) and (Obj.ObjConstI[8] = 1))then//псевдо-СП и окраска по минусу
+  begin
+    form.MoveTo(BT.X,BT.Y); form.LineTo(Obj.Points[6].X,Obj.Points[6].Y);
+  end;
+
+  if((form.Pen.Color = armcolor1)or(form.Pen.Color = armcolor7))and(form.Pen.Width = 3)
+  then ris_dop_zam := 0;
+
+
+   //--------------------------------------------------------------- Ограничения на стрелку
   if OVBuffer[bufer].Param[32] then //-------------------- Стрелка выключена из управления
   begin
     form.Pen.Width := 1; form.Pen.Style := psSolid; form.Pen.Color := armcolor1;
@@ -1343,7 +1433,7 @@ str1:
 end;
 //========================================================================================
 //------------------------------------ отображение на экране приемо-отправочного пути (12)
-procedure DisplayPut(Obj: POVStruct;form: TCanvas);
+procedure DisplayPut(Obj: POVStruct; form: TCanvas);
 //---------------------- РМ не отображаем, всегда выводим на табло положение датчиков пути
 var
   x1,x2,y1,y2 : integer;
@@ -1645,9 +1735,18 @@ begin
   end else
   if OVBuffer[obj.ObjConstI[1]].Param[1] then //------------------------- непарафазность
   begin
-    form.Pen.Color := armcolor14; //----------------------------------------------- циан
+    form.Pen.Color := armcolor15; //----------------------------------------------- циан
     form.Pen.Style := psSolid;
-    form.Brush.Color := armcolor14;
+    form.Brush.Color := armcolor15;
+    form.Brush.Style := bsSolid;
+    form.Pen.Width := 1;
+  end else
+  if OVBuffer[obj.ObjConstI[1]].Param[30] then  //---------- если нужно погасить на экране
+  begin
+    form.Pen.Color := armcolor15; //-------------------------------------------------- фон
+    form.Pen.Style := psSolid;
+    form.Brush.Color := armcolor15;
+    form.Font.Color := armcolor15;
     form.Brush.Style := bsSolid;
     form.Pen.Width := 1;
   end else
@@ -1729,6 +1828,7 @@ begin
           else form.Brush.Color := armcolor15; //-------- для нулевого цикла - цвет фона
         end;
       end else //-------------------------------------- сигнал закрыт огневушка исправна
+      if not OVBuffer[obj.ObjConstI[1]].Param[30] then  //---------- если нужно погасить на экране
       begin
         form.Pen.Color := 0;
         form.Pen.Width := 1;
@@ -1808,7 +1908,9 @@ begin
         if tab_page then form.Font.Color := armcolor9 //------- 1-й цикл мигания - белый
         else form.Font.Color := armcolor2; //---------------- 0-й цикл мигания - зеленый
       end else  form.Font.Color := armcolor9; //----------- только маневровый ВС - белый
-    end else  form.Font.Color := clBlack; //---------------- нет маневрового ВС - черный
+    end else
+    if not OVBuffer[obj.ObjConstI[1]].Param[30] then
+    form.Font.Color := clBlack; //---------------- нет маневрового ВС - черный
 
     if OVBuffer[Obj.ObjConstI[1]].Param[11] and //------------- если маневровое начало и
     (Obj.ObjConstI[6] = 0) then //------------------------- управление от оператора АРМа
@@ -2398,7 +2500,7 @@ begin
     x1 := form.TextWidth(Obj.Title);
     form.Font.Color := armcolor1; //------------------------------------ цвет букв красный
     if Obj.ObjConstI[2] = 1 then form.TextOut(ptr[7].X+x1, ptr[7].Y, '!')//----нога справа
-    else form.TextOut((ptr[7].X)-2, ptr[7].Y, '!');   //----------------------- нога слева
+    else form.TextOut((ptr[7].X)-5, ptr[7].Y, '!');   //----------------------- нога слева
   end;
 end;
 //========================================================================================
@@ -2685,7 +2787,7 @@ begin
   begin
     x1 := form.TextWidth(Obj.Title); form.Font.Color := armcolor1;
     if Obj.ObjConstI[2] = 1 then form.TextOut(ptr[7].X+x1, ptr[7].Y, '!')//--- нога справа
-    else form.TextOut((ptr[7].X)-2, ptr[7].Y, '!');//-------------------------- нога слева
+    else form.TextOut((ptr[7].X)-8, ptr[7].Y, '!');//-------------------------- нога слева
   end;
 
   if OVBuffer[VidBuf].Param[14] then //----------------------------------------------- ЖСо
@@ -2754,62 +2856,93 @@ end;
 //========================================================================================
 //--------------------------------------------------------------- Повторитель светофора 24
 procedure DisplaySvetPovtor(Obj: POVStruct;form: TCanvas);
+var
+  VideoBuf : Integer;
+  Ima : string;
+  OldBrashColor,OldPenColor : TColor;
 begin
+  OldBrashColor := form.Brush.Color;
+  OldPenColor := form.Pen.Color;
   form.Font.Style := [];
-  if OVBuffer[obj.ObjConstI[1]].Param[1] or not OVBuffer[obj.ObjConstI[1]].Param[16] then
+  VideoBuf := obj.ObjConstI[1];
+  Ima := Obj.Title;
+  form.Brush.Style := bsSolid;
+  form.Brush.Color := armcolor8;
+  form.Pen.Color := armcolor8;
+  //-------------------------------------------- если не парафазный или не активный датчик
+  if OVBuffer[VideoBuf].Param[1] or not OVBuffer[VideoBuf].Param[16] then
   begin
-    if not OVBuffer[obj.ObjConstI[1]].Param[16] then
-    begin // непарафазность
-      form.Pen.Color := armcolor12; form.Pen.Style := psSolid;
-      form.Brush.Color := armcolor12; form.Brush.Style := bsSolid; form.Pen.Width := 1;
+    if not OVBuffer[VideoBuf].Param[16] then
+    begin //----------------------------------------------------------- нецентрализованный
+      form.Pen.Color := armcolor12;
+      form.Pen.Style := psSolid;
+      form.Brush.Color := armcolor12;
+      form.Brush.Style := bsSolid;
+      form.Pen.Width := 1;
     end else
-    begin // нецентрализованный
-      form.Pen.Color := armcolor14; form.Pen.Style := psSolid;
-      form.Brush.Color := armcolor14; form.Brush.Style := bsSolid; form.Pen.Width := 1;
+    begin //--------------------------------------------------------------- непарафазность
+      form.Pen.Color := armcolor14;
+      form.Pen.Style := psSolid;
+      form.Brush.Color := armcolor14;
+      form.Brush.Style := bsSolid;
+      form.Pen.Width := 1;
     end;
-    form.MoveTo(obj.Points[1].X,obj.Points[1].Y-4); form.LineTo(obj.Points[1].X,obj.Points[1].Y+5);
+    form.MoveTo(obj.Points[1].X,obj.Points[1].Y-4);
+    form.LineTo(obj.Points[1].X,obj.Points[1].Y+5);
+
     if Obj.ObjConstI[2] = 0 then
-    begin
+    begin //--------------------------------- если повторитель на экране не повернут влево
       form.PolyGon([Point(obj.points[1].X+1,obj.points[1].Y),
       Point(obj.points[1].X+6,obj.points[1].Y+5),
       Point(obj.points[1].X+11,obj.points[1].Y),
       Point(obj.points[1].X+6,obj.points[1].Y-5)]);
     end else
-    begin
+    begin  //----------------------------------- если повторитель на экране повернут влево
       form.PolyGon([Point(obj.points[1].X,obj.points[1].Y),
       Point(obj.points[1].X-5,obj.points[1].Y+5),
       Point(obj.points[1].X-10,obj.points[1].Y),
       Point(obj.points[1].X-5,obj.points[1].Y-5)]);
     end;
+
     form.Font.Size := 8; form.Font.Color := clBlack;
-    form.Brush.Color := armcolor15; form.font.Style := [];
+    form.Brush.Color := armcolor15;
+    form.font.Style := [];
+
     if obj.ObjConstI[2] = 0 then
     begin
-      form.TextOut(Obj.Points[1].X-form.TextWidth(Obj.Title)-2, Obj.Points[1].Y-6, Obj.Title);
+      form.TextOut(Obj.Points[1].X-form.TextWidth(Ima)-2,Obj.Points[1].Y-6,Ima);
     end else
     begin
-      form.TextOut(Obj.Points[1].X+2, Obj.Points[1].Y-6, Obj.Title);
+      form.TextOut(Obj.Points[1].X+2,Obj.Points[1].Y-6,Ima);
     end;
+    form.Brush.Color := OldBrashColor;
+    form.Pen.Color := OldPenColor;
     exit;
   end;
+
   //----------------------------------------------------- Нарисовать повторитель светофора
-  if OVBuffer[Obj.ObjConstI[1]].Param[2] then
+  if not OVBuffer[VideoBuf].Param[4]then
   begin
     if OVBuffer[Obj.ObjConstI[1]].Param[3] then
     begin //---------------------------------------------------------------- Неисправность
-      form.Pen.Color := 0; form.Pen.Width := 2;
+      form.Pen.Color := 0;
+      form.Pen.Width := 2;
       form.Brush.Color := armcolor15;
     end else
+    if OVBuffer[Obj.ObjConstI[1]].Param[2] then //-------------------------------- включен
     begin //-------------------------------------------------------------------- Исправный
-      form.Pen.Color := 0; form.Pen.Width := 1;
+      form.Pen.Color := 0;
+      form.Pen.Width := 1;
       form.Brush.Color := armcolor2;
     end;
   end else
   begin
-    form.Pen.Color := 0; form.Pen.Width := 1;
+    form.Pen.Color := 0;
+    form.Pen.Width := 1;
     form.Brush.Color := armcolor8;
   end;
-  if Obj.ObjConstI[2] = 0 then
+
+  if Obj.ObjConstI[2] = 0 then //------------------------------ если ПНо не повернут влево
   begin
     form.PolyGon([Point(obj.points[1].X+1,obj.points[1].Y),
     Point(obj.points[1].X+6,obj.points[1].Y+5),
@@ -2822,18 +2955,34 @@ begin
     Point(obj.points[1].X-10,obj.points[1].Y),
     Point(obj.points[1].X-5,obj.points[1].Y-5)]);
   end;
+
   form.Pen.Width := 1;
   form.MoveTo(obj.Points[1].X,obj.Points[1].Y-4);
   form.LineTo(obj.Points[1].X,obj.Points[1].Y+5);
 
-  form.Font.Size := 8; form.Font.Color := clBlack; form.Brush.Color := armcolor15;
+  form.Font.Size := 8;
+  form.Font.Color := clBlack;
+  form.Brush.Color := armcolor15;
+
   if obj.ObjConstI[2] = 0 then
+  form.TextOut(Obj.Points[1].X-form.TextWidth(Ima)-2,Obj.Points[1].Y-6, Ima)
+  else form.TextOut(Obj.Points[1].X+2,Obj.Points[1].Y-6, Obj.Title);
+
+  form.Font.Size := 10;
+  form.Font.Color := bkgndcolor;
+  form.Font.Style := [fsBold];
+
+  if OVBuffer[Obj.ObjConstI[1]].Param[4] then //--------------------- нелогичное состояние
   begin
-    form.TextOut(Obj.Points[1].X-form.TextWidth(Obj.Title)-2, Obj.Points[1].Y-6, Obj.Title);
-  end else
-  begin
-    form.TextOut(Obj.Points[1].X+2, Obj.Points[1].Y-6, Obj.Title);
+    if tab_page then form.Font.Color := clYellow
+    else form.Font.Color :=  bkgndcolor;
+    form.Font.Style := [fsBold];
+    if Obj.ObjConstI[2] <> 0 then //------------------------------ если ПНо повернут влево
+    form.TextOut(Obj.Points[1].X + form.TextWidth(Ima) - 2,Obj.Points[1].Y-6, '!')
+    else  form.TextOut(Obj.Points[1].X - form.TextWidth(Ima) -2 ,Obj.Points[1].Y-6, '!');
   end;
+  form.Brush.Color := OldBrashColor;
+  form.Pen.Color := OldPenColor;
 end;
 //========================================================================================
 //----------------------------------------------------------- фиктивный сигнал (увязка) 25
@@ -3072,21 +3221,22 @@ var
 begin
   form.Pen.Color:=0;form.Pen.Width:=1;
   form.Pen.Style:=psSolid;form.Brush.Style:=bsSolid;
-  form.MoveTo(obj.Points[1].X-6,obj.Points[1].Y);
-  form.LineTo(obj.Points[1].X-13,obj.Points[1].Y);
-  form.MoveTo(obj.Points[1].X-9,obj.Points[1].Y);
-  form.LineTo(obj.Points[1].X-9,obj.Points[1].Y+10);
-  if OVBuffer[Obj.ObjConstI[2]].NParam[2] then form.Pen.Color :=14;
+  if Obj.ObjConstI[3] = 0 then
+  begin
+    form.MoveTo(obj.Points[1].X-6,obj.Points[1].Y);
+    form.LineTo(obj.Points[1].X-13,obj.Points[1].Y);
+    form.MoveTo(obj.Points[1].X-9,obj.Points[1].Y);
+    form.LineTo(obj.Points[1].X-9,obj.Points[1].Y+10);
+    if OVBuffer[Obj.ObjConstI[2]].NParam[2] then form.Pen.Color :=14;
+    if Obj.ObjConstI[2] = 0   //------------------------------------------------------ кпа
+    then form.LineTo(obj.Points[1].X,obj.Points[1].Y+14);
 
-  if Obj.ObjConstI[2] = 0   //-------------------------------------------------------- кпа
-  then form.LineTo(obj.Points[1].X,obj.Points[1].Y+14);
-
-  form.MoveTo(obj.Points[2].X+5,obj.Points[2].Y);
-  form.LineTo(obj.Points[2].X+12,obj.Points[2].Y);
-  form.MoveTo(obj.Points[2].X+8,obj.Points[2].Y);
-  form.LineTo(obj.Points[2].X+8,obj.Points[2].Y-10);
-
-  if Obj.ObjConstI[2] = 0 then form.LineTo(obj.Points[2].X,obj.Points[2].Y-14); //---- кпа
+    form.MoveTo(obj.Points[2].X+5,obj.Points[2].Y);
+    form.LineTo(obj.Points[2].X+12,obj.Points[2].Y);
+    form.MoveTo(obj.Points[2].X+8,obj.Points[2].Y);
+    form.LineTo(obj.Points[2].X+8,obj.Points[2].Y-10);
+    if Obj.ObjConstI[2] = 0 then form.LineTo(obj.Points[2].X,obj.Points[2].Y-14); //-- кпа
+  end;
 
   //------------------------------------------------- Неисправность или авария на переезде
   if not OVBuffer[Obj.ObjConstI[1]].Param[16] then
@@ -3154,10 +3304,13 @@ begin
     form.Pen.Color := 0;
     form.Pen.Width := 1;
   end;
-  form.Ellipse(obj.Points[1].X,obj.Points[1].Y+2,obj.Points[1].X-8,obj.Points[1].Y+10);
-  form.Ellipse(obj.Points[1].X-9,obj.Points[1].Y+2,obj.Points[1].X-17,obj.Points[1].Y+10);
-  form.Ellipse(obj.Points[2].X,obj.Points[2].Y-2,obj.Points[2].X+8,obj.Points[2].Y-10);
-  form.Ellipse(obj.Points[2].X+9,obj.Points[2].Y-2,obj.Points[2].X+17,obj.Points[2].Y-10);
+  if Obj.ObjConstI[3] = 0 then
+  begin
+    form.Ellipse(obj.Points[1].X,obj.Points[1].Y+2,obj.Points[1].X-8,obj.Points[1].Y+10);
+    form.Ellipse(obj.Points[1].X-9,obj.Points[1].Y+2,obj.Points[1].X-17,obj.Points[1].Y+10);
+    form.Ellipse(obj.Points[2].X,obj.Points[2].Y-2,obj.Points[2].X+8,obj.Points[2].Y-10);
+    form.Ellipse(obj.Points[2].X+9,obj.Points[2].Y-2,obj.Points[2].X+17,obj.Points[2].Y-10);
+  end;
 
   //-------------------------------------------------------------------- закрытие переезда
   form.Pen.Style := psSolid;
@@ -5858,8 +6011,8 @@ begin
 
   if x1 = 0 then
   begin //----------------------------------------------------------------- погасить точку
-    form.Pen.Color := armcolor8;
-    form.Font.Color := armcolor8;
+    form.Pen.Color := armcolor15;
+    form.Font.Color := armcolor15;
     form.Brush.Color := armcolor15;
   end else
   if x1 = 1 then
@@ -5914,7 +6067,7 @@ begin
     form.Font.Color := clBlack;
   end else
   begin
-    form.Brush.Color := GetColor(obj.ObjConstI[Cod + 5]);
+    form.Brush.Color := GetColor1(obj.ObjConstI[Cod + 5]);
     form.Pen.Color := 0;
     form.Pen.Width := 1;
     form.Font.Color := clBlack;
@@ -6352,25 +6505,25 @@ begin
   else
   if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[2]] then
   begin //----------------------------------------------------------------- Лампа включена
-    form.Brush.Color := GetColor(Obj.ObjConstI[5]);
-    form.Pen.Color := GetColor(Obj.ObjConstI[6]);
+    form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+    form.Pen.Color := GetColor1(Obj.ObjConstI[6]);
     form.Pen.Width := 1;
-    form.Font.Color := GetColor(Obj.ObjConstI[6]);
+    form.Font.Color := GetColor1(Obj.ObjConstI[6]);
     if ObjZav[Obj.ObjConstI[16]].ObjConstI[8] > 0 then
     Text := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[8]];
   end
   else
   begin //---------------------------------------------------------------- Лампа выключена
-    form.Brush.Color := GetColor(Obj.ObjConstI[3]);
-    form.Pen.Color := GetColor(Obj.ObjConstI[4]);
+    form.Brush.Color := GetColor1(Obj.ObjConstI[3]);
+    form.Pen.Color := GetColor1(Obj.ObjConstI[4]);
     form.Pen.Width := 1;
-    form.Font.Color := GetColor(Obj.ObjConstI[4]);
+    form.Font.Color := GetColor1(Obj.ObjConstI[4]);
     if ObjZav[Obj.ObjConstI[16]].ObjConstI[9] > 0 then
     Text := MsgList[ObjZav[Obj.ObjConstI[16]].ObjConstI[9]];
   end;
 
   case Obj.ObjConstI[7] of
-    //стрелка вправо
+    //--------------------------------------------------------------------- стрелка вправо
     1:
     begin
       form.Polygon([Point(obj.Points[1].X-deltaX,obj.Points[1].Y-6),
@@ -6380,7 +6533,7 @@ begin
       Point(obj.Points[1].X-deltaX,obj.Points[1].Y+6)]);
     end;
 
-    //стрелка влево
+    //---------------------------------------------------------------------- стрелка влево
     2:
     begin
       form.Polygon([Point(obj.Points[1].X+deltaX,obj.Points[1].Y-6),
@@ -6389,7 +6542,7 @@ begin
       Point(obj.Points[1].X-deltaX,obj.Points[1].Y+6),
       Point(obj.Points[1].X+deltaX,obj.Points[1].Y+6)]);
     end;
-    //простая кнопка
+    //--------------------------------------------------------------------- простая кнопка
     3:
     begin
       form.Pen.Width := 1;
@@ -6464,15 +6617,16 @@ begin
     y1 := form.TextHeight(Text) div 2;
     form.TextOut(obj.Points[1].X-x1,obj.Points[1].Y-y1,Text);
   end
-  
 end;
+
 //========================================================================================
 //------------------------------------------------------- нарисовать кнопку 3-х цветную 55
 procedure DisplayKnopColor3(Obj: POVStruct;form: TCanvas);
 var
-  deltaX,x1,y1 : integer;
+  deltaX,x1,y1,Mig : integer;
   Text : string;
 begin
+  Mig := 0;
   form.Font.Style := [];
   form.Font.Size := 8;
   form.Pen.Style := psSolid;
@@ -6501,24 +6655,71 @@ begin
     form.Pen.Width := 1;
     if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[3]] then x1 := x1 + 2;
     case x1 of
-      1 : form.Brush.Color := GetColor(Obj.ObjConstI[7]); //----------------------- код 01
-      2 : form.Brush.Color := GetColor(Obj.ObjConstI[8]); //----------------------- код 10
-      3 : form.Brush.Color := GetColor(Obj.ObjConstI[9]); //----------------------- код 11
-      else form.Brush.Color := GetColor(Obj.ObjConstI[5]);//------  Лампа выключена код 00
+      1 :
+      begin
+        form.Brush.Color := GetColor1(Obj.ObjConstI[7]); //------------------------ код 01
+        form.Font.Color :=  GetColor1(Obj.ObjConstI[6]);
+      end;
+
+      2 :
+      begin
+        form.Brush.Color := GetColor1(Obj.ObjConstI[8]); //------------------------ код 10
+        form.Font.Color :=  GetColor1(Obj.ObjConstI[12]);
+      end;
+
+      3 :
+      begin
+        form.Brush.Color := GetColor1(Obj.ObjConstI[9]); //------------------------ код 11
+        form.Font.Color :=  GetColor1(Obj.ObjConstI[13]);
+      end;
+      else
+        form.Brush.Color := GetColor1(Obj.ObjConstI[5]);//--------  Лампа выключена код 00
+        form.Font.Color :=  GetColor1(Obj.ObjConstI[4]);        
     end;
 
     if x1 > 0 then
     begin
-      form.Pen.Color := GetColor(Obj.ObjConstI[6]);
+      form.Pen.Color := form.Font.Color;
       form.Pen.Width := 1;
-      form.Font.Color := GetColor(Obj.ObjConstI[6]);
     end else
     begin
-      form.Pen.Color := GetColor(Obj.ObjConstI[4]);
+      form.Pen.Color := form.Font.Color;
       form.Pen.Width := 1;
-      form.Font.Color := GetColor(Obj.ObjConstI[4]);
     end;
   end;
+  Mig := form.Brush.Color;
+
+  if Mig = armcolor25 then
+  begin                   //------------------------------------------------ синее мигание
+    if tab_page then  form.Brush.Color := GetColor1(3)
+    else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+  end;
+
+  if Mig = armcolor26 then
+  begin                   //------------------------------------------------ белое мигание
+    if tab_page then  form.Brush.Color := GetColor1(9)
+    else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+  end;
+
+  if Mig = armcolor27 then
+  begin                   //----------------------------------------------- желтое мигание
+    if tab_page then  form.Brush.Color := GetColor1(7)
+    else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+  end;
+
+  if Mig = armcolor28 then
+  begin                   //---------------------------------------------- красное мигание
+    if tab_page then  form.Brush.Color := GetColor1(1)
+    else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+  end;
+
+  if Mig = armcolor29 then
+  begin                   //---------------------------------------------- зеленое мигание
+    if tab_page then  form.Brush.Color := GetColor1(2)
+    else form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+  end;
+
+  if Mig = armcolor30 then form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
 
   case  Obj.ObjConstI[10] of
     1:  //----------------------------------------------------------- лампа-стрелка вправо
@@ -6626,6 +6827,18 @@ begin
   x1 := form.TextWidth(Text) div 2;
   y1 := form.TextHeight(Text) div 2;
   form.TextOut(obj.Points[1].X-deltaX,obj.Points[1].Y-y1,Text);
+
+  if Mig = armcolor30 then
+  begin
+    Mig := form.Font.Color;
+    if tab_page then form.Font.Color := armcolor7
+    else form.Font.Color := armcolor15;
+    form.Font.Size := 12;
+    form.Font.Style :=  [fsBold];
+    form.TextOut(obj.Points[1].X-deltaX-10,obj.Points[1].Y-y1,'!');
+    form.Font.Color := Mig;
+    form.Font.Style := [];
+  end;
 end;
 
 //========================================================================================
@@ -6645,10 +6858,10 @@ begin
     if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[2]] then x1 := 1;
     if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[3]] then x1 := x1 + 2;
     case x1 of
-      1 : form.Font.Color := GetColor(Obj.ObjConstI[5]);
-      2 : form.Font.Color := GetColor(Obj.ObjConstI[6]);
-      3 : form.Font.Color := GetColor(Obj.ObjConstI[7]);
-      else form.Font.Color := GetColor(Obj.ObjConstI[4]); //------------ Надпись выключена
+      1 : form.Font.Color := GetColor1(Obj.ObjConstI[5]);
+      2 : form.Font.Color := GetColor1(Obj.ObjConstI[6]);
+      3 : form.Font.Color := GetColor1(Obj.ObjConstI[7]);
+      else form.Font.Color := GetColor1(Obj.ObjConstI[4]); //------------ Надпись выключена
     end;
   end;
   form.Brush.Style := bsClear;
@@ -6728,15 +6941,13 @@ begin
   else
   begin
     x1 := 0;
-    if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[2]] then x1 := 1; //----- кнм (хРРМ)
-    if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[3]] then x1 := x1 + 2;//-- зМ (хОМП)
-    if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[4]] then x1 := x1 + 4;//-- конец зМ
+    if OVBuffer[Obj.ObjConstI[1]].Param[2] then x1 := 1; //-------------------- кнм (хРРМ)
+    if OVBuffer[Obj.ObjConstI[1]].Param[3] then x1 := x1 + 2;//----------------- зМ (хОМП)
     case x1 of
-      0 : form.Pen.Color := GetColor(Obj.ObjConstI[5]); //---------------- Лампа выключена
-      1 : form.Pen.Color := GetColor(Obj.ObjConstI[6]);//------------- цвет включения зоны
-      2 : form.Pen.Color := GetColor(Obj.ObjConstI[9]);//------- цвет зМ во время выдержки
-      6 : form.Pen.Color := GetColor(Obj.ObjConstI[8]);//------------------------- цвет зМ 
-      else form.Pen.Color := GetColor(Obj.ObjConstI[7]);//------ цвет ошибки ( зМ без КНМ)
+      0 : form.Pen.Color := GetColor1(Obj.ObjConstI[2]); //--------------- Лампа выключена
+      1 : form.Pen.Color := GetColor1(Obj.ObjConstI[5]);//-------------- цвет зоны для КНМ
+      3 : form.Pen.Color := GetColor1(Obj.ObjConstI[3]);//--------- цвет зоне для КНМ + зМ
+      else form.Pen.Color := GetColor1(Obj.ObjConstI[4]);//-------------- цвет зоны для ЗМ
     end;
   end;
   form.Pen.Style := psDashDotDot;
@@ -6822,16 +7033,16 @@ begin
   end else
   if OVBuffer[Obj.ObjConstI[1]].Param[Obj.ObjConstI[2]] then
   begin //----------------------------------------------------------------- Лампа включена
-    form.Brush.Color := GetColor(Obj.ObjConstI[5]);
-    form.Pen.Color := GetColor(Obj.ObjConstI[6]);
+    form.Brush.Color := GetColor1(Obj.ObjConstI[5]);
+    form.Pen.Color := GetColor1(Obj.ObjConstI[6]);
     form.Pen.Width := 1;
-    form.Font.Color := GetColor(Obj.ObjConstI[6]);
+    form.Font.Color := GetColor1(Obj.ObjConstI[6]);
   end else
   begin //---------------------------------------------------------------- Лампа выключена
-    form.Brush.Color := GetColor(Obj.ObjConstI[3]);
-    form.Pen.Color := GetColor(Obj.ObjConstI[4]);
+    form.Brush.Color := GetColor1(Obj.ObjConstI[3]);
+    form.Pen.Color := GetColor1(Obj.ObjConstI[4]);
     form.Pen.Width := 1;
-    form.Font.Color := GetColor(Obj.ObjConstI[4]);
+    form.Font.Color := GetColor1(Obj.ObjConstI[4]);
   end;
   form.RoundRect(obj.Points[1].X-20,obj.Points[1].Y-6,obj.Points[1].X+20,obj.Points[1].Y+7, 4,30);
   form.Brush.Style := bsClear;
@@ -6988,57 +7199,57 @@ begin
   case OVBuffer[Obj.ObjConstI[1]].DZ3 of
     0,1:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[6]);
-      ColorDay:=GetColor(Obj.ObjConstI[2]);
-      ColorNight:=GetColor(Obj.ObjConstI[4]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[6]);
+      ColorDay:=GetColor1(Obj.ObjConstI[2]);
+      ColorNight:=GetColor1(Obj.ObjConstI[4]);
     end;
     2:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[3]);
-      ColorDay:=GetColor(Obj.ObjConstI[3]);
-      ColorNight:=GetColor(Obj.ObjConstI[4]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[3]);
+      ColorDay:=GetColor1(Obj.ObjConstI[3]);
+      ColorNight:=GetColor1(Obj.ObjConstI[4]);
     end;
     3:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[5]);
-      ColorDay:=GetColor(Obj.ObjConstI[2]);
-      ColorNight:=GetColor(Obj.ObjConstI[5]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[5]);
+      ColorDay:=GetColor1(Obj.ObjConstI[2]);
+      ColorNight:=GetColor1(Obj.ObjConstI[5]);
     end;
     4:
     begin
-     ColorAUK:=GetColor(Obj.ObjConstI[6]);
-     ColorDay:=GetColor(Obj.ObjConstI[2]);
+     ColorAUK:=GetColor1(Obj.ObjConstI[6]);
+     ColorDay:=GetColor1(Obj.ObjConstI[2]);
      ColorNight:= armcolor11;
     end;
     5:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[6]);
-      ColorDay:=GetColor(Obj.ObjConstI[2]);
-      ColorNight:=GetColor(Obj.ObjConstI[5]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[6]);
+      ColorDay:=GetColor1(Obj.ObjConstI[2]);
+      ColorNight:=GetColor1(Obj.ObjConstI[5]);
     end;
     6,7:
     begin
       ColorAUK:=armcolor11;
-      ColorDay:=GetColor(Obj.ObjConstI[2]);
+      ColorDay:=GetColor1(Obj.ObjConstI[2]);
       ColorNight:=armcolor11;
     end;
     8:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[6]);
-      ColorDay:=GetColor(Obj.ObjConstI[3]);
-      ColorNight:=GetColor(Obj.ObjConstI[4]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[6]);
+      ColorDay:=GetColor1(Obj.ObjConstI[3]);
+      ColorNight:=GetColor1(Obj.ObjConstI[4]);
     end;
     9:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[6]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[6]);
       ColorDay:=armcolor11;
-      ColorNight:=GetColor(Obj.ObjConstI[4]);
+      ColorNight:=GetColor1(Obj.ObjConstI[4]);
     end;
     10:
     begin
       ColorAUK:=armcolor11;
       ColorDay:=armcolor11;
-      ColorNight:=GetColor(Obj.ObjConstI[4]);
+      ColorNight:=GetColor1(Obj.ObjConstI[4]);
     end;
     11,14,15:
     begin
@@ -7048,7 +7259,7 @@ begin
     end;
     12,13:
     begin
-      ColorAUK:=GetColor(Obj.ObjConstI[6]);
+      ColorAUK:=GetColor1(Obj.ObjConstI[6]);
       ColorDay:=armcolor11;
       ColorNight:=armcolor11;
     end;
@@ -7150,18 +7361,18 @@ begin
     if ((StateRU and $20) = $20) then
     begin
       WorkMode.PushOK := true;
-      WorkMode.OtvKom := true;  //--------------------------------- Есть разрешение ОК
+      WorkMode.OtvKom := true;  //------------------------------------- Есть разрешение ОК
     end else
     begin
       WorkMode.PushOK := false;
-      WorkMode.OtvKom := false;  //--------------------------------- Есть разрешение ОК
+      WorkMode.OtvKom := false;  //------------------------------------ Есть разрешение ОК
     end;
 {$ENDIF}
   if WorkMode.OKError then form.Brush.Color := armcolor14 //------------------------- циан
   else
     if WorkMode.PushOK then form.Brush.Color := armcolor1 //----------------- ярко красный
     else form.Brush.Color := armcolor8; //------------------------------------------ серый
-  form.Pen.Color := 0; form.Pen.Width := 1;
+  form.Pen.Color := 0; form.Pen.Width := 1; form.Pen.Style := psSolid;
   form.Rectangle(obj.Points[1].X,obj.Points[1].Y+0, obj.Points[1].X+100,obj.Points[1].Y+22);
   form.Font.Color := clBlack; TekFontSize := form.Font.Size; //----запомнить размер шрифта
   form.Font.Size := 10; //---------------------------------------- назначить размер шрифта
@@ -7196,6 +7407,7 @@ var
   x1,VidBuf : integer;
 begin
   VidBuf := Obj.ObjConstI[1];
+  x1 := 0;
   if WorkMode.BU[0] or not WorkMode.KRU[0] then x1 := 0 // нет информации о режиме упр-ния
   else
     if WorkMode.NU[0] then x1 := 6//-- непарафазность датчиков состояния режима управления
@@ -7212,12 +7424,17 @@ begin
           if  OVBuffer[VidBuf].Param[7] then x1 := 3;
           {$ENDIF}
 
-           {$IFDEF RMSHN}
-          if WorkMode.DC = 0 then x1 :=  7 //--------- в системе нет ДЦ, индекс картинки ОУ
-          else x1 := 7; //-------------------------- в системе есть ДЦ, индекс картинки РУ
+          {$IFDEF RMSHN}
+          if WorkMode.DC = 0 then x1 :=  2 //-------- в системе нет ДЦ, индекс картинки ОУ
+          else x1 := 2; //-------------------------- в системе есть ДЦ, индекс картинки РУ
           if  OVBuffer[VidBuf].Param[7] then x1 := 3;
           {$ENDIF}
 
+          {$IFDEF RMARC}
+          if WorkMode.DC = 0 then x1 :=  2 //-------- в системе нет ДЦ, индекс картинки ОУ
+          else x1 := 2; //-------------------------- в системе есть ДЦ, индекс картинки РУ
+          if  OVBuffer[VidBuf].Param[7] then x1 := 3;
+          {$ENDIF}
         end
         else x1 := 0; //------------------------------------------- индекс пустой картинки
       end
@@ -7225,7 +7442,9 @@ begin
       if WorkMode.RU[0] and not WorkMode.OU[0] then x1 := 1 //--------- индекс картинки АУ
       else x1 := 0;  //-------------------------------------------- индекс пустой картинки
     end;
+
   TabloMain.ImageListRU.Draw(form,obj.Points[1].X,obj.Points[1].Y,x1);
+
   TekFontSize := form.Font.Size;
   form.Font.Size := 12;
   form.Font.Style := [fsBold];
@@ -7236,16 +7455,16 @@ begin
    {$ENDIF}
 
   {$IFDEF RMDSP}
-    if SrvActive>0 then sLbl := obj.Title + '-'+ IntToStr(SrvActive) //----- Вывести имя АРМ
+    if SrvActive>0 then sLbl := obj.Title + '-'+ IntToStr(SrvActive) //--- Вывести имя АРМ
     else sLbl := obj.Title;
   {$ENDIF}
 
   {$IFDEF RMARC}
-    if SrvActive>0 then sLbl := obj.Title + '-'+ IntToStr(SrvActive) //----- Вывести имя АРМ
+    if SrvActive>0 then sLbl := obj.Title + '-'+ IntToStr(SrvActive) //--- Вывести имя АРМ
     else sLbl := obj.Title;
   {$ENDIF}
 
-  if WorkMode.RUError then  form.Brush.Color := armcolor14 //------------------------ циан
+  if WorkMode.RUError <> 0 then  form.Brush.Color := armcolor14 //------------------- циан
   else
     if (DirState[1] and $80) = $80 then form.Brush.Color := armcolor5 //---------- зеленый
     else form.Brush.Color := armcolor7; //----------------------------------------- желтый
@@ -7616,6 +7835,7 @@ begin
       form.Brush.Color := armcolor18; //--------------------------------------- фон кнопки
       form.Font.Color := armcolor9; //---------------------------------------------- белый
     end;
+
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+30, obj.Points[1].X+120,obj.Points[1].Y+47));
     form.TextOut(obj.Points[1].X+10,obj.Points[1].Y+32, 'Раздельный режим');
     if WorkMode.Upravlenie then //-------------------------------- если управление от АРМа
@@ -7634,6 +7854,7 @@ begin
       form.Brush.Color := armcolor18; //--------------------------------------- фон кнопки
       form.Font.Color := armcolor9; //---------------------------------------------- белый
     end;
+
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+50, obj.Points[1].X+120,obj.Points[1].Y+67));
     form.TextOut(obj.Points[1].X+8,obj.Points[1].Y+52, 'Маршрутный режим');
 
@@ -7710,7 +7931,7 @@ begin
     end;
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+140, obj.Points[1].X+120,obj.Points[1].Y+157));
     form.TextOut(obj.Points[1].X+23,obj.Points[1].Y+142, 'Сброс команд');
-
+ {$IFNDEF RMSHN}
     //------------------------------------------------------------------------ часы РМ-ДСП
     form.Brush.Color := RGB(220,255,220);
     form.Font.Color := clBlack;
@@ -7721,6 +7942,7 @@ begin
     form.Font.Style := [fsBold];
     x1 := form.TextWidth(sLbl) div 2;
     form.TextOut(obj.Points[1].X-x1+60,obj.Points[1].Y+160, sLbl);
+ {$ENDIF}
     TekFontSize := form.Font.Size;
   end;
 
@@ -7827,6 +8049,7 @@ begin
         form.Brush.Color := armcolor18;
         form.Font.Color := armcolor9;
       end;
+{$IFNDEF RMSHN}
       form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+70, obj.Points[1].X+120,obj.Points[1].Y+87));
       form.TextOut(obj.Points[1].X+23,obj.Points[1].Y+72, 'Ограничения');
 
@@ -7878,6 +8101,7 @@ begin
       form.Font.Style := [fsBold];
       x1 := form.TextWidth(sLbl) div 2;
       form.TextOut(obj.Points[1].X-x1+60,obj.Points[1].Y+130, sLbl);
+{$ENDIF}
       form.Font.Size := TekFontSize;
     end;
   end;
@@ -8119,99 +8343,107 @@ begin
   end;
 end;
 //========================================================================================
-procedure DrawSP(form: TCanvas; Buf,Utol: SmallInt; ptr: array of TPoint; ptr1,ptr2 : TPoint);
+procedure DrawSP(form: TCanvas;Buf,Utol: SmallInt;ptr: array of TPoint);
+//;ptr1,ptr2: TPoint);
 //-------------------------------------------------- Прорисовка стрелочной секции на табло
 //-------------------------------------------------------------- form - Указатель на табло
 //-------------------------------------- Buf- видеобуфер для записи ветви стрелки (или СП)
-//------------------------------------------ Utol -- признак утолщения линии при занятости
-//--------------- ptr ------- Перечень точек ветви стрелки (или СП) для построения ломаной
-
-label dsp1,dsp2;
+//------------------------------------------- Utol - признак утолщения линии при занятости
+//--------------------- ptr - Перечень точек ветви стрелки (или СП) для построения ломаной
+var
+  i,Cod_OB,tchk : Integer;
 begin
   try
-    form.Brush.Style := bsSolid;   form.Brush.Color := bkgndcolor;
+    tchk := High(ptr);
+    form.Brush.Style := bsSolid;   form.Brush.Color := bkgndcolor;  Cod_Ob := 0;
+
     if not OVBuffer[buf].Param[16] then //------------------- нецентрализованное состояние
     begin
       form.Pen.Color := armcolor12; form.Pen.Width := 3; form.Pen.Style := psSolid;
-      goto dsp1;
+      Cod_OB := 1;
     end;
-    if OVBuffer[buf].Param[1] then //-------------------------------------- непарафазность
+
+    if OVBuffer[buf].Param[1] and (Cod_OB = 0) then //--------------------- непарафазность
     begin
       form.Pen.Color := armcolor14;  form.Pen.Width := 3; form.Pen.Style := psSolid;
-      goto dsp1;
+      Cod_OB := 1;
     end;
 
-    if OVBuffer[buf].Param[2] then //--------------------------------------------- Есть РМ
+    if OVBuffer[buf].Param[2] and (Cod_OB = 0) then //---------------------------- Есть РМ
     begin
-      if WorkMode.Podsvet then goto dsp2; //подсветка - Показать состояние датчиков секции
-
-      if OVBuffer[buf].Param[3] then //--------------------------------------- если нет МИ
+      if WorkMode.Podsvet then Cod_OB := 2 // подсветка Показать состояние датчиков секции
+      else
       begin
-        form.Pen.Color := armcolor13;  form.Pen.Width := 1; form.Pen.Style := psSolid;
-      end else
-      begin //--------------------------------------------------------------- если есть МИ
-        form.Pen.Color := armcolor13; form.Pen.Width := 3; form.Pen.Style := psSolid;
+        if OVBuffer[buf].Param[3] then //------------------------------------- если нет МИ
+        begin
+          form.Pen.Color := armcolor13;  form.Pen.Width := 1; form.Pen.Style := psSolid;
+        end else
+        begin //------------------------------------------------------------- если есть МИ
+          form.Pen.Color := armcolor13; form.Pen.Width := 3; form.Pen.Style := psSolid;
+        end;
+        Cod_OB := 1;
       end;
-      goto dsp1;
     end;
 
-    if WorkMode.Podsvet then //------------- Подсветка стрелок/ района местного управления
+    if WorkMode.Podsvet and (Cod_OB = 0) then //----- Подсветка стрелок/ района управления
     begin
-      if not OVBuffer[buf].Param[4] then goto dsp2; //---- Есть СП - Показать состояние СП
-      if not OVBuffer[buf].Param[5] then goto dsp2; //---- Есть з  - Показать состояние СП
-      if not OVBuffer[buf].Param[8] then goto dsp2; //-- Есть МСП  - Показать состояние СП
-      if OVBuffer[buf].Param[7] then goto dsp2; //-------- Есть РИ - Показать состояние СП
+      if not OVBuffer[buf].Param[4] or //--------------- занята СП - Показать состояние СП
+      not OVBuffer[buf].Param[5] or //---------------- замкнута СП - Показать состояние СП
+      not OVBuffer[buf].Param[8] or //---------------- работа МСП  - Показать состояние СП
+      OVBuffer[buf].Param[7] then Cod_OB := 2; //------- работа РИ - Показать состояние СП
 
-      if OVBuffer[buf].Param[10] then //---- Подсветка стрелок/ района местного управления
+      if OVBuffer[buf].Param[10] and (Cod_OB = 0) then //-------- Подсветка стрелок района
       begin //------------------------------------------------ Подсветка положения стрелок
         form.Pen.Color := armcolor6; form.Pen.Width := 3; form.Pen.Style := psSolid;
-        goto dsp1;
+        Cod_OB := 1;
       end;
     end;
 
-dsp2: //--------------------------------------------- Определить состояния датчиков секции
-    if OVBuffer[buf].Param[4] then //----------------------------------------- СП свободен
+    if (Cod_OB = 2) or (Cod_OB = 0) then //---------- Определить состояния датчиков секции
     begin
-      if OVBuffer[buf].Param[5] then //------------------------------------- нет замыкания
+      if OVBuffer[buf].Param[4] then //--------------------------------------- СП свободен
       begin
-        if OVBuffer[buf].Param[8] then //----------------------------------------- нет МСП
+        if OVBuffer[buf].Param[5] then //----------------------------------- нет замыкания
         begin
-          form.Pen.Color := 0; form.Pen.Width := 1; form.Pen.Style := psSolid;
+          if OVBuffer[buf].Param[8] then //--------------------------------------- нет МСП
+          begin
+            form.Pen.Color := 0; form.Pen.Width := 1; form.Pen.Style := psSolid;
+          end else
+          begin //--------------------------------------------------------------- есть МСП
+            form.Pen.Color := armcolor10; form.Pen.Width := 3; form.Pen.Style := psSolid;
+          end;
         end else
-        begin //----------------------------------------------------------------- есть МСП
-          form.Pen.Color := armcolor10; form.Pen.Width := 3; form.Pen.Style := psSolid;
+        begin //----------------------------------------------------------- есть замыкание
+          form.Pen.Color := armcolor7; form.Pen.Width := 3; form.Pen.Style := psSolid;
         end;
-      end
-      else
-      begin //------------------------------------------------------------- есть замыкание
-        form.Pen.Color := armcolor7; form.Pen.Width := 3; form.Pen.Style := psSolid;
-      end;
-    end
-    else
-    begin //--------------------------------------------------------------------- СП занят
-      if OVBuffer[buf].Param[5] then //------------------------------------- нет замыкания
-      begin
-        form.Pen.Color := armcolor1;
-        form.Pen.Width := 1;
-        form.Pen.Style := psSolid;
       end else
-      begin //------------------------------------------------------------- есть замыкание
-        form.Pen.Color := armcolor1;
-        form.Pen.Width := 3;
-        form.Pen.Style := psSolid;
+      begin //------------------------------------------------------------------- СП занят
+        if OVBuffer[buf].Param[5] then //----------------------------------- нет замыкания
+        begin
+          form.Pen.Color := armcolor1; form.Pen.Width := 1; form.Pen.Style := psSolid;
+        end else
+        begin //----------------------------------------------------------- есть замыкание
+          form.Pen.Color := armcolor1; form.Pen.Width := 3; form.Pen.Style := psSolid;
+        end;
       end;
+      Cod_OB := 1;
     end;
 
-dsp1: //--------------------------------------------- Нарисовать состояние датчиков секции
-    form.Polyline(ptr);
-    if not OVBuffer[buf].Param[1] and OVBuffer[buf].Param[16] and
-    not OVBuffer[buf].Param[4] and (Utol = 1) then
+    if Cod_OB = 1 then   //-------------------------- Нарисовать состояние датчиков секции
     begin
-      form.Pen.Color := armcolor1;
-      form.Pen.Width := 3;
-      form.Pen.Style := psSolid;
-      form.MoveTo(ptr2.X,ptr[1].Y);
-      form.LineTo(ptr2.X + 20,ptr[1].Y);
+      //form.Polyline(ptr);
+        for i := 0 to tchk-1 do
+        begin
+          form.MoveTo(ptr[i].X,ptr[i].Y);
+          form.LineTo(ptr[i+1].X,ptr[i+1].Y);
+          form.LineTo(ptr[i].X,ptr[i].Y);
+        end;
+      if not OVBuffer[buf].Param[1] and OVBuffer[buf].Param[16] and
+      not OVBuffer[buf].Param[4] and (Utol = 1) then
+      begin
+        form.Pen.Color := armcolor1; form.Pen.Width := 3; form.Pen.Style := psSolid;
+       // form.MoveTo(ptr2.X,ptr[1].Y); form.LineTo(ptr2.X + 20,ptr[1].Y);
+      end;
     end;
 
     if OVBuffer[buf].Param[16] and not OVBuffer[buf].Param[1] then//-достоверное состояние
@@ -8225,26 +8457,35 @@ dsp1: //--------------------------------------------- Нарисовать состояние датчи
       OVBuffer[buf].Param[5] and        //------------------------------------------ нет З
       not OVBuffer[buf].Param[7] then   //----------------------------------------- нет РИ
       begin
-        form.Pen.Color := armcolor9;
-        form.Pen.Style := psSolid;
+        form.Pen.Color := armcolor9; form.Pen.Style := psSolid;
         if OVBuffer[buf].Param[14] then form.Pen.Width := 3 else form.Pen.Width := 1;
-        form.Polyline(ptr);
+        //form.Polyline(ptr);
+        for i := 0 to tchk-1 do
+        begin
+          form.MoveTo(ptr[i].X,ptr[i].Y);
+          form.LineTo(ptr[i+1].X,ptr[i+1].Y);
+          form.LineTo(ptr[i].X,ptr[i].Y);
+        end;
       end;
     end;
 
 
-    if OVBuffer[buf].Param[16] and      //--------------------- централизованное состояние
-    not OVBuffer[buf].Param[1] then  //-------------------------------------- парафазность
+    if OVBuffer[buf].Param[16] and not OVBuffer[buf].Param[1] then //-- активна, парафазна
     begin
       //------------------------------ Нарисовать признак искусственного размыкания секции
-      if not OVBuffer[buf].Param[1] and
-      OVBuffer[buf].Param[7] then
+      if not OVBuffer[buf].Param[1] and OVBuffer[buf].Param[7] then
       begin
         form.Pen.Style := psDot;
         if OVBuffer[buf].Param[5] then form.Brush.Color := armcolor11
         else form.Brush.Color := 0;
         form.Pen.Width := 1;
-        form.Polyline(ptr);
+        //form.Polyline(ptr);
+        for i := 0 to tchk-1 do
+        begin
+          form.MoveTo(ptr[i].X,ptr[i].Y);
+          form.LineTo(ptr[i+1].X,ptr[i+1].Y);
+          form.LineTo(ptr[i].X,ptr[i].Y);
+        end;
       end;
     end;
   except

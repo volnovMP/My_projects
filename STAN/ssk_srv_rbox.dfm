@@ -1103,7 +1103,7 @@ object Stancia: TStancia
     InSize = 80
     OutSize = 80
     PackSize = 28
-    NumStan = 215272604
+    NumStan = 218317168
     Baud = 1200
     BaudRate = cbr1200
     StopBits = sb2_0
@@ -1127,7 +1127,7 @@ object Stancia: TStancia
     Top = 64
   end
   object Port_DC: TCommPort
-    ComNumber = 2
+    ComNumber = 3
     InSize = 2048
     OutSize = 2048
     PackSize = 11

@@ -1911,7 +1911,7 @@ function NextToTracertMarshrut(index : SmallInt) : Boolean;
 //------------------- index - индекс объекта, заданного нажатием следующего объекта экрана
 
 var
-  i,j,c,k,wc,oe,strelka,signal : Integer;
+  i,j,c,k,wc,oe,strelka,signal,Put  : Integer;
   jmp : TOZNeighbour;
   TST_TRAS : TTracertResult;
   b,res : boolean;
@@ -2386,8 +2386,9 @@ begin
 
             4 :  //------------------------------------------------------------------ путь
             begin
-              if  not ObjZav[MarhTracert[1].ObjTrace[i]].bParam[14] then
-              ObjZav[MarhTracert[1].ObjTrace[i]].bParam[8] := false;
+              Put := MarhTracert[1].ObjTrace[i];
+              if (not ObjZav[Put].ObjConstB[10]) and (not ObjZav[Put].ObjConstB[11]) and
+              (not ObjZav[Put].bParam[14]) then ObjZav[Put].bParam[8] := false;
             end;
           end;
         end;
@@ -4128,8 +4129,12 @@ try
               if ObjZav[o].bParam[16] or
                  (ObjZav[o].ObjConstB[6] and ObjZav[ObjZav[o].BaseObject].bParam[16]) or
                  (not ObjZav[o].ObjConstB[6] and ObjZav[ObjZav[o].BaseObject].bParam[17]) then
-              begin // стрелка закрыта для движения
-                inc(MarhTracert[1].MsgCount); MarhTracert[1].Msg[MarhTracert[1].MsgCount] := GetShortMsg(1,119,ObjZav[o].Liter,1); InsMsg(1,o,119); exit;
+              begin //--------------------------------------- стрелка закрыта для движения
+                inc(MarhTracert[1].MsgCount);
+                MarhTracert[1].Msg[MarhTracert[1].MsgCount] :=
+                GetShortMsg(1,119,ObjZav[o].Liter,1);
+                InsMsg(1,o,119);
+                exit;
               end;
               if ObjZav[o].bParam[17] or
                  (ObjZav[o].ObjConstB[6] and ObjZav[ObjZav[o].BaseObject].bParam[33]) or
@@ -9134,8 +9139,12 @@ begin
               begin
                 if not ObjZav[ObjZav[o].BaseObject].bParam[4] and
                    not ObjZav[ObjZav[o].BaseObject].bParam[2] then
-                begin // установлен четный поездной маршрут на путь надвига
-                  inc(MarhTracert[Group].MsgCount); MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] := GetShortMsg(1,356, ObjZav[ObjZav[o].BaseObject].Liter,1); InsMsg(Group,ObjZav[o].BaseObject,356); exit;
+                begin //--------------- установлен четный поездной маршрут на путь надвига
+                  inc(MarhTracert[Group].MsgCount);
+                  MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+                  GetShortMsg(1,356, ObjZav[ObjZav[o].BaseObject].Liter,1);
+                  InsMsg(Group,ObjZav[o].BaseObject,356);
+                  exit;
                 end;
               end else
               begin
@@ -9350,9 +9359,9 @@ begin
       end;
     end;
 //========================================================================================
+//----------------------------------------------------- Контроль маршрута отправления (41)
 function StepTraceMarshOtpr(var Con : TOZNeighbour;
 const Lvl : TTracertLevel; Rod : Byte; Group : Byte; jmp : TOZNeighbour) : TTracertResult;
-//----------------------------------------------------- Контроль маршрута отправления (41)
 var
   k,o,hvost,s_v_put : integer;
 begin
@@ -9946,12 +9955,12 @@ begin
       result := trNextStep;
       if Con.Pin = 1 then
       begin
-        if ObjZav[s_v_put].ObjConstB[1] then
+        if ObjZav[s_v_put].ObjConstB[1] then  //-------- если проверяется в маршрутах 1->2
         begin
           if Rod = MarshP then
           begin
-            ObjZav[s_v_put].bParam[20] := true;
-            ObjZav[s_v_put].bParam[21] := true;
+            ObjZav[s_v_put].bParam[20] := true; //--------- фиксируем поездное отправление
+            ObjZav[s_v_put].bParam[21] := true; //фиксируем трассировку поездного отпр-ния
             for k := 1 to 4 do
             begin
               o := ObjZav[s_v_put].ObjConstI[k];
@@ -9964,6 +9973,18 @@ begin
                   GetShortMsg(1,81, ObjZav[ObjZav[o].BaseObject].Liter,1);
                   InsMsg(Group,ObjZav[o].BaseObject,81);
                 end;
+
+                if Lvl = tlRazdelSign then
+                begin
+                  if not ObjZav[o].bParam[1] and ObjZav[o].bParam[2] then
+                  begin //----------------------- стрелка в пути не в плюсовом положении
+                    inc(MarhTracert[Group].MsgCount);
+                    MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+                    GetShortMsg(1,268, ObjZav[ObjZav[o].BaseObject].Liter,1);
+                    InsMsg(Group,ObjZav[o].BaseObject,268);
+                  end;
+                end;
+
 
                 if ObjZav[s_v_put].ObjConstB[k*3] and not ObjZav[o].bParam[1] then
                 begin //------------------------- стрелка в пути не имеет контроля в плюсе
@@ -10081,6 +10102,17 @@ begin
                   MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
                   GetShortMsg(1,81, ObjZav[ObjZav[o].BaseObject].Liter,1);
                   InsMsg(Group,ObjZav[o].BaseObject,81);
+                end;
+
+                if Lvl = tlRazdelSign then
+                begin
+                  if not ObjZav[o].bParam[1] and ObjZav[o].bParam[2] then
+                  begin //----------------------- стрелка в пути не в плюсовом положении
+                    inc(MarhTracert[Group].MsgCount);
+                    MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+                    GetShortMsg(1,268, ObjZav[ObjZav[o].BaseObject].Liter,1);
+                    InsMsg(Group,ObjZav[o].BaseObject,268);
+                  end;
                 end;
 
                 if ObjZav[s_v_put].ObjConstB[k*3] and not ObjZav[o].bParam[1] then
@@ -10941,8 +10973,8 @@ begin
   if not CheckOgrad(jmp.Obj,Group) then result := trBreak;
 
   if ObjZav[jmp.Obj].ObjConstB[6] then //------------------ если стрелка "дальняя" из пары
-  zak := ObjZav[ObjZav[jmp.Obj].BaseObject].bParam[16] //-------- признак закрытия для нее
-  else zak := ObjZav[ObjZav[jmp.Obj].BaseObject].bParam[17]; //------ иначе признак отсюда
+  zak := ObjZav[ObjZav[jmp.Obj].BaseObject].bParam[17] //-------- признак закрытия для нее
+  else zak := ObjZav[ObjZav[jmp.Obj].BaseObject].bParam[16]; //------ иначе признак отсюда
 
   if ObjZav[jmp.Obj].bParam[16] or zak then //----------- если по стрелке закрыто движение
   begin
@@ -13202,6 +13234,7 @@ begin
       case Con.TypeJmp of
         LnkRgn : result := trRepeat; //----------- наткнулись на конец района - откатиться
         LnkEnd : result := trRepeat; //----------- наткнулись на конец строки - откатиться
+        LnkNecentr : result := trRepeat;
         else result := trNextStep;
       end;
     end else //-------------------------------------------------- вошли со стороны точки 2
@@ -13210,6 +13243,7 @@ begin
       case Con.TypeJmp of
         LnkRgn : result := trRepeat;
         LnkEnd : result := trRepeat;
+        LnkNecentr : result := trRepeat;
         else result := trNextStep;
       end;
     end;
@@ -15490,8 +15524,10 @@ begin
         if ObjZav[jmp.Obj].ObjConstB[1] then result := trNextStep
         else result := trStop;
       MarshM :
-        if ObjZav[jmp.Obj].ObjConstB[3] then result := trNextStep
-        else result := trStop;
+        if ObjZav[jmp.Obj].ObjConstB[3] then result := trNextStep//если есть маневры 1->2
+        else
+          if ObjZav[jmp.Obj].ObjConstB[11] then result :=  trEndTrace
+          else result := trStop;
       else result := trNextStep;
     end;
 
@@ -15511,7 +15547,9 @@ begin
         else result := trStop;
 
       MarshM :
-        if ObjZav[jmp.Obj].ObjConstB[4] then result := trNextStep
+        if ObjZav[jmp.Obj].ObjConstB[4] then result := trNextStep//если есть маневры 1<-2
+        else
+        if ObjZav[jmp.Obj].ObjConstB[10] then result :=  trEndTrace
         else result := trStop;
 
       else result := trNextStep;
@@ -15932,7 +15970,7 @@ var
 begin
   result := trNextStep;
   UTS := ObjZav[jmp.Obj].BaseObject;
-  if MarhTracert[Group].ObjStart >0 then 
+  if MarhTracert[Group].ObjStart >0 then
   Signal := MarhTracert[Group].ObjStart;
 
   if UTS > 0 then
@@ -16085,8 +16123,8 @@ begin
     else result := trStop;
   end;
 
-  if (((Con.Pin = 1) and (not OddRight))
-  or ((Con.Pin = 2) and OddRight)) then //-------------- вышли на путь со стороны нечетной
+  if (((Con.Pin = 1) and not OddRight)//--------- вышли на точку 1, а  нечетные справа или ...
+  or ((Con.Pin = 2) and OddRight)) then //--------- вышли на точку 2, а нечетные слева
   begin
     case Rod of
       MarshP :
@@ -16136,7 +16174,7 @@ begin
     begin
       inc(MarhTracert[Group].MsgCount);
       MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
-      GetShortMsg(1,457, ObjZav[jmp.Obj].Liter,1); //------------------------- Нет замыкания
+      GetShortMsg(1,457, ObjZav[jmp.Obj].Liter,1); //----------------------- Нет замыкания
       InsMsg(Group,jmp.Obj,457);
     end;
 
@@ -16410,8 +16448,8 @@ begin
           GetShortMsg(1,77, ObjZav[jmp.Obj].Liter,1);
           InsMsg(Group,jmp.Obj,77);
         end else
-        if not ObjZav[jmp.Obj].bParam[3] or //------------------------------------- НИ или
-        (not ObjZav[jmp.Obj].bParam[2] and ObjZav[jmp.Obj].bParam[4]) then //---- ЧИ и ЧКМ
+        if not(ObjZav[jmp.Obj].bParam[3] and ObjZav[jmp.Obj].bParam[2]) //--- НИ или ЧИ
+        or  ObjZav[jmp.Obj].bParam[4] then //------------------------------------- или ЧКМ
         begin
           inc(MarhTracert[Group].MsgCount);
           MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
@@ -16422,44 +16460,46 @@ begin
 
       MarshM :
       begin
-        if not ObjZav[jmp.Obj].ObjConstB[3] then
-        begin //------------------------------------------ нет нечетных маневровых на путь
-          result := trStop;
-          inc(MarhTracert[Group].MsgCount);
-          MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
-          GetShortMsg(1,77, ObjZav[jmp.Obj].Liter,1);
-          InsMsg(Group,jmp.Obj,77); //------------------------------ Маршрут не существует
-        end;
-
-        if not ObjZav[jmp.Obj].bParam[2] and not ObjZav[jmp.Obj].bParam[4] then//ЧИ без ЧКМ
+        if (not ObjZav[jmp.Obj].ObjConstB[10]) and (not ObjZav[jmp.Obj].ObjConstB[11]) then
         begin
-          inc(MarhTracert[Group].MsgCount);
-          MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
-          GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
-          InsMsg(Group,jmp.Obj,113); //----------- На путь $ установлен враждебный маршрут
-        end;
+          if not ObjZav[jmp.Obj].ObjConstB[3] then
+          begin //---------------------------------------- нет нечетных маневровых на путь
+            result := trStop;
+            inc(MarhTracert[Group].MsgCount);
+            MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+            GetShortMsg(1,77, ObjZav[jmp.Obj].Liter,1);
+            InsMsg(Group,jmp.Obj,77); //---------------------------- Маршрут не существует
+          end;
 
-        if not ObjZav[jmp.Obj].bParam[3] then // -------------------------------------- НИ
-        begin
-          if ObjZav[jmp.Obj].bParam[15] then //--------------------------------------- НКМ
-          begin
-            MarhTracert[Group].TailMsg := ' на замкнутый путь '+ ObjZav[jmp.Obj].Liter;
-            MarhTracert[Group].FindTail := false;
-            inc(MarhTracert[Group].WarCount);
-            MarhTracert[Group].Warning[MarhTracert[Group].WarCount] :=
-            GetShortMsg(1,441, ObjZav[jmp.Obj].Liter,1);
-            InsWar(Group,jmp.Obj,441); //На путь $ установлен встречный маневровый маршрут
-          end else
+          if not ObjZav[jmp.Obj].bParam[2] and not ObjZav[jmp.Obj].bParam[4] then//ЧИ без ЧКМ
           begin
             inc(MarhTracert[Group].MsgCount);
             MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
             GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
-            InsMsg(Group,jmp.Obj,113); //--------- На путь $ установлен враждебный маршрут
+            InsMsg(Group,jmp.Obj,113); //----------- На путь $ установлен враждебный маршрут
+          end;
+
+          if not ObjZav[jmp.Obj].bParam[3] then // -------------------------------------- НИ
+          begin
+            if ObjZav[jmp.Obj].bParam[15] then //--------------------------------------- НКМ
+            begin
+              MarhTracert[Group].TailMsg := ' на замкнутый путь '+ ObjZav[jmp.Obj].Liter;
+              MarhTracert[Group].FindTail := false;
+              inc(MarhTracert[Group].WarCount);
+              MarhTracert[Group].Warning[MarhTracert[Group].WarCount] :=
+              GetShortMsg(1,441, ObjZav[jmp.Obj].Liter,1);
+              InsWar(Group,jmp.Obj,441); //На путь $ установлен встречный маневровый маршрут
+            end else
+            begin
+              inc(MarhTracert[Group].MsgCount);
+              MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+              GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
+              InsMsg(Group,jmp.Obj,113); //--------- На путь $ установлен враждебный маршрут
+            end;
           end;
         end;
       end;
     end;
-
     ObjZav[jmp.Obj].bParam[8] := false;
     Con := ObjZav[jmp.Obj].Neighbour[2];
     case Con.TypeJmp of
@@ -16479,7 +16519,7 @@ begin
           InsMsg(Group,jmp.Obj,77); //----------------------------- Маршрут не существует
         end else
         if not ObjZav[jmp.Obj].bParam[2] or  //------------------------------------ ЧИ или
-        (not ObjZav[jmp.Obj].bParam[3] and ObjZav[jmp.Obj].bParam[15]) then //--  НИ и НКМ
+        (not ObjZav[jmp.Obj].bParam[3]) then //---------------------------------------  НИ
         begin
           inc(MarhTracert[Group].MsgCount);
           MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
@@ -16490,39 +16530,44 @@ begin
 
       MarshM :
       begin
-        if not ObjZav[jmp.Obj].ObjConstB[4] then
-        begin //-------------------------------------------- нет четных маневровых на путь
-          result := trStop;
-          inc(MarhTracert[Group].MsgCount);
-          MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
-          GetShortMsg(1,77, ObjZav[jmp.Obj].Liter,1);
-          InsMsg(Group,jmp.Obj,77); //------------------------------ Маршрут не существует
-        end;
-
-        if not ObjZav[jmp.Obj].bParam[3] and not ObjZav[jmp.Obj].bParam[15] then//НИ без НКМ
+        if(not ObjZav[jmp.Obj].ObjConstB[10]) and (not ObjZav[jmp.Obj].ObjConstB[11]) then
         begin
-          inc(MarhTracert[Group].MsgCount);
-          MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
-          GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
-          InsMsg(Group,jmp.Obj,113);  //---------- На путь $ установлен враждебный маршрут
-        end;
+          if not ObjZav[jmp.Obj].ObjConstB[4] then
+          begin //------------------------------------------ нет четных маневровых на путь
+            result := trStop;
+            inc(MarhTracert[Group].MsgCount);
+            MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+            GetShortMsg(1,77, ObjZav[jmp.Obj].Liter,1);
+            InsMsg(Group,jmp.Obj,77); //---------------------------- Маршрут не существует
+          end;
 
-        if not ObjZav[jmp.Obj].bParam[2] then //---------------------------------- если ЧИ
-        begin
-          if ObjZav[jmp.Obj].bParam[4] then //----------------------------------- если ЧКМ
-          begin
-            MarhTracert[Group].TailMsg := ' на замкнутый путь '+ ObjZav[jmp.Obj].Liter;
-            MarhTracert[Group].FindTail := false;
-            inc(MarhTracert[Group].WarCount);
-            MarhTracert[Group].Warning[MarhTracert[Group].WarCount] :=
-            GetShortMsg(1,441, ObjZav[jmp.Obj].Liter,1);
-            InsWar(Group,jmp.Obj,441); //На путь $ установлен встречный маневровый маршрут
-          end else
+          if not ObjZav[jmp.Obj].bParam[3] and
+          not (ObjZav[jmp.Obj].bParam[15] and ObjZav[jmp.Obj].bParam[2] and
+          ObjZav[jmp.Obj].bParam[4]) then //---- ЧИ и ЧКМ и НКМ
           begin
             inc(MarhTracert[Group].MsgCount);
             MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
             GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
-            InsMsg(Group,jmp.Obj,113);//---------- На путь $ установлен враждебный маршрут
+            InsMsg(Group,jmp.Obj,113);  //-------- На путь $ установлен враждебный маршрут
+          end;
+
+          if not ObjZav[jmp.Obj].bParam[2] then //-------------------------------- если ЧИ
+          begin
+            if ObjZav[jmp.Obj].bParam[4] then //--------------------------------- если ЧКМ
+            begin
+              MarhTracert[Group].TailMsg := ' на замкнутый путь '+ ObjZav[jmp.Obj].Liter;
+              MarhTracert[Group].FindTail := false;
+              inc(MarhTracert[Group].WarCount);
+              MarhTracert[Group].Warning[MarhTracert[Group].WarCount] :=
+              GetShortMsg(1,441, ObjZav[jmp.Obj].Liter,1);
+              InsWar(Group,jmp.Obj,441); //На путь установлен встречный маневровый маршрут
+            end else
+            begin
+              inc(MarhTracert[Group].MsgCount);
+              MarhTracert[Group].Msg[MarhTracert[Group].MsgCount] :=
+              GetShortMsg(1,113, ObjZav[jmp.Obj].Liter,1);
+              InsMsg(Group,jmp.Obj,113);//-------- На путь $ установлен враждебный маршрут
+            end;
           end;
         end;
       end;

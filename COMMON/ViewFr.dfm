@@ -4,11 +4,11 @@ object FrForm: TFrForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = #1050#1072#1085#1072#1083' '#1057#1077#1088#1074#1077#1088' - '#1056#1052' '#1044#1057#1055
-  ClientHeight = 395
-  ClientWidth = 328
+  ClientHeight = 367
+  ClientWidth = 305
   Color = clBtnFace
-  Constraints.MaxWidth = 400
-  Constraints.MinWidth = 193
+  Constraints.MaxWidth = 371
+  Constraints.MinWidth = 179
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -20,24 +20,24 @@ object FrForm: TFrForm
   OnActivate = FormActivate
   OnCreate = FormCreate
   DesignSize = (
-    328
-    395)
+    305
+    367)
   PixelsPerInch = 96
-  TextHeight = 14
+  TextHeight = 13
   object Refresh: TButton
     Left = 0
     Top = 2
-    Width = 81
-    Height = 27
+    Width = 75
+    Height = 25
     Caption = #1054#1073#1085#1086#1074#1080#1090#1100
     TabOrder = 0
     OnClick = RefreshClick
   end
   object sgFr: TStringGrid
     Left = 0
-    Top = 33
-    Width = 328
-    Height = 359
+    Top = 31
+    Width = 305
+    Height = 333
     Anchors = [akLeft, akTop, akRight, akBottom]
     ColCount = 4
     DefaultRowHeight = 18

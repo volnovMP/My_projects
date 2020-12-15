@@ -77,8 +77,8 @@ WrBuffer    : array[0..4097] of char; // буфер записи в трубу
 sz          : string;
 stime       : string;
 tbuf        : string;
-//RcvOLS      : array[1..2] of TOverlapped; //-------- Структура перекрытия приема для трубы
-//TrmOLS      : array[1..2] of TOverlapped; //------ Структура перекрытия передачи для трубы
+//RcvOLS      : array[1..2] of TOverlapped; //------ Структура перекрытия приема для трубы
+//TrmOLS      : array[1..2] of TOverlapped; //---- Структура перекрытия передачи для трубы
 
 //-----------------------------------------------------------------------------
 // ------------------------------------------ Создать экземпляры класса TComPort
@@ -92,11 +92,12 @@ begin
     RcvOLS[2].hEvent := INVALID_HANDLE_VALUE;
     TrmOLS[2].hEvent := INVALID_HANDLE_VALUE;
     KanalSrv[2].hPipe := INVALID_HANDLE_VALUE;
+
     if KanalSrv[1].Index > 0 then
-    begin // последовательный порт
+    begin //------------------------------------------------- первый последовательный порт
       KanalSrv[1].port := TComPort.Create(nil);
     end else
-    begin // труба1
+    begin //----------------------------------------------------------------- первая труба
       if (KanalSrv[1].nPipe <> '') and (KanalSrv[1].nPipe <> 'null') then
       begin
         RcvOLS[1].hEvent := CreateEvent(nil,true,true,nil);
@@ -105,10 +106,10 @@ begin
     end;
 
     if KanalSrv[2].Index > 0 then
-    begin
+    begin //------------------------------------------------------------------ второй порт
       KanalSrv[2].port := TComPort.Create(nil);
     end else
-    begin // труба2
+    begin //----------------------------------------------------------------- вторая труба
       if (KanalSrv[2].nPipe <> '') and (KanalSrv[2].nPipe <> 'null') then
       begin
         RcvOLS[2].hEvent := CreateEvent(nil,true,true,nil);
@@ -268,20 +269,22 @@ except
 end;
 end;
 
-//-----------------------------------------------------------------------------
-// Разрыв связи по каналу
+//========================================================================================
+//----------------------------------------------------------------- Разрыв связи по каналу
 function DisconnectKanalSrv(kanal : Byte) : Byte;
 begin
 try
-  if (kanal < 1) or (kanal > 2) or (not Assigned(KanalSrv[kanal].port) and (KanalSrv[kanal].nPipe = '')) then
+  if (kanal < 1) or (kanal > 2) or
+  (not Assigned(KanalSrv[kanal].port) and (KanalSrv[kanal].nPipe = '')) then
   begin
     DateTimeToString(stime, 'dd/mm/yy h:nn:ss.zzz', Date+Time);
     reportf('Ошибка при закрытии коммуникационного порта канала'+ IntToStr(kanal)+ ' '+ stime);
-    result := 255; exit;
+    result := 255;
+    exit;
   end;
 
   if Assigned(KanalSrv[kanal].port) then
-  begin // COM-порт
+  begin //----------------------------------------------------------------------- COM-порт
     if KanalSrv[kanal].port.PortIsOpen then
     begin
       if KanalSrv[kanal].port.ClosePort then
@@ -297,7 +300,7 @@ try
   end else
   if (KanalSrv[kanal].nPipe <> '') and (KanalSrv[kanal].nPipe <> 'null') then
   begin // труба
-    if KanalSrv[kanal].hPipe = INVALID_HANDLE_VALUE then begin result := 0; exit; end 
+    if KanalSrv[kanal].hPipe = INVALID_HANDLE_VALUE then begin result := 0; exit; end
 		else
     if CloseHandle(KanalSrv[kanal].hPipe) then 
 		begin result := 0; KanalSrv[kanal].hPipe := INVALID_HANDLE_VALUE; end 
@@ -357,6 +360,7 @@ begin
       //------------------- Каналы не имеют приоритета, используются по готовности данных.
       0 :
       begin
+      {
         if KanalSrv[1].active then
         begin
           i := ReadSoobCom(1,sz);
@@ -446,6 +450,7 @@ begin
             end;
           end;
         end;
+      }  
       end;
 
       //-------------------- Для обмена с сервером используется труба в дуплексном режиме.
@@ -1132,7 +1137,7 @@ begin
           end;
         end;
         GetOverlappedResult(KanalSrv[1].hPipe,RcvOLS[1],cbTRd,false);
-        if cbTRd > 0 then
+        if cbTRd > 0 then //--------------------------------- если что-то принято из трубы
         begin
           if (KanalSrv[1].RcvPtr + cbTRd) < RCV_LIMIT then
           begin //----------------------------------------------------- копировать в буфер
@@ -1802,7 +1807,7 @@ var
   dc : cardinal;
   i64 : int64;
   b,bl,bh,mm : byte;
-  w,ww,dw : word;
+  eror,w,ww,dw : word;
   crc,pcrc : crc16_t;
 label
   loop;
@@ -2004,6 +2009,29 @@ loop:
               Old_CHAS := CHAS;
               Old_NAS := NAS;
 
+              if w = 4095 then
+              begin
+                if pb <> FR3inp[w] then
+                begin
+                  if pb > char(0) then
+                  begin
+                    AddFixMessage(GetShortMsg(1,580,' четное',7),4,2);
+                    InsArcNewMsg(0,580+$2000,7);
+                    ShowShortMsg(580, LastX, LastY, ' четное');
+                  end;
+                end;
+                eror := word(pb);
+                eror := eror and $2;
+                if eror = 2 then WorkMode.OKError := true
+                else WorkMode.OKError := false;
+
+
+                eror := word(pb);
+                eror := eror and $01;
+                if eror = 1 then WorkMode.RUError := WorkMode.RUError or $2
+                else WorkMode.RUError := WorkMode.RUError and $FD;
+                FR3inp[w] := pb;
+              end;
               if (w <> WorkMode.ServerStateSoob) and
               (w <> WorkMode.ArmStateSoob) and
               (w <> WorkMode.DirectStateSoob) then
@@ -2022,6 +2050,7 @@ loop:
                 end;
                 FR3s[w] := LastTime;
               end;
+
             end else
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if (w >= 4096) and (w < 5120) then //--------- данные о непарафазности датчика
@@ -2297,14 +2326,14 @@ begin
       if ObjZav[im].RU = config.ru then
       begin
         MsgStateRM := GetShortMsg(2,7,ObjZav[im].Liter,1);
-        AddFixMessage(GetShortMsg(1,4,ObjZav[im].Liter,1),4,3);
-        SingleBeep3 := true;
+        AddFixMessage(GetShortMsg(1,4,ObjZav[im].Liter,1),4,3);//--- маршрут не установлен
+        InsArcNewMsg(im,4+$1000,1);
         MsgStateClr := 1;
       end;
-      InsArcNewMsg(im,6 + $400,1);
     end;
 
-    4 : begin // ---------------------- сообщение о выполнении команды передачи на маневры
+    4 :
+    begin // ---------------------- сообщение о выполнении команды передачи на маневры
       WorkMode.CmdReady := false; //------------ разблокировать прием команды от оператора
       im := 0;//------------------------------------- поиск индекса маршрута по номеру FR3
       for i := 1 to WorkMode.LimitObjZav do
@@ -2323,6 +2352,7 @@ begin
         end;
         InsArcNewMsg(im,4+$400,7);
     end;
+
     5 : begin //-------------------------- отказ от выполнения команды передачи на маневры
       WorkMode.CmdReady := false; //------------ разблокировать прием команды от оператора
       im := 0;//------------------------------------- поиск индекса маршрута по номеру FR3
@@ -2339,6 +2369,7 @@ begin
         begin MsgStateRM := GetShortMsg(2,5,ObjZav[im].Liter,1); MsgStateClr := 1; end;
       InsArcNewMsg(im,5+$400,1);
     end;
+
     6 : begin //----------------------------------------------- отказ включения управления
       WorkMode.CmdReady := false; //------------ разблокировать прием команды от оператора
       MsgStateRM := GetShortMsg(2,Kvit,'',1); MsgStateClr := 1;
@@ -2357,7 +2388,6 @@ except
   reportf('Ошибка [KanalArmSrv.KvitancijaFromSrv]'); Application.Terminate;
 end;
 end;
-
 
 //------------------------------------------------------------------------------
 // Сохранение данных на диск в НЕХ - формате

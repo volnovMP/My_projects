@@ -16,6 +16,7 @@ uses
 procedure SetDateTimeARM(index : SmallInt);
 function StepOVBuffer(var Ptr, Step : Integer) : Boolean;
 procedure PrepareOZ;
+procedure PrepareOZ1(Ptr : Integer);
 procedure GoOVBuffer(Ptr,Steps : Integer);
 
 procedure DiagnozUVK(Index : SmallInt);
@@ -759,10 +760,9 @@ begin
       inc(c);
 
       if c > 500 then c := 0;
-//      begin WaitForSingleObject(hWaitKanal,ChTO); c := 0  end;
 
       if LiveCounter > MaxLiveCtr then LiveCounter := 0;
-//  begin LiveCounter := 0; WaitForSingleObject(hWaitKanal,ChTO); end;
+
   end;
 
   //-------------------------------------------------------- обработка вторичных состояний
@@ -774,43 +774,35 @@ begin
     end;
     if LiveCounter > MaxLiveCtr then  LiveCounter := 0;
   end;
-  //WaitForSingleObject(hWaitKanal,ChTO);
+
+
+  for Ptr := 1 to WorkMode.LimitObjZav do
+  begin
+    if ObjZav[Ptr].TypeObj = 2 then PrepOxranStrelka(Ptr);
+    if ObjZav[Ptr].TypeObj = 27 then PrepDZStrelki(Ptr);
+  end;
+
   //--------------------------------------------- Вывод на табло охранностей стрелки и др.
   for Ptr := 1 to WorkMode.LimitObjZav do
   begin
     case ObjZav[Ptr].TypeObj of
       2  : PrepStrelka(Ptr);
-      27 : PrepDZStrelki(Ptr);
       41 : PrepVPStrelki(Ptr);
       43 : PrepSOPI(Ptr);
       47 : PrepAutoMarshrut(Ptr);
     end;
     if LiveCounter > MaxLiveCtr then LiveCounter := 0;
-//    begin  LiveCounter := 0; WaitForSingleObject(hWaitKanal,ChTO); end;
   end;
 
-
-    for Ptr := 1 to WorkMode.LimitObjZav do
-    begin
-      case ObjZav[Ptr].TypeObj of
-        2  : PrepOxranStrelka(Ptr);
-      end;
-    end;
-   // WaitForSingleObject(hWaitKanal,ChTO);
-
-    // Обработка буфера отображения
-    c := 0;
-    for Ptr := 1 to 2000 do OVBuffer[Ptr].StepOver := false;
-    for Ptr := 1 to 2000 do
-    begin
-      if OVBuffer[Ptr].Steps > 0 then GoOVBuffer(Ptr,OVBuffer[Ptr].Steps);
-      inc(c);
-      if c > 999 then c := 0;
-//     begin WaitForSingleObject(hWaitKanal,ChTO); c := 0; end;
-    end;
-
-    // Обработка состояний системы
-//    WaitForSingleObject(hWaitKanal,ChTO);
+  //--------------------------------------------------------- Обработка буфера отображения
+  c := 0;
+  for Ptr := 1 to 2000 do OVBuffer[Ptr].StepOver := false;
+  for Ptr := 1 to 2000 do
+  begin
+    if OVBuffer[Ptr].Steps > 0 then GoOVBuffer(Ptr,OVBuffer[Ptr].Steps);
+    inc(c);
+    if c > 999 then c := 0;
+  end;
 
 {$IFDEF RMARC}
     SrvState := FR3[WorkMode.ServerStateSoob];
@@ -822,11 +814,11 @@ begin
       if (SrvState and $7) = 0 then
       begin //------------------------------------- неисправность кнопки выбора управления
         SrvCount := 1;
-        WorkMode.RUError := true;
+        WorkMode.RUError := WorkMode.RUError or $4;
       end else
       begin //--------------------------------------- исправность кнопки выбора управления
         SrvCount := 2;
-        WorkMode.RUError := false;
+        WorkMode.RUError :=  WorkMode.RUError and $FB;
       end;
       //------------------------------------------------------------- номер рабочего места
       if SrvState and $30 = $10 then SrvActive := 1 else
@@ -837,47 +829,48 @@ begin
     begin //------------------------------------------------------------------- на сервере
       //-------------------------------------------------------------- количество серверов
       if ((SrvState and $7) = 1) or ((SrvState and $7) = 2) or ((SrvState and $7) = 4) or
-      ((SrvState and $7) = 0) then SrvCount := 1 else
-      if (SrvState and $7) = 7 then SrvCount := 3 else SrvCount := 2;
+      ((SrvState and $7) = 0) then SrvCount := 1
+      else
+      if (SrvState and $7) = 7 then SrvCount := 3
+      else SrvCount := 2;
+
       //---------------------------------------------------------- номер активного сервера
       if ((LastRcv + MaxTimeOutRecave) > LastTime) then
       begin
-        if (SrvState and $30) = $10 then SrvActive := 1 else
-        if (SrvState and $30) = $20 then SrvActive := 2 else
-        if (SrvState and $30) = $30 then SrvActive := 3 else
-        SrvActive := 0;
-      end
-      else SrvActive := 0;
-    end;
+      if (SrvState and $30) = $10 then SrvActive := 1
+      else
+      if (SrvState and $30) = $20 then SrvActive := 2
+      else
+      if (SrvState and $30) = $30 then SrvActive := 3 else SrvActive := 0;
+    end
+    else SrvActive := 0;
+  end;
 
- {$IFNDEF RMARC}
-    //-----------------------------------------------  Состояние каналов связи с серверами
-    if (KanalSrv[1].Index > 0) or (KanalSrv[1].nPipe <> 'null') then
-    begin
-      if KanalSrv[1].iserror then //------------------- если в канале 1 фиксирована ошибка
-      ArmSrvCh[1] := 1
-      else
-      if KanalSrv[1].cnterr > 2 then //-- если в канале 1 число ошибочных символов более 2
-      ArmSrvCh[1] := 2
-      else
-        if MySync[1] then //------------------ если по каналу получен маркер синхронизации
-        ArmSrvCh[1] := 4
-        else ArmSrvCh[1] := 8; //------------------------------ обычное исходное состояние
-    end;
+{$IFNDEF RMARC}
+  //-------------------------------------------------  Состояние каналов связи с серверами
+  if (KanalSrv[1].Index > 0) or (KanalSrv[1].nPipe <> 'null') then
+  begin
+    if KanalSrv[1].iserror then ArmSrvCh[1] := 1 //---- если в канале 1 фиксирована ошибка
+    else
+    if KanalSrv[1].cnterr > 2 then ArmSrvCh[1] := 2 //в канале 1 число ошибок символов > 2
+    else
+    if MySync[1] then ArmSrvCh[1] := 4 //----- если по каналу получен маркер синхронизации
+    else ArmSrvCh[1] := 8; //---------------------------------- обычное исходное состояние
+  end;
 
-    if (KanalSrv[2].Index > 0) or (KanalSrv[2].nPipe <> 'null') then
-    begin
-      if KanalSrv[2].iserror then ArmSrvCh[2] := 1
-      else
-        if KanalSrv[2].cnterr > 2 then ArmSrvCh[2] := 2
-        else
-          if MySync[2] then ArmSrvCh[2] := 4
-          else ArmSrvCh[2] := 8;
-    end;
- {$ENDIF}
+  if (KanalSrv[2].Index > 0) or (KanalSrv[2].nPipe <> 'null') then
+  begin
+    if KanalSrv[2].iserror then ArmSrvCh[2] := 1
+    else
+    if KanalSrv[2].cnterr > 2 then ArmSrvCh[2] := 2
+    else
+    if MySync[2] then ArmSrvCh[2] := 4
+    else ArmSrvCh[2] := 8;
+  end;
+{$ENDIF}
 
 {$IFDEF RMSHN}
-  //----------------------------------------------------------------- обработать события
+  //------------------------------------------------------------------- обработать события
   for i := 1 to 10 do
   begin
     cfp := 0;
@@ -889,18 +882,21 @@ begin
     (FixNotify[i].Datchik[5] > 0) or
     (FixNotify[i].Datchik[6] > 0)
     ) then
+
     for j := 1 to 6 do
     if FixNotify[i].Datchik[j] > 0 then
     begin
-      fp := GetFR3(LinkFR[FixNotify[i].Datchik[j]].FR3,fn,fn);//------ состояние датчика
+      fp := GetFR3(LinkFR[FixNotify[i].Datchik[j]].FR3,fn,fn);//-------- состояние датчика
       fix := (FixNotify[i].State[j] = fp) and not fn;
       if fix then inc(cfp);
     end;
 
     if cfp > 0 then
-    begin //-------------------------------------------------- выдать реакцию на событие
+    begin //---------------------------------------------------- выдать реакцию на событие
+
       for k := 1 to 6 do
       if FixNotify[i].Datchik[k] > 0 then dec(cfp);
+
       if cfp = 0 then
       begin
         if not FixNotify[i].fix then
@@ -922,21 +918,19 @@ begin
 
 
 {$IFDEF RMDSP}
-{  if DspT                                                                                                                                                                                                                                                                                                                                                                                                                      oDspEnabled then
-  begin // канал ДСП-ДСП2 включен
+{
+  if DspT                                                                                                                                                                                                                                                                                                                                                                                                                      oDspEnabled then
+  begin //--------------------------------------------------------- канал ДСП-ДСП2 включен
     if DspToDspConnected then
     begin
-      if DspToDspAdresatEn then
-        ArmAsuCh[1] := 2 // полное соединение
-      else
-        ArmAsuCh[1] := 1; // ожидание подключения дальнего
-    end else
-      ArmAsuCh[1] := 0; // нет соединения
-  end else
-  begin // канал ДСП-ДСП2 отключен
-    ArmAsuCh[1] := 255;
-  end;
+      if DspToDspAdresatEn then ArmAsuCh[1] := 2 //--------------------- полное соединение
+      else ArmAsuCh[1] := 1; //----------------------------- ожидание подключения дальнего
+    end
+    else ArmAsuCh[1] := 0; //---------------------------------------------- нет соединения
+  end
+  else ArmAsuCh[1] := 255; //------------------------------------- канал ДСП-ДСП2 отключен
 }
+
 {$ENDIF}
   except
     {$IFNDEF RMARC}
@@ -944,6 +938,135 @@ begin
     {$ENDIF}
     Application.Terminate;
   end;
+end;
+//========================================================================================
+procedure PrepareOZ1(Ptr : Integer);
+var
+  jj : integer;
+begin
+    case ObjZav[Ptr].TypeObj of
+    2  :
+    begin
+      for jj := 1 to 2000
+      do if OVBuffer[jj].Steps > 0 then
+      GoOVBuffer(jj,OVBuffer[jj].Steps);
+     // PrepXStrelki(Ptr+1);
+     // PrepStrelka(Ptr);
+    end;
+  end;
+{
+  case ObjZav[Ptr].TypeObj of
+    1 :  //--------------------------------------------------- в хвосте каждой стрелки
+    begin
+      ObjZav[Ptr].bParam[5] := false; //---------- снять  требование перевода охранной
+      ObjZav[Ptr].bParam[8] := false; //----- снять признак ожидания перевода охранной
+      ObjZav[Ptr].bParam[10] := false;//снять ПСМИ(исключить перевод в + при маневрах)
+      ObjZav[Ptr].bParam[11] := false;//снять МСМИ(исключить перевод в - при маневрах)
+    end;
+
+    27 : //----------------------------- обработка объекта дополнительных зависимостей
+    begin
+      ObjZav[Ptr].bParam[5] := false; //----------- снять требование перевода охранной
+      ObjZav[Ptr].bParam[8] := false; //----- снять признак ожидания перевода охранной
+    end;
+
+    41 : //------------------------------------------ объект охранности стрелок в пути
+    begin
+      ObjZav[Ptr].bParam[1] := false; //---------- снять признак перевода 1-ой стрелки
+      ObjZav[Ptr].bParam[2] := false; //---------- снять признак перевода 2-ой стрелки
+      ObjZav[Ptr].bParam[3] := false; //---------- снять признак перевода 3-ей стрелки
+      ObjZav[Ptr].bParam[4] := false; //---------- снять признак перевода 4-ой стрелки
+      ObjZav[Ptr].bParam[8] := false; //--------- снять признак ожидания перевода 1-ой
+      ObjZav[Ptr].bParam[9] := false; //--------- снять признак ожидания перевода 2-ой
+      ObjZav[Ptr].bParam[10] := false;//--------- снять признак ожидания перевода 3-ей
+      ObjZav[Ptr].bParam[11] := false;//--------- снять признак ожидания перевода 4-ой
+    end;
+
+    44 : //------------------------------------------- исключение стрелки при маневрах
+    begin
+      ObjZav[Ptr].bParam[1] := false; //------------  снять исключение перевода в плюс
+      ObjZav[Ptr].bParam[2] := false; //------------ снять исключение перевода в минус
+      ObjZav[Ptr].bParam[5] := false; //----------- снять требование перевода охранной
+      ObjZav[Ptr].bParam[8] := true; //--------- установить ожидание перевода охранной
+    end;
+
+    48 : ObjZav[Ptr].bParam[1] := false; //РПО ---- снять разрешение маневров в районе
+  end;
+   //---------------------------------------------------- подготовка отображения на табло
+
+  case ObjZav[Ptr].TypeObj of
+    2  :
+    begin
+      for jj := 1 to 2000
+      do if OVBuffer[jj].Steps > 0 then
+      GoOVBuffer(jj,OVBuffer[jj].Steps);
+      PrepXStrelki(Ptr+1);
+      PrepStrelka(Ptr);
+    end;
+    3  : PrepSekciya(Ptr);//--------------------------------------------------- секция
+    4  : PrepPuti(Ptr); //------------------------------------------------------- путь
+    5  : PrepSvetofor(Ptr);
+    6  : PrepPTO(Ptr);       //--------------------------------------- ограждение пути
+    7  : PrepPriglasit(Ptr); //-------------------------------- пригласительный сигнал
+    8  : PrepUTS(Ptr);  //
+    9  : PrepRZS(Ptr);  //----------------------------------- ручное замыкание стрелок
+    10 : PrepUPer(Ptr); //--------------------------------------- управление переездом
+    11 : PrepKPer(Ptr); //----------------------------------- контроль переезда (тип1)
+    12 : PrepK2Per(Ptr);//----------------------------------- контроль переезда (тип2)
+    13 : PrepOM(Ptr);
+    14 : PrepUKSPS(Ptr); //------------------------- контроль схода подвижного состава
+    15 : PrepAB(Ptr);
+    16 : PrepVSNAB(Ptr);
+    17 : PrepMagStr(Ptr);//------------------------------------- стрелочная магистраль
+    18 : PrepMagMakS(Ptr);
+    19 : PrepAPStr(Ptr);
+    20 : PrepMaket(Ptr);
+    21 : PrepOtmen(Ptr);
+    22 : PrepGRI(Ptr);
+    23 : PrepMEC(Ptr);
+    24 : PrepZapros(Ptr);
+    25 : PrepManevry(Ptr);
+    26 : PrepPAB(Ptr);
+    31 : PrepPSvetofor(Ptr); //--------------------------------- повторитель светофора
+    32 : PrepNadvig(Ptr);
+    33 : PrepSingle(Ptr);     //---------------------------- объект - одиночный датчик
+    34 : PrepPitanie(Ptr);
+    35 : PrepInside(Ptr);
+    36 : PrepSwitch(Ptr);      //------------------------ объект - кнопка + 5 датчиков
+    37 : PrepIKTUMS(Ptr);       //------------ объект - исполнительный контроллер ТУМС
+    38 : PrepMarhNadvig(Ptr);
+    39 : PrepKRU(Ptr);
+    40 : PrepIzvPoezd(Ptr);
+    42 : PrepVP(Ptr);
+    43 : PrepOPI(Ptr);
+    45 : PrepKNM(Ptr); //------------------- Подготовка объекта выбора зоны оповещения
+    46 : PrepAutoSvetofor(Ptr);
+    48 : PrepRPO(Ptr);
+    49 : PrepABTC(Ptr);
+    50 : PrepDCSU(Ptr);
+    51 : PrepDopDat(Ptr);
+    52 : PrepSVMUS(Ptr);
+    54 : PrepST(Ptr);
+    55 : PrepDopSvet(Ptr);
+    56 : PrepUKG(Ptr); //---------------------- объект "Устройство контроля габаритов"
+    92 :PrepDN(Ptr); //-------------------------------------------- объект "День-Ночь"
+  end;
+
+
+
+  if ObjZav[Ptr].TypeObj = 2 then PrepOxranStrelka(Ptr);
+  if ObjZav[Ptr].TypeObj = 27 then PrepDZStrelki(Ptr);
+
+  case ObjZav[Ptr].TypeObj of
+
+    41 : PrepVPStrelki(Ptr);
+    43 : PrepSOPI(Ptr);
+    47 : PrepAutoMarshrut(Ptr);
+  end;
+
+}
+// if OVBuffer[Ptr].Steps > 0 then GoOVBuffer(Ptr,OVBuffer[Ptr].Steps);
+ 
 end;
 //========================================================================================
 //--------------------------------------------------- Подготовка объекта хвоста стрелки #1
@@ -1010,7 +1133,7 @@ begin
           begin
 {$IFDEF RMSHN}
             InsArcNewMsg(Ptr,270+$1000,1); //----------------- "стрелка <Ptr> не переведа"
-            ObjZav[Ptr].dtParam[2] := LastTime;// запоми время события "неперевод стрелки"
+            ObjZav[Ptr].dtParam[2] := LastTime;//запомни время события "неперевод стрелки"
             inc(ObjZav[Ptr].siParam[3]); //----------------- увеличить счетчик непереводов
 {$ELSE}
             if config.ru = ObjZav[ptr].RU then //----если стрелка в районе управления АРМа
@@ -1763,7 +1886,7 @@ begin
       begin
         o := ObjZav[Xstr].ObjConstI[8]; //----- получить объект "С" 1-ой стрелки (ближней)
         p := ObjZav[Xstr].ObjConstI[9]; //----- получить объект "С" 2-ой стрелки (дальней)
-        if (p > 0) and (p <> Strelka) then  //--------- если есть дальняя стрелка и она другая
+        if (p > 0) and (p <> Strelka) then  //----- если есть дальняя стрелка и она другая
         begin
           if (ObjZav[p].bParam[10] or //--------------- если первый проход трассировки или
           ObjZav[p].bParam[11] or //------------------------ второй проход трассировки или
@@ -1905,7 +2028,7 @@ begin
                 begin
                   if ObjZav[XStr].Timers[3].Active then
                   begin
-                    InsArcNewMsg(XStr,577+$2000,0);
+                    InsArcNewMsg(XStr,577+$2000,0);//Ошибка при переводе стрелки на макете
                     AddFixMessage(GetShortMsg(1,577,ObjZav[XStr].Liter,0),4,4);
                     ObjZav[XStr].Timers[3].Active := false;
                   end;
@@ -1917,7 +2040,7 @@ begin
           //------------- дальше - если управляющий или  не было выдачи команды для макета
           if ObjZav[Maket_str].bParam[2] then //----------------- если шнур макета включен
           begin
-            if WorkMode.Upravlenie and //------------------------ если АРМ остновной и ...
+            if WorkMode.Upravlenie and //------------------------- если АРМ основной и ...
             (ObjZav[XStr].iParam[4] <> ObjZav[XStr].iParam[5]) then //команда не исполнена
             begin
               OVBuffer[VideoBufStr].Param[2] := false; //-------------------------- нет ПК
@@ -2317,16 +2440,17 @@ begin
                     not ObjZav[Strelka].bParam[19] and
                     not ObjZav[Strelka].bParam[18] and
                     not ObjZav[XStr].bParam[18] and //--------------------------- Колпачек
-                    not ObjZav[XStr].bParam[15] then //------- макет
+                    not ObjZav[XStr].bParam[15] then //----------------------------- макет
                     begin
 {$IFDEF RMDSP}
                       if WorkMode.OU[0] and
                       WorkMode.OU[ObjZav[Strelka].Group] and
                       (ObjZav[Strelka].RU = config.ru) then//сообщение, при АРМ-управлении
                       begin
+                        InsArcNewMsg(XStr,477,1);
                         text := GetShortMsg(1,477,ObjZav[XStr].Liter,7);
                         AddFixMessage(text,4,3); //------- стрелка не в охранном положении
-                        InsArcNewMsg(XStr,477,7);
+                        ShowShortMsg(477,LastX,LastY,ObjZav[XStr].Liter);
                       end;
 {$ELSE}
                       InsArcNewMsg(XStr,477,2);
@@ -2807,57 +2931,64 @@ end;
 //----------------------------------------- Подготовка объекта пути для вывода на табло #4
 procedure PrepPuti(Ptr : Integer);
 var
-  z1,z2,mic,min : boolean;
-  i : integer;
+  z1,z2,mic,min,Nepar,Activ : boolean;
+  i,PutCH,PutN,Ni,CHi,CHkm,Nkm,MI_CH,MI_N,PrZC,PrZN,VidB : integer;
   sost,sost1,sost2 : Byte;
 begin
   try
     inc(LiveCounter);
-    ObjZav[Ptr].bParam[31] := true; //---------------------------------------- Активизация
-    ObjZav[Ptr].bParam[32] := false; //------------------------------------ Непарафазность
 
-    ObjZav[Ptr].bParam[1] :=
-    not GetFR3(ObjZav[Ptr].ObjConstI[2],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//П(ч)
+    Nepar := false;
+    Activ := true;
 
-    z1 :=
-    not GetFR3(ObjZav[Ptr].ObjConstI[4],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//НИ
+    PutCH := ObjZav[Ptr].ObjConstI[2];
+    Ni    := ObjZav[Ptr].ObjConstI[4];
+    CHi   := ObjZav[Ptr].ObjConstI[3];
+    CHkm  := ObjZav[Ptr].ObjConstI[5];
+    MI_CH := ObjZav[Ptr].ObjConstI[6];
+    Nkm   := ObjZav[Ptr].ObjConstI[7];
+    MI_N  := ObjZav[Ptr].ObjConstI[8];
+    PutN  := ObjZav[Ptr].ObjConstI[9];
+    PrZC  := ObjZav[Ptr].ObjConstI[11];
+    PrZN  := ObjZav[Ptr].ObjConstI[12];
+    VidB :=  ObjZav[Ptr].VBufferIndex;
 
-    z2 :=
-    not GetFR3(ObjZav[Ptr].ObjConstI[3],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//ЧИ
 
-    ObjZav[Ptr].bParam[4] :=
-    GetFR3(ObjZav[Ptr].ObjConstI[5],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]); // ЧКМ
+    //--------------------------------------- Занятости пути в четной и в нечетной стойках
+    ObjZav[Ptr].bParam[1] := not GetFR3(PutCH,Nepar,Activ);//------------------------ П(ч)
+    ObjZav[Ptr].bParam[16] := not GetFR3(PutN,Nepar,Activ);//------------------------ П(н)
 
-    if ObjZav[Ptr].ObjConstI[6] > 0 then //--------------------------- если есть объект МИ
-    mic := not GetFR3(ObjZav[Ptr].ObjConstI[6],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31])
-    else mic := true; //------------------------------------------------------------ МИ(ч)
+    z1 :=  not GetFR3(Ni,Nepar,Activ);//----------------------------------------------- НИ
 
-    ObjZav[Ptr].bParam[15] :=
-    GetFR3(ObjZav[Ptr].ObjConstI[7],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]); // НКМ
+    z2 :=  not GetFR3(CHi,Nepar,Activ);//---------------------------------------------- ЧИ
 
-    if ObjZav[Ptr].ObjConstI[8] > 0 then
-    min := not GetFR3(ObjZav[Ptr].ObjConstI[8],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31])
-    else min := true; //------------------------------------------------------------ МИ(н)
+    ObjZav[Ptr].bParam[4] := GetFR3(CHkm,Nepar,Activ); //---------------------------- ЧКМ
 
-    ObjZav[Ptr].bParam[16] :=
-    not GetFR3(ObjZav[Ptr].ObjConstI[9],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//П(н)
+    if MI_CH > 0 then  mic := not GetFR3(MI_CH,Nepar,Activ)//если есть объект МИ,проверить
+    else mic := true; //------------------------------------------------------ иначе МИ(ч)
 
-    ObjZav[Ptr].bParam[7] := //----------------------------------- предв замык чет из STAN
-    not GetFR3(ObjZav[Ptr].ObjConstI[11],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
+    ObjZav[Ptr].bParam[15] := GetFR3(Nkm,Nepar,Activ); //----------------------------- НКМ
 
-    ObjZav[Ptr].bParam[11] := //---------------------------------- предв замык неч из STAN
-    not GetFR3(ObjZav[Ptr].ObjConstI[12],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
+    if MI_N > 0 then min := not GetFR3(MI_N,Nepar,Activ) //------------------------- МИ(н)
+    else min := true;
 
-    if ObjZav[Ptr].VBufferIndex > 0 then
+
+
+    ObjZav[Ptr].bParam[7] := not GetFR3(PrZC,Nepar,Activ);//-------------- - замк чет STAN
+
+    ObjZav[Ptr].bParam[11] := not GetFR3(PrZN,Nepar,Activ); //---- предв замык неч из STAN
+
+    ObjZav[Ptr].bParam[31] := Activ; //--------------------------------------- Активизация
+    ObjZav[Ptr].bParam[32] := Nepar; //------------------------------------ Непарафазность
+
+
+    if  VidB > 0 then
     begin
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[16] := ObjZav[Ptr].bParam[31];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[1] := ObjZav[Ptr].bParam[32];
-      if ObjZav[Ptr].bParam[31] and not ObjZav[Ptr].bParam[32] then
+      OVBuffer[VidB].Param[16] := Activ;
+      OVBuffer[VidB].Param[1] := Nepar;
+      if Activ and not Nepar then
       begin
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[18] :=
-        (config.ru = ObjZav[ptr].RU) and
-        WorkMode.Upravlenie; //---------------------------- район управления активизирован
-
+        OVBuffer[VidB].Param[18] := (config.ru = ObjZav[ptr].RU) and  WorkMode.Upravlenie;
         if ObjZav[Ptr].bParam[3] <> z1 then //-------------------------- если НИ обновился
         begin
           if ObjZav[Ptr].bParam[3] then
@@ -2878,7 +3009,7 @@ begin
             ObjZav[Ptr].bParam[14] := false; //----------- снять предварительное замыкание
           end;
         end;
-        ObjZav[Ptr].bParam[2] := z2;  // чИ
+        ObjZav[Ptr].bParam[2] := z2;  //----------------------------------------------- чИ
 
         if ObjZav[Ptr].bParam[5] <> mic then
         begin
@@ -2902,7 +3033,7 @@ begin
 
         //---------------------------------------- проверка передачи на местное управление
         ObjZav[Ptr].bParam[9] := false;
-        inc(LiveCounter);
+
         for i := 20 to 24 do //------------------------- пройтись по номерам возможных РМУ
         if ObjZav[Ptr].ObjConstI[i] > 0 then
         begin
@@ -2919,192 +3050,185 @@ begin
           end;
         end;
 
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := ObjZav[Ptr].bParam[3]; // ни
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := ObjZav[Ptr].bParam[2]; // чи
+        OVBuffer[VidB].Param[2] := ObjZav[Ptr].bParam[3]; //--------------------------- ни
+        OVBuffer[VidB].Param[3] := ObjZav[Ptr].bParam[2]; //--------------------------- чи
 {$IFDEF RMDSP}
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[4] := ObjZav[Ptr].bParam[1] and //занятость и
-        ObjZav[Ptr].bParam[16]; //---------------------------------  п
+        //------------------------------------------- собираем занятости из соседних стоек
+        OVBuffer[VidB].Param[4] := ObjZav[Ptr].bParam[1] and ObjZav[Ptr].bParam[16];
 {$ELSE}
-        if tab_page
-        then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[4]:=ObjZav[Ptr].bParam[1]//занятость
-        else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[4] := ObjZav[Ptr].bParam[16];
+        if tab_page  then OVBuffer[VidB].Param[4]:=ObjZav[Ptr].bParam[1] //--- занятость Ч
+        else OVBuffer[VidB].Param[4] := ObjZav[Ptr].bParam[16]; //------------ занятость Н
 {$ENDIF}
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[5] := ObjZav[Ptr].bParam[4];   //------ чкм
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[7] := ObjZav[Ptr].bParam[15];  //------ нкм
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[9] := ObjZav[Ptr].bParam[9];   //------- рм
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[10] := ObjZav[Ptr].bParam[5]
-      and ObjZav[Ptr].bParam[6]; //---------------------------------------------------- ми
+        OVBuffer[VidB].Param[5] := ObjZav[Ptr].bParam[4];   //------------------------ чкм
+        OVBuffer[VidB].Param[7] := ObjZav[Ptr].bParam[15];  //------------------------ нкм
+        OVBuffer[VidB].Param[9] := ObjZav[Ptr].bParam[9];   //------------------------- рм
+        OVBuffer[VidB].Param[10] := ObjZav[Ptr].bParam[5]  and ObjZav[Ptr].bParam[6];// ми
 {$IFDEF RMDSP}
-      if WorkMode.Upravlenie then
-      begin
-        if not ObjZav[Ptr].bParam[14] then
-        begin //------------------- при трассировке светить немигающую тонкую белую полосу
-          if not ObjZav[Ptr].bParam[7] or not ObjZav[Ptr].bParam[11] then
-          begin //----------------------------------------------------------------- из FR3
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] := false;
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[14] := true;
+        if WorkMode.Upravlenie then
+        begin
+          if not ObjZav[Ptr].bParam[14] then //--- если нет программное замыкание в РМ ДСП
+          begin
+            if not ObjZav[Ptr].bParam[7] or not ObjZav[Ptr].bParam[11] then //Чз, Нз в FR3
+            begin
+              OVBuffer[VidB].Param[6] := false;
+              OVBuffer[VidB].Param[14] := true;
+            end else
+            begin //--------------------------------- светить немигающую тонкую белую полосу
+              OVBuffer[VidB].Param[14] := false;
+              OVBuffer[VidB].Param[6] := ObjZav[Ptr].bParam[8];
+            end;
           end else
-          begin //--------------------------------- светить немигающую тонкую белую полосу
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[14] := false;
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] :=
-            ObjZav[Ptr].bParam[8]; //------------------------------------------ из объекта
+          begin
+            if not ObjZav[Ptr].bParam[7] or not ObjZav[Ptr].bParam[11] then
+            begin //--------------------------------------------------------------- из FR3
+              OVBuffer[VidB].Param[6] := false;
+              OVBuffer[VidB].Param[14] := true;
+            end else
+            begin
+              OVBuffer[VidB].Param[14] := false;
+              if tab_page then  OVBuffer[VidB].Param[6] := true//
+              else OVBuffer[VidB].Param[6] :=  ObjZav[Ptr].bParam[8]; //------- из объекта
+            end;
           end;
         end else
+        begin //------------------------------------------------------------------- из FR3
+{$ENDIF}
+          OVBuffer[VidB].Param[6] := ObjZav[Ptr].bParam[7] and ObjZav[Ptr].bParam[11];
+          OVBuffer[VidB].Param[14]:= not OVBuffer[VidB].Param[6];
+{$IFDEF RMDSP}
+        end;
+{$ENDIF}
+
+        sost1 := GetFR5(PutCH  div 8);
+
+        if (PutN > 0) and (PutCH <> PutN) then sost2 := GetFR5(PutN div 8)//составной путь
+        else sost2 := 0;
+
+        sost := sost1 or sost2;
+
+        //роверить наличие блокировки дубляжа диагностики от разных контроллеров за 1 сек.
+        ObjZav[Ptr].Timers[1].Active := ObjZav[Ptr].Timers[1].First < LastTime;
+
+        if (sost > 0) and
+        ((sost <> byte(ObjZav[Ptr].iParam[4])) or ObjZav[Ptr].Timers[1].Active) then
         begin
-          if not ObjZav[Ptr].bParam[7] or not ObjZav[Ptr].bParam[11] then
-          begin //----------------------------------------------------------------- из FR3
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] := false;
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[14] := true;
-          end else
-          begin
-            OVBuffer[ObjZav[Ptr].VBufferIndex].Param[14] := false;
-            if tab_page then //---------------- проверка выдачи команды установки маршрута
-              OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] := true
-            else
-              OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] :=
-              ObjZav[Ptr].bParam[8]; //---------------------------------------- из объекта
+          ObjZav[Ptr].iParam[4] := SmallInt(sost);
+{$IFDEF RMSHN}
+          //-------------------------------- зафиксировать время блокировки диагностики ШН
+          ObjZav[Ptr].Timers[1].First := LastTime + 1 / 86400;
+{$ELSE}
+          //------------------------------- зафиксировать время блокировки диагностики ДСП
+          ObjZav[Ptr].Timers[1].First := LastTime + 2 / 86400;
+{$ENDIF}
+          if (sost and 4) = 4 then
+          begin //---------------------------------------- фиксируем отсутствие теста пути
+{$IFDEF RMSHN}
+              InsArcNewMsg(Ptr,397+$1000,0);
+//            SingleBeep := true;
+              ObjZav[Ptr].bParam[19] := true;
+              ObjZav[Ptr].dtParam[3] := LastTime;
+              inc(ObjZav[Ptr].siParam[3]);
+{$ELSE}
+              if ObjZav[Ptr].RU = config.ru then
+              begin
+                InsArcNewMsg(Ptr,397+$1000,0);
+                AddFixMessage(GetShortMsg(1,397,ObjZav[Ptr].Liter,0),4,1);
+              end;
+              //----------------------- Фиксировать неисправность если включено управление
+              ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie;
+{$ENDIF}
+            end;
+
+            if (sost and 1) = 1 then
+            begin //--------------------------------------- фиксируем лoжную занятость пути
+{$IFDEF RMSHN}
+              InsArcNewMsg(Ptr,394+$1000,0);
+              ObjZav[Ptr].bParam[19] := true;
+              ObjZav[Ptr].dtParam[1] := LastTime;
+              inc(ObjZav[Ptr].siParam[1]);
+{$ELSE}
+              if ObjZav[Ptr].RU = config.ru then
+              begin
+                InsArcNewMsg(Ptr,394+$1000,0);
+                AddFixMessage(GetShortMsg(1,394,ObjZav[Ptr].Liter,0),4,1);
+              end;
+              ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie; // Фиксировать при управлении
+{$ENDIF}
+            end;
+            if (sost and 2) = 2 then
+            begin //------------------------------------ фиксируем ложную свободность пути
+{$IFDEF RMSHN}
+              InsArcNewMsg(Ptr,395+$1000,0);
+              ObjZav[Ptr].dtParam[2] := LastTime;
+              inc(ObjZav[Ptr].siParam[2]);
+{$ELSE}
+              if ObjZav[Ptr].RU = config.ru then
+              begin
+                InsArcNewMsg(Ptr,395+$1000,0);
+                AddFixMessage(GetShortMsg(1,395,ObjZav[Ptr].Liter,0),4,1);
+              end;
+              ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie; //- Фиксировать неисправность
+{$ENDIF}
+            end;
           end;
         end;
-      end else
-      begin //--------------------------------------------------------------------- из FR3
-{$ENDIF}
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] :=
-        ObjZav[Ptr].bParam[7] and ObjZav[Ptr].bParam[11];
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[14] :=
-        not (ObjZav[Ptr].bParam[7] and ObjZav[Ptr].bParam[11]);
-{$IFDEF RMDSP}
-      end;
-{$ENDIF}
 
-      sost1 := GetFR5(ObjZav[Ptr].ObjConstI[2] div 8);
-      if (ObjZav[Ptr].ObjConstI[9] > 0) and
-      (ObjZav[Ptr].ObjConstI[2] <> ObjZav[Ptr].ObjConstI[9]) then
-      begin //----- если описан составной путь - проверить диагностику из другой половинки
-        sost2 := GetFR5(ObjZav[Ptr].ObjConstI[9] div 8);
-      end
-      else sost2 := 0;
+        OVBuffer[VidB].Param[13] := ObjZav[Ptr].bParam[19];
 
-      sost := sost1 or sost2;
-
-      ObjZav[Ptr].Timers[1].Active :=
-      ObjZav[Ptr].Timers[1].First < LastTime; //проверить наличие блокировки повторяющейся диагностики от разных контроллеров за 1 сек.
-
-      if (sost > 0) and
-      ((sost <> byte(ObjZav[Ptr].iParam[4])) or
-      ObjZav[Ptr].Timers[1].Active) then
-      begin
-
-        ObjZav[Ptr].iParam[4] := SmallInt(sost);
-{$IFDEF RMSHN}
-         //--------------------------------- зафиксировать время блокировки диагностики ШН
-        ObjZav[Ptr].Timers[1].First := LastTime + 1 / 86400;
-{$ELSE}
-        //--------------------------------- зафиксировать время блокировки диагностики ДСП
-        ObjZav[Ptr].Timers[1].First := LastTime + 2 / 86400;
-{$ENDIF}
-        if (sost and 4) = 4 then
-        begin //------------------------------------------ фиксируем отсутствие теста пути
-{$IFDEF RMSHN}
-          InsArcNewMsg(Ptr,397+$1000,0);
-//          SingleBeep := true;
-          ObjZav[Ptr].bParam[19] := true;
-          ObjZav[Ptr].dtParam[3] := LastTime;
-          inc(ObjZav[Ptr].siParam[3]);
-{$ELSE}
-          if ObjZav[Ptr].RU = config.ru then
-          begin
-            InsArcNewMsg(Ptr,397+$1000,0);
-            AddFixMessage(GetShortMsg(1,397,ObjZav[Ptr].Liter,0),4,1);
-          end;
-          //--------------------------- Фиксировать неисправность если включено управление
-          ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie;
-{$ENDIF}
-        end;
-        if (sost and 1) = 1 then
-        begin //------------------------------------------ фиксируем лoжную занятость пути
-{$IFDEF RMSHN}
-          InsArcNewMsg(Ptr,394+$1000,0);
-          ObjZav[Ptr].bParam[19] := true;
-          ObjZav[Ptr].dtParam[1] := LastTime;
-          inc(ObjZav[Ptr].siParam[1]);
-{$ELSE}
-          if ObjZav[Ptr].RU = config.ru then begin
-            InsArcNewMsg(Ptr,394+$1000,0);
-            AddFixMessage(GetShortMsg(1,394,ObjZav[Ptr].Liter,0),4,1);
-          end;
-          ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie; //---- Фиксировать при управлении
-{$ENDIF}
-        end;
-        if (sost and 2) = 2 then
-        begin //---------------------------------------- фиксируем ложную свободность пути
-{$IFDEF RMSHN}
-          InsArcNewMsg(Ptr,395+$1000,0);
-          ObjZav[Ptr].dtParam[2] := LastTime;
-          inc(ObjZav[Ptr].siParam[2]);
-{$ELSE}
-          if ObjZav[Ptr].RU = config.ru then begin
-            InsArcNewMsg(Ptr,395+$1000,0);
-            AddFixMessage(GetShortMsg(1,395,ObjZav[Ptr].Liter,0),4,1);
-          end;
-          ObjZav[Ptr].bParam[19] := WorkMode.Upravlenie; //----- Фиксировать неисправность
-{$ENDIF}
-        end;
-      end;
-    end;
-    OVBuffer[ObjZav[Ptr].VBufferIndex].Param[13] := ObjZav[Ptr].bParam[19];
-
-    //FR4
-    ObjZav[Ptr].bParam[12] := GetFR4State(ObjZav[Ptr].ObjConstI[2] div 8 * 8 + 2);
-{$IFDEF RMDSP}
-    if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
-    begin
-      if tab_page
-      then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[13]
-      else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[12];
-    end else
-{$ENDIF}
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[12];
-    if ObjZav[Ptr].ObjConstB[8] or ObjZav[Ptr].ObjConstB[9] then
-    begin // есть электротяга
-      ObjZav[Ptr].bParam[27] := GetFR4State(ObjZav[Ptr].ObjConstI[2] div 8 * 8 + 3);
-{$IFDEF RMDSP}
-      if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
-      begin
-        if tab_page
-        then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[29] := ObjZav[Ptr].bParam[24]
-        else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[29] := ObjZav[Ptr].bParam[27];
-      end else
-{$ENDIF}
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[29] := ObjZav[Ptr].bParam[27];
-      if ObjZav[Ptr].ObjConstB[8] and ObjZav[Ptr].ObjConstB[9] then
-      begin // есть 2 вида электротяги
-        ObjZav[Ptr].bParam[28] := GetFR4State(ObjZav[Ptr].ObjConstI[2] div 8 * 8);
+        //---------------------------------------------------------------------------- FR4
+        ObjZav[Ptr].bParam[12] := GetFR4State(PutCH div 8 * 8 + 2);
 {$IFDEF RMDSP}
         if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
         begin
-          if tab_page
-          then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[31] := ObjZav[Ptr].bParam[25]
-          else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[31] := ObjZav[Ptr].bParam[28];
+          if tab_page then OVBuffer[VidB].Param[32] := ObjZav[Ptr].bParam[13]
+          else OVBuffer[VidB].Param[32] := ObjZav[Ptr].bParam[12];
         end else
 {$ENDIF}
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[31] := ObjZav[Ptr].bParam[28];
-        ObjZav[Ptr].bParam[29] := GetFR4State(ObjZav[Ptr].ObjConstI[1] div 8 * 8 + 1);
+        OVBuffer[VidB].Param[32] := ObjZav[Ptr].bParam[12];
+
+        if ObjZav[Ptr].ObjConstB[8] or ObjZav[Ptr].ObjConstB[9] then
+        begin //--------------------------------------------------------- есть электротяга
+          ObjZav[Ptr].bParam[27] := GetFR4State(PutCH div 8 * 8 + 3);
 {$IFDEF RMDSP}
-        if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
-        begin
-          if tab_page then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[30] := ObjZav[Ptr].bParam[26] else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[30] := ObjZav[Ptr].bParam[29];
-        end else
+          if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
+          begin
+            if tab_page then OVBuffer[VidB].Param[29] := ObjZav[Ptr].bParam[24]
+            else OVBuffer[VidB].Param[29] := ObjZav[Ptr].bParam[27];
+          end else
 {$ENDIF}
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[30] := ObjZav[Ptr].bParam[29];
+          OVBuffer[VidB].Param[29] := ObjZav[Ptr].bParam[27];
+
+          if ObjZav[Ptr].ObjConstB[8] and ObjZav[Ptr].ObjConstB[9] then
+          begin //------------------------------------------------ есть 2 вида электротяги
+            ObjZav[Ptr].bParam[28] := GetFR4State(PutCH div 8 * 8);
+{$IFDEF RMDSP}
+            if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
+            begin
+              if tab_page
+              then OVBuffer[VidB].Param[31] := ObjZav[Ptr].bParam[25]
+              else OVBuffer[VidB].Param[31] := ObjZav[Ptr].bParam[28];
+            end else
+{$ENDIF}
+            OVBuffer[VidB].Param[31] := ObjZav[Ptr].bParam[28];
+            ObjZav[Ptr].bParam[29] := GetFR4State(ObjZav[Ptr].ObjConstI[1] div 8 * 8 + 1);
+
+{$IFDEF RMDSP}
+            if WorkMode.Upravlenie and (ObjZav[Ptr].RU = config.ru) then
+            begin
+              if tab_page then OVBuffer[VidB].Param[30] := ObjZav[Ptr].bParam[26]
+              else OVBuffer[VidB].Param[30] := ObjZav[Ptr].bParam[29];
+            end else
+{$ENDIF}
+              OVBuffer[VidB].Param[30] := ObjZav[Ptr].bParam[29];
+          end;
+        end;
       end;
+    except
+{$IFNDEF RMARC}
+      reportf('Ошибка [MainLoop.PrepPuti]');
+{$ENDIF}
+      Application.Terminate;
     end;
-  end;
-except
-  {$IFNDEF RMARC}
-  reportf('Ошибка [MainLoop.PrepPuti]');
-  {$ENDIF}
-  Application.Terminate;
-end;
 end;
  //========================================================================================
 //------------------------------------ Подготовка объекта светофора для вывода на табло #5
@@ -3739,58 +3863,83 @@ begin
         //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if vnp  and ObjZav[Ptr].bParam[4] then //------------------- ВНП и открыт поездной
         begin
-          if vnp then
+          if ObjZav[Ptr].Timers[4].Active = false then  //----- если таймен не был запущен
           begin
-            if ( WorkMode.FixedMsg and ((ObjZav[Ptr].iParam[10] and $80) = 0)) then
+            ObjZav[Ptr].Timers[4].Active := true; //--------------------- запустить таймер
+            ObjZav[Ptr].Timers[4].First := LastTime; //-------------- зафиксировать начало
+            ObjZav[Ptr].Timers[4].Second := LastTime + 2/86400; //-------- ожидаемый конец
+          end else
+          begin //---------------------------------------------- если таймер активизирован
+            if vnp and (ObjZav[Ptr].Timers[4].Second < LastTime) then   //---- время вышло
             begin
-{$IFDEF RMDSP}
-              if ObjZav[Ptr].RU = config.ru then
+              ObjZav[Ptr].Timers[4].Active := false;
+              ObjZav[Ptr].Timers[4].First := 0;
+              ObjZav[Ptr].Timers[4].Second := 0;
+              if vnp then
               begin
-                InsArcNewMsg(Ptr,300+$1000,1);//"Неисправен разрешающий огонь светофора $"
-                AddFixMessage(GetShortMsg(1,300,ObjZav[Ptr].Liter,1),4,4);
-                ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $80; //--- фиксация NN
-              end;
-            end;
+                if ( WorkMode.FixedMsg and ((ObjZav[Ptr].iParam[10] and $80) = 0)) then
+                begin
+{$IFDEF RMDSP}
+                  if ObjZav[Ptr].RU = config.ru then
+                  begin
+                    InsArcNewMsg(Ptr,300+$1000,1);//- "Неисправен разрешающий светофора $"
+                    AddFixMessage(GetShortMsg(1,300,ObjZav[Ptr].Liter,1),4,4);
+                    ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $80; //фиксация NN
+                  end;
+                end;
 {$ELSE}
-              InsArcNewMsg(Ptr,300+$1000,1);
-              SingleBeep4 := true;
-              ObjZav[Ptr].dtParam[3] := LastTime;
-              inc(ObjZav[Ptr].siParam[3]);
-              ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $80; //----- фиксация NN
-            end;
+                  InsArcNewMsg(Ptr,300+$1000,1);
+                  SingleBeep4 := true;
+                  ObjZav[Ptr].dtParam[3] := LastTime;
+                  inc(ObjZav[Ptr].siParam[3]);
+                  ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $80; //- фиксация NN
+                end;
 {$ENDIF}
-            ObjZav[Ptr].bParam[25] := vnp;
+                ObjZav[Ptr].bParam[25] := vnp;
+              end;
+            end else
+            begin
+              ObjZav[Ptr].bParam[25] := vnp;
+              ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] and $FF7F; //сброс фиксации
+            end;
           end;
-        end else
-        begin
-          ObjZav[Ptr].bParam[25] := vnp;
-          ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] and $FF7F; //--- сброс фиксации
         end;
 
         //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if so and ObjZav[Ptr].bParam[4] then //---------------------- Со и открыт поездной
         begin
-          if so then
+          if ObjZav[Ptr].Timers[3].Active = false then  //----- если таймен не был запущен
           begin
-            if WorkMode.FixedMsg and ((ObjZav[Ptr].iParam[10] and $100) = 0) then
+            ObjZav[Ptr].Timers[3].Active := true; //--------------------- запустить таймер
+            ObjZav[Ptr].Timers[3].First := LastTime; //-------------- зафиксировать начало
+            ObjZav[Ptr].Timers[3].Second := LastTime + 2/86400; //-------- ожидаемый конец
+          end else
+          begin //---------------------------------------------- если таймер активизирован
+            if so and (ObjZav[Ptr].Timers[3].Second < LastTime) then   //----- время вышло
             begin
-{$IFDEF RMDSP}
-              if ObjZav[Ptr].RU = config.ru then
+              ObjZav[Ptr].Timers[3].Active := false;
+              ObjZav[Ptr].Timers[3].First := 0;
+              ObjZav[Ptr].Timers[3].Second := 0;
+              if WorkMode.FixedMsg and ((ObjZav[Ptr].iParam[10] and $100) = 0) then
               begin
-                InsArcNewMsg(Ptr,544+$1000,0);// "Неисправна нить разреш. лампы светофора"
-                AddFixMessage(GetShortMsg(1,544,ObjZav[Ptr].Liter,0),4,4);
+{$IFDEF RMDSP}
+                if ObjZav[Ptr].RU = config.ru then
+                begin
+                  InsArcNewMsg(Ptr,544+$1000,0);// "Неисправна нить разреш. лампы светофора"
+                  AddFixMessage(GetShortMsg(1,544,ObjZav[Ptr].Liter,0),4,4);
+                  ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $100;
+                end;
+              end;
+{$ELSE}
+                InsArcNewMsg(Ptr,544+$1000,0);//Неисправна основная разрешающ.огня светофора
+                SingleBeep4 := true;
+                ObjZav[Ptr].dtParam[3] := LastTime;
+                inc(ObjZav[Ptr].siParam[3]);
                 ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $100;
               end;
-            end;
-{$ELSE}
-              InsArcNewMsg(Ptr,544+$1000,0);//Неисправна основная разрешающ.огня светофора
-              SingleBeep4 := true;
-              ObjZav[Ptr].dtParam[3] := LastTime;
-              inc(ObjZav[Ptr].siParam[3]);
-              ObjZav[Ptr].iParam[10] := ObjZav[Ptr].iParam[10] or $100;
-            end;
 {$ENDIF}
-            ObjZav[Ptr].bParam[26] := so;
+              ObjZav[Ptr].bParam[26] := so;
+            end;
           end;
         end else
         begin
@@ -3844,7 +3993,7 @@ begin
               end;
 {$ELSE}       //------------------ для АРМ ШН --------------------------------------------
               if ObjZav[Ptr].bParam[4]
-              then InsArcNewMsg(Ptr,487+$1000,1)//-- Переключение сигналов зеленый на желтый
+              then InsArcNewMsg(Ptr,487+$1000,1)// Переключение сигналов зеленый на желтый
               else InsArcNewMsg(Ptr,497+$1000,1);
               SingleBeep4 := true;
               ObjZav[Ptr].dtParam[5] := LastTime;
@@ -5708,32 +5857,53 @@ end;
 procedure PrepOtmen(Ptr : Integer);
 var
   om,op,os,vv : boolean;
-  i : integer;
+  i,t_os,t_om,t_op : integer;  //----------------- таймеры свободный, маневровый, поездной
 begin
   try
     inc(LiveCounter);
+    t_os := ObjZav[Ptr].ObjConstI[5];
+    t_om := ObjZav[Ptr].ObjConstI[6];
+    t_op := ObjZav[Ptr].ObjConstI[7];
+
     ObjZav[Ptr].bParam[31] := true; //---------------------------------------- Активизация
     ObjZav[Ptr].bParam[32] := false; //------------------------------------ Непарафазность
 
     ObjZav[Ptr].NParam[2] := false;
+
     os:=
     GetFR3(ObjZav[Ptr].ObjConstI[2],ObjZav[Ptr].NParam[2],ObjZav[Ptr].bParam[31]); //- ГОТ
+    if (ObjZav[Ptr].ObjConstI[32] and $8) = 8 then  os := not os;
+
 
     ObjZav[Ptr].NParam[3] := false;
     om:=
     GetFR3(ObjZav[Ptr].ObjConstI[3],ObjZav[Ptr].NParam[3],ObjZav[Ptr].bParam[31]); //- МВ1
 
+    if (ObjZav[Ptr].ObjConstI[32] and $4) = 4 then  om := not om;
+
+
     ObjZav[Ptr].NParam[4] := false;
     op:=
     GetFR3(ObjZav[Ptr].ObjConstI[4],ObjZav[Ptr].NParam[4],ObjZav[Ptr].bParam[31]); //- ПВ1
+    if (ObjZav[Ptr].ObjConstI[32] and $2) = 2 then  op := not op;
 
     ObjZav[Ptr].NParam[11] := false;
+
     vv:=
     GetFR3(ObjZav[Ptr].ObjConstI[11],ObjZav[Ptr].NParam[11],ObjZav[Ptr].bParam[31]);//- ВВ
 
+    if (t_os = t_om) and not vv then
+    begin
+      Timer[t_os] := 0;
+      ObjZav[Ptr].Timers[t_os].Active := false;
+      ObjZav[Ptr].Timers[t_os].First := 0;
+      ObjZav[Ptr].Timers[t_os].Second := 0;
+    end;
+
     ObjZav[Ptr].NParam[8] := false;
+
     ObjZav[Ptr].bParam[4] :=
-    GetFR3(ObjZav[Ptr].ObjConstI[8],ObjZav[Ptr].NParam[8],ObjZav[Ptr].bParam[31]); //-- оС
+    GetFR3(ObjZav[Ptr].ObjConstI[8],ObjZav[Ptr].NParam[8],ObjZav[Ptr].bParam[31]); //-- ов
 
     ObjZav[Ptr].NParam[9] := false;
     ObjZav[Ptr].bParam[5] :=
@@ -5746,50 +5916,47 @@ begin
     if ObjZav[Ptr].VBufferIndex > 0 then
     begin
       OVBuffer[ObjZav[Ptr].VBufferIndex].Param[16] := ObjZav[Ptr].bParam[31];
+
       for i := 1 to 30 do
       OVBuffer[ObjZav[Ptr].VBufferIndex].NParam[i] :=  ObjZav[Ptr].NParam[i];
 
       if ObjZav[Ptr].bParam[31] then
       begin
-        if ObjZav[Ptr].ObjConstI[11] = 0 then //----------- если нет датчика ВВ (ЭЦ 12-90)
+        //----------------------------------------------------------- отмена со свободного
+        if ObjZav[Ptr].ObjConstI[11] = 0 then //---------------------- если нет датчика ВВ
         begin
-          if ObjZav[Ptr].ObjConstI[5] > 0 then
+          if t_os > 0 then
           begin //---------------------------- если таймер отмены со свободного существует
             if os <> ObjZav[Ptr].bParam[1] then //------------------ если изменился бит ОС
             begin
-              if ObjZav[Ptr].Timers[1].Active then //---------- если таймер ОС был включен
+              if ObjZav[Ptr].Timers[t_os].Active then //------- если таймер ОС был включен
               begin //--------------------------------------------- отключить счет времени
-                ObjZav[Ptr].Timers[1].Active := false;
+                if t_om <> t_os then  ObjZav[Ptr].Timers[t_os].Active := false;
 {$IFDEF RMSHN}
-                ObjZav[Ptr].siParam[1] := Timer[ObjZav[Ptr].ObjConstI[5]];
+                ObjZav[Ptr].siParam[1] := Timer[t_os];
 {$ENDIF}
-                Timer[ObjZav[Ptr].ObjConstI[5]] := 0;
-              end else
-              begin //------------------- если таймер был выключен, то начать счет времени
-                ObjZav[Ptr].Timers[1].Active := true;
-                ObjZav[Ptr].Timers[1].First := LastTime;
-                Timer[ObjZav[Ptr].ObjConstI[5]] := 0;
+                if t_om <> t_os then Timer[t_os] := 0;
               end;
             end;
           end;
         end else //------------------------------------------------ если датчик ВВ имеется
         begin
-          if ObjZav[Ptr].ObjConstI[5] > 0 then
-          begin //------------------------------------------ если таймер отмены существует
+          if t_os > 0 then //----------------------------------  если существует таймер ОС
+          begin
             if vv <>  ObjZav[Ptr].bParam[7] then //----------------- если изменился бит ВВ
             begin
-              if ObjZav[Ptr].Timers[1].Active then //---------- если таймер ОС был включен
+              if ObjZav[Ptr].Timers[t_os].Active then //------- если таймер ОС был включен
               begin //--------------------------------------------- отключить счет времени
-                ObjZav[Ptr].Timers[1].Active := false;
+                if t_os <> t_om then ObjZav[Ptr].Timers[t_os].Active := false;
 {$IFDEF RMSHN}
-                ObjZav[Ptr].siParam[1] := Timer[ObjZav[Ptr].ObjConstI[5]];
+                ObjZav[Ptr].siParam[1] := Timer[t_os];
 {$ENDIF}
-                Timer[ObjZav[Ptr].ObjConstI[5]] := 0;
+                if t_os <> t_om then Timer[t_os] := 0;
               end else
-              begin //------------------- если таймер был выключен, то начать счет времени
-                ObjZav[Ptr].Timers[1].Active := true;
-                ObjZav[Ptr].Timers[1].First := LastTime;
-                Timer[ObjZav[Ptr].ObjConstI[5]] := 0;
+              begin //------------ если таймер был выключен, то начать счет времени с нуля
+                ObjZav[Ptr].Timers[t_os].Active := true;
+                ObjZav[Ptr].Timers[t_os].First := LastTime;
+                Timer[t_os] := 0;
               end;
             end;
           end;
@@ -5799,44 +5966,73 @@ begin
         ObjZav[Ptr].bParam[1] := os;
         OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := ObjZav[Ptr].bParam[1];
 
-        if ObjZav[Ptr].ObjConstI[6] > 0 then
-        begin //------------------------------------------------- таймер отмены маневровой
-          if om <> ObjZav[Ptr].bParam[2] then
-          begin
-            if ObjZav[Ptr].Timers[2].Active then
-            begin //----------------------------------------------- отключить счет времени
-              ObjZav[Ptr].Timers[2].Active := false;
+        //------------------------------------------------------------ отмена маневровая
+        if ObjZav[Ptr].ObjConstI[11] = 0 then //--------- если нет датчика ВВ (ЭЦ 12-90)
+        begin
+          if ObjZav[Ptr].ObjConstI[6] > 0 then
+          begin //----------------------------- если таймер маневровой отмены существует
+            if om <> ObjZav[Ptr].bParam[2] then //---------------- если изменился бит ОМ
+            begin
+              if ObjZav[Ptr].Timers[t_om].Active then //----- если таймер ОС был включен
+              begin //------------------------------------------- отключить счет времени
+                ObjZav[Ptr].Timers[t_om].Active := false;
 {$IFDEF RMSHN}
-              ObjZav[Ptr].siParam[2] := Timer[ObjZav[Ptr].ObjConstI[6]];
+                ObjZav[Ptr].siParam[2] := Timer[t_om];
 {$ENDIF}
-              Timer[ObjZav[Ptr].ObjConstI[6]] := 0;
-            end else
-            begin //-------------------------------------------------- начать счет времени
-              ObjZav[Ptr].Timers[2].Active := true;
-              ObjZav[Ptr].Timers[2].First := LastTime;
-              Timer[ObjZav[Ptr].ObjConstI[6]] := 0;
+                Timer[t_om] := 0;
+              end else
+              begin //----------------- если таймер был выключен, то начать счет времени
+                ObjZav[Ptr].Timers[t_om].Active := true;
+                ObjZav[Ptr].Timers[t_om].First := LastTime;
+                Timer[t_om] := 0;
+              end;
             end;
           end;
-        end;
-        ObjZav[Ptr].bParam[2] := om;
-        OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := ObjZav[Ptr].bParam[2];
-
-        if ObjZav[Ptr].ObjConstI[7] > 0 then
-        begin //--------------------------------------------------- таймер отмены поездной
-          if op <> ObjZav[Ptr].bParam[3] then
-          begin
-            if ObjZav[Ptr].Timers[3].Active then
-            begin //----------------------------------------------- отключить счет времени
-              ObjZav[Ptr].Timers[3].Active := false;
+        end else //------------------------------------------------ если датчик ВВ имеется
+        begin
+          if t_om > 0 then
+          begin //----------------------------------------------- таймер отмены маневровой
+            if om <> ObjZav[Ptr].bParam[2] then
+            begin
+              if (t_om <> t_os) and ObjZav[Ptr].Timers[t_om].Active then
+              begin //--------------------------------------------- отключить счет времени
+                ObjZav[Ptr].Timers[t_om].Active := false;
 {$IFDEF RMSHN}
-              ObjZav[Ptr].siParam[3] := Timer[ObjZav[Ptr].ObjConstI[7]];
+                ObjZav[Ptr].siParam[2] := Timer[t_om];
 {$ENDIF}
-              Timer[ObjZav[Ptr].ObjConstI[7]] := 0;
-            end else
-            begin //-------------------------------------------------- начать счет времени
-              ObjZav[Ptr].Timers[3].Active := true;
-              ObjZav[Ptr].Timers[3].First := LastTime;
-              Timer[ObjZav[Ptr].ObjConstI[7]] := 0;
+                Timer[t_om] := 0;
+              end else
+              begin //------------------------------------------------ начать счет времени
+                ObjZav[Ptr].Timers[t_om].Active := true;
+                if t_om <> t_os then
+                begin
+                  ObjZav[Ptr].Timers[t_om].First := LastTime;
+                  Timer[t_om] := 0;
+                end;
+              end;
+            end;
+          end;
+
+          ObjZav[Ptr].bParam[2] := om;
+          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := ObjZav[Ptr].bParam[2];
+
+          if t_op > 0 then
+          begin //------------------------------------------------- таймер отмены поездной
+            if op <> ObjZav[Ptr].bParam[3] then
+            begin
+              if ObjZav[Ptr].Timers[t_op].Active then
+              begin //--------------------------------------------- отключить счет времени
+                ObjZav[Ptr].Timers[t_op].Active := false;
+{$IFDEF RMSHN}
+                ObjZav[Ptr].siParam[3] := Timer[t_op];
+{$ENDIF}
+                if t_op <> t_om then Timer[t_op] := 0;
+              end else
+              begin //---------------------------------------------- начать счет времени
+                ObjZav[Ptr].Timers[t_op].Active := true;
+                ObjZav[Ptr].Timers[t_op].First := LastTime;
+                Timer[t_op] := 0;
+              end;
             end;
           end;
         end;
@@ -5848,45 +6044,35 @@ begin
         OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] := ObjZav[Ptr].bParam[5];
         OVBuffer[ObjZav[Ptr].VBufferIndex].Param[7] := ObjZav[Ptr].bParam[6];
 
-        if ObjZav[Ptr].Timers[1].Active then
-        begin //--------------------------- обновить значение времени отмены со свободного
-          Timer[ObjZav[Ptr].ObjConstI[5]] :=
-          Round((LastTime - ObjZav[Ptr].Timers[1].First)*86400);
-          if Timer[ObjZav[Ptr].ObjConstI[5]] > 300
-          then Timer[ObjZav[Ptr].ObjConstI[5]] := 300;
+        if ObjZav[Ptr].Timers[t_os].Active then
+        begin //------------------------- обновить значение времени отмены со свободного
+          Timer[t_os] := Round((LastTime - ObjZav[Ptr].Timers[t_os].First)*86400);
+          if Timer[t_os] > 300 then Timer[t_os] := 300;
         end;
 
-        if ObjZav[Ptr].Timers[2].Active then
-        begin //------------------------------ обновить значение времени отмены маневровой
-          Timer[ObjZav[Ptr].ObjConstI[6]] :=
-          Round((LastTime - ObjZav[Ptr].Timers[2].First)*86400);
-
-          if Timer[ObjZav[Ptr].ObjConstI[6]] > 300
-          then Timer[ObjZav[Ptr].ObjConstI[6]] := 300;
+        if (t_om <> t_os) and ObjZav[Ptr].Timers[t_om].Active then
+        begin //---------------------------- обновить значение времени отмены маневровой
+          Timer[t_om] := Round((LastTime - ObjZav[Ptr].Timers[t_om].First)*86400);
+          if Timer[t_om] > 300  then Timer[t_om] := 300;
         end;
 
-        if ObjZav[Ptr].Timers[3].Active then
-        begin //-------------------------------- обновить значение времени отмены поездной
-          Timer[ObjZav[Ptr].ObjConstI[7]] :=
-          Round((LastTime - ObjZav[Ptr].Timers[3].First)*86400);
-          if Timer[ObjZav[Ptr].ObjConstI[7]] > 300
-          then Timer[ObjZav[Ptr].ObjConstI[7]] := 300;
+        if (t_op <> t_om) and ObjZav[Ptr].Timers[t_op].Active then
+        begin //------------------------------ обновить значение времени отмены поездной
+          Timer[t_op] := Round((LastTime - ObjZav[Ptr].Timers[t_op].First)*86400);
+          if Timer[t_op] > 300 then Timer[t_op] := 300;
         end;
       end else
       begin // сброс счетчиков при неисправном входном интерфейсе или отсутсвии информации
-        if ObjZav[Ptr].ObjConstI[5] > 0 then
-        Timer[ObjZav[Ptr].ObjConstI[5]] := 0;
-        ObjZav[Ptr].Timers[1].Active := false;
+        if t_os > 0 then  Timer[t_os] := 0;
+        ObjZav[Ptr].Timers[t_os].Active := false;
         ObjZav[Ptr].bParam[1] := false;
 
-        if ObjZav[Ptr].ObjConstI[6] > 0 then
-        Timer[ObjZav[Ptr].ObjConstI[6]] := 0;
-        ObjZav[Ptr].Timers[2].Active := false;
+        if t_om > 0 then  Timer[t_om] := 0;
+        ObjZav[Ptr].Timers[t_om].Active := false;
         ObjZav[Ptr].bParam[2] := false;
 
-        if ObjZav[Ptr].ObjConstI[7] > 0 then
-        Timer[ObjZav[Ptr].ObjConstI[7]] := 0;
-        ObjZav[Ptr].Timers[3].Active := false;
+        if t_op > 0 then  Timer[t_op] := 0;
+        ObjZav[Ptr].Timers[t_op].Active := false;
         ObjZav[Ptr].bParam[3] := false;
       end;
     end;
@@ -6470,17 +6656,17 @@ begin
     inc(LiveCounter);
     if ObjZav[Ptr].ObjConstI[3] > 0 then  //------------------- если есть охранная стрелка
     begin //---------------------------------------- Обработать состояние охранной стрелки
-      kontr := ObjZav[Ptr].ObjConstI[1]; //---- Индекс стрелки, нажодящейся на трассировке
-      sp_kont := ObjZav[Ptr].ObjConstI[2]; //----------------------------------- Индекс СП
+      kontr := ObjZav[Ptr].ObjConstI[1]; //---- Индекс стрелки, находящейся на трассировке
+      sp_kont := ObjZav[Ptr].ObjConstI[2]; //---- Индекс СП контрольной стрелки (в трассе)
       ohr := ObjZav[Ptr].ObjConstI[3]; //----------------- Индекс объекта охранной стрелки
       videobuf := ObjZav[ohr].VBufferIndex; //---------------- Видеобуфер охранной стрелки
       hvost_ohr := ObjZav[ohr].BaseObject; //----- Индекс объекта "хвост охранной стрелки"
       rzs := ObjZav[hvost_ohr].ObjConstI[12];//---------- объект ручного замыкания стрелок
 
-      if kontr > 0 then
+      if kontr > 0 then //---------------------------------- если есть контрольная стрелка
       begin
         if not ObjZav[rzs].bParam[1] and //----------- нет ручного замыкания стрелок и ...
-        ObjZav[hvost_ohr].bParam[21] then //-------- охранная стрелка не замкнута через СП
+        ObjZav[hvost_ohr].bParam[21] then //--- охранная стрелка не замкнута через свою СП
         begin
           if (ObjZav[Ptr].ObjConstB[1] and //-- если стрелка контролируется по плюсу и ...
           ObjZav[kontr].bParam[1]) or //- контрольная стрелка установлена по плюсу или ...
@@ -6491,7 +6677,7 @@ begin
           begin
 
             ObjZav[ohr].bParam[4] := //дополнительное замыкание охранной стрелки через ...
-            ObjZav[ohr].bParam[33] or ObjZav[ohr].bParam[25] or
+            ObjZav[ohr].bParam[25] or ObjZav[ohr].bParam[33] or //---- НАС или ЧАС или ...
             (not ObjZav[sp_kont].bParam[2]); //---------- замыкание СП контрольной стрелки
 
             ObjZav[hvost_ohr].bParam[4] := // доп. замыкание хвоста охранной стрелки через
@@ -6507,7 +6693,7 @@ begin
         begin
           ObjZav[ohr].bParam[4] := false; //--- сбросить дополнительное замыкание охранной
           ObjZav[ohr].bParam[4] := ObjZav[ohr].bParam[4] or
-          ObjZav[ohr].bParam[33] or ObjZav[ohr].bParam[25];
+          ObjZav[ohr].bParam[26] or ObjZav[ohr].bParam[27];
 
           ObjZav[hvost_ohr].bParam[4] := false; //сбросить дополнительное замыкание хвоста
           ObjZav[ohr].bParam[14] := false; //----- сбросить программное замыкание охранной
@@ -6642,77 +6828,94 @@ end;
 //------------------- Подготовка объекта повторительного светофора для вывода на табло #31
 procedure PrepPSvetofor(Ptr : Integer);
 var
-  o : boolean;
+  o,sign : boolean;
+  VidBuf,IndPovt,Sig,Cod : Integer;
 begin
   try
     inc(LiveCounter);
     ObjZav[Ptr].bParam[31] := true; //---------------------------------------- Активизация
     ObjZav[Ptr].bParam[32] := false; //------------------------------------ Непарафазность
-    o := //----------------------------------------------------- неисправность повторителя
-    not GetFR3(ObjZav[Ptr].ObjConstI[2],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
+    VidBuf := ObjZav[Ptr].VBufferIndex;
+    IndPovt := ObjZav[Ptr].ObjConstI[2];
+    Sig := ObjZav[Ptr].BaseObject;
+    //-------------------------------------------------------------- состояние повторителя
+    o :=  GetFR3(IndPovt,ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
+    sign := ObjZav[Sig].bParam[4];
 
-    if ObjZav[Ptr].VBufferIndex > 0 then
+    Cod := 0;
+    if sign then Cod := Cod + 2;
+    if o then Cod := Cod + 1;
+
+    if VidBuf > 0 then //--------------------------------- если есть отображение на экране
     begin
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[16] := ObjZav[Ptr].bParam[31];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[1] := ObjZav[Ptr].bParam[32];
+      OVBuffer[VidBuf].Param[16] := ObjZav[Ptr].bParam[31];
+      OVBuffer[VidBuf].Param[1] := ObjZav[Ptr].bParam[32];
+
       if ObjZav[Ptr].bParam[31] and not ObjZav[Ptr].bParam[32] then
       begin
-        if ObjZav[ObjZav[Ptr].BaseObject].bParam[4] then
-        begin //--------------------------------------------------- основной сигнал открыт
-          if o <> ObjZav[Ptr].bParam[1] then
-          begin
-            if o then
-            begin
-              if not ObjZav[Ptr].Timers[1].Active then
-              begin
-                ObjZav[Ptr].Timers[1].Active := true;
-                ObjZav[Ptr].Timers[1].First := LastTime + 3/80000;
-              end;
-            end else
-            begin
-              ObjZav[Ptr].Timers[1].Active := false;
-              ObjZav[Ptr].bParam[2] := false;
-            end;
-            ObjZav[Ptr].bParam[1] := o;
-          end;
+        if Cod <> ObjZav[Ptr].iParam[1] then
+        if not ObjZav[Ptr].Timers[1].Active then
+        begin
+          ObjZav[Ptr].Timers[1].Active := true;
+          ObjZav[Ptr].Timers[1].First := LastTime + 3/80000;
+        end;
 
-          if ObjZav[Ptr].Timers[1].Active then
-          begin //---------------------------------------------------------- неисправность
-            if ObjZav[Ptr].Timers[1].First > LastTime then
-            begin //----------------------------- ожидаем 4 секунды - повторитель не горит
-              OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := false;
-              OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := false;
-            end else
-            begin //----------------- отобразить состояние повторителя прямым отображением
-              if not ObjZav[Ptr].bParam[2] then
+        if ObjZav[Ptr].Timers[1].Active then
+        begin //------------------------------------------------------ было изменение кода
+          if ObjZav[Ptr].Timers[1].First < LastTime then
+          begin //---------------------------------------------------- ожидали 3-4 секунды
+            //------ сначала считаем, что сигнал закрыт, ПНо = 0 (нормально для закрытого)
+            ObjZav[Ptr].bParam[1] := false; //---------------- снять признак неисправности
+            ObjZav[Ptr].bParam[2] := false; //-------- снять признак включения повторителя
+            ObjZav[Ptr].bParam[3] := false; //------------- снять признак нарушения логики
+
+            case Cod of
+              1:
               begin
+                ObjZav[Ptr].bParam[2] := true;
+                ObjZav[Ptr].bParam[3] := true; //---- сигнал закрыт, ПНо = 1(несуразность)
                 if WorkMode.FixedMsg then
                 begin
 {$IFDEF RMDSP}
                   if config.ru = ObjZav[ptr].RU then
                   begin
-                    InsArcNewMsg(Ptr,339+$1000,1); //----------- Неисправность повторителя
-                    AddFixMessage(GetShortMsg(1,339,ObjZav[Ptr].Liter,1),4,4);
+                    InsArcNewMsg(Ptr,579+$1000,0); //--- Неисправность датчика повторителя
+                    AddFixMessage(GetShortMsg(1,579,ObjZav[Ptr].Liter,0),4,0);
+                  end;
+{$ELSE}
+                  InsArcNewMsg(Ptr,579+$1000,1); SingleBeep4 := true;
+{$ENDIF}
+                end;
+              end;
+
+              2:
+              begin
+                ObjZav[Ptr].bParam[1] := true; //--- сигнал открыт, ПНо = 0(неисправность)
+                if WorkMode.FixedMsg then
+                begin
+{$IFDEF RMDSP}
+                  if config.ru = ObjZav[ptr].RU then
+                  begin
+                    InsArcNewMsg(Ptr,339+$1000,0);//---- Неисправность датчика повторителя
+                    AddFixMessage(GetShortMsg(1,339,ObjZav[Ptr].Liter,0),4,0);
                   end;
 {$ELSE}
                   InsArcNewMsg(Ptr,339+$1000,1); SingleBeep4 := true;
 {$ENDIF}
                 end;
-                ObjZav[Ptr].bParam[2] := true;
               end;
+
+              3:  ObjZav[Ptr].bParam[2] := true; //сигнал открыт, ПНо = 1(норма открытого)
             end;
+            ObjZav[Ptr].iParam[1]:= Cod;
+            ObjZav[Ptr].Timers[1].Active := false;
+            ObjZav[Ptr].Timers[1].First := 0;
           end;
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := true;
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := o;
-        end else
-        begin //--------------------------------------------------- основной сигнал закрыт
-          ObjZav[Ptr].Timers[1].Active := false;
-          ObjZav[Ptr].bParam[1] := false;
-          ObjZav[Ptr].bParam[2] := false;
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := false;
-          OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := false;
         end;
+        OVBuffer[VidBuf].Param[3] := ObjZav[Ptr].bParam[1];
+        OVBuffer[VidBuf].Param[4] := ObjZav[Ptr].bParam[3];
       end;
+      OVBuffer[VidBuf].Param[2] := ObjZav[Ptr].bParam[2];
     end;
   except
     reportf('Ошибка [MainLoop.PrepPSvetofor]');
@@ -6859,10 +7062,10 @@ try
       end;
       ObjZav[Ptr].bParam[9] := sm;
 
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6] := ObjZav[Ptr].bParam[8];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[7] := ObjZav[Ptr].bParam[9];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[8] := ObjZav[Ptr].bParam[7];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[9] := ObjZav[Ptr].bParam[5];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[6]  := ObjZav[Ptr].bParam[8];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[7]  := ObjZav[Ptr].bParam[9];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[8]  := ObjZav[Ptr].bParam[7];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[9]  := ObjZav[Ptr].bParam[5];
       OVBuffer[ObjZav[Ptr].VBufferIndex].Param[10] := ObjZav[Ptr].bParam[6];
       OVBuffer[ObjZav[Ptr].VBufferIndex].Param[11] := ObjZav[Ptr].bParam[11];
       OVBuffer[ObjZav[Ptr].VBufferIndex].Param[12] := ObjZav[Ptr].bParam[10];
@@ -6872,7 +7075,9 @@ try
 {$IFDEF RMDSP}
       if WorkMode.Upravlenie then
       begin
-        if tab_page then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[13] else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[12];
+        if tab_page
+        then OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[13]
+        else OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[12];
       end else
 {$ENDIF}
         OVBuffer[ObjZav[Ptr].VBufferIndex].Param[32] := ObjZav[Ptr].bParam[12];
@@ -6894,6 +7099,7 @@ begin
     inc(LiveCounter);
     ObjZav[Ptr].bParam[31] := true; //---------------------------------------- Активизация
     ObjZav[Ptr].bParam[32] := false; //------------------------------------ Непарафазность
+
     for i := 0 to 34 do ObjZav[Ptr].NParam[i] := false;
 
     if ObjZav[Ptr].ObjConstB[1] then //--------------------------- если инверсия состояния
@@ -6919,7 +7125,7 @@ begin
         begin //------ регистрация изменения состояния датчика - вывод сообщения оператору
           if b then
           begin
-            if ObjZav[Ptr].ObjConstI[2] > 0 then   //----- если есть сообщение о включении
+            if ObjZav[Ptr].ObjConstI[2] > 0 then //------- если есть сообщение о включении
             if WorkMode.FixedMsg then
             begin
 {$IFDEF RMDSP}
@@ -6940,7 +7146,7 @@ begin
 {$ELSE}
               if ObjZav[Ptr].ObjConstI[4] = 1 then
               begin
-                InsArcNewMsg(Ptr,$1000+ObjZav[Ptr].ObjConstI[2],0);
+                InsArcNewMsg(Ptr,$1000 + ObjZav[Ptr].ObjConstI[2],0);
                 SingleBeep3 := true;
               end
               else InsArcNewMsg(Ptr,ObjZav[Ptr].ObjConstI[2],0);
@@ -7032,10 +7238,10 @@ begin
     GetFR3(ObjZav[Ptr].ObjConstI[9],ObjZav[Ptr].NParam[9],ObjZav[Ptr].bParam[31]); //-- АК
 
     k1shvp :=
-    GetFR3(ObjZav[Ptr].ObjConstI[10],ObjZav[Ptr].NParam[10],ObjZav[Ptr].bParam[31]);//К1ЩВП
+    GetFR3(ObjZav[Ptr].ObjConstI[10],ObjZav[Ptr].NParam[10],ObjZav[Ptr].bParam[31]);//К1ЩВ
 
     k2shvp :=
-    GetFR3(ObjZav[Ptr].ObjConstI[11],ObjZav[Ptr].NParam[11],ObjZav[Ptr].bParam[31]);//К2ЩВП
+    GetFR3(ObjZav[Ptr].ObjConstI[11],ObjZav[Ptr].NParam[11],ObjZav[Ptr].bParam[31]);//К2ЩВ
 
     knz :=
     GetFR3(ObjZav[Ptr].ObjConstI[12],ObjZav[Ptr].NParam[12],ObjZav[Ptr].bParam[31]);// КНз
@@ -7099,7 +7305,7 @@ begin
               {$ELSE}  SingleBeep4 := true; {$ENDIF}
             end  else
             begin
-              InsArcNewMsg(Ptr,359+$2000,0); //-------------- отключен режим светомаскировки
+              InsArcNewMsg(Ptr,359+$2000,0); //------------ отключен режим светомаскировки
               {$IFDEF RMDSP} AddFixMessage(GetShortMsg(1,359,'',0),5,2);
               {$ELSE} SingleBeep2 := true; {$ENDIF}
             end;
@@ -7532,32 +7738,89 @@ end;
 //========================================================================================
 //-------------------------------- Доступ к внутренним параметрам объекта зависимостей #35
 procedure PrepInside(Ptr : Integer);
+var
+  MainObj,MainCod,cvet_lamp : Integer;
+  TXT : string;
 begin
-try
-  inc(LiveCounter);
-  if ObjZav[Ptr].BaseObject > 0 then
-  begin
-    case ObjZav[Ptr].ObjConstI[1] of
-      1 : begin // Н
-        ObjZav[Ptr].bParam[1] := ObjZav[ObjZav[Ptr].BaseObject].bParam[8] or
-          (ObjZav[ObjZav[Ptr].BaseObject].bParam[9] and ObjZav[ObjZav[Ptr].BaseObject].bParam[14]);
+  try
+    inc(LiveCounter);
+    if ObjZav[Ptr].BaseObject > 0 then
+    begin
+      MainObj := ObjZav[Ptr].BaseObject; //-------------------------------- базовый объект
+      case ObjZav[Ptr].ObjConstI[1] of
+        1 :
+        begin //------------------------------------------------------------------------ Н
+          ObjZav[Ptr].bParam[1] := ObjZav[MainObj].bParam[8] or //------- Н из FR3 или ...
+          (ObjZav[MainObj].bParam[9] and ObjZav[MainObj].bParam[14]); //---- ППР и ПрогЗам
+        end;
+
+        2 :
+        begin //----------------------------------------------------------------------- НМ
+          ObjZav[Ptr].bParam[1] := ObjZav[MainObj].bParam[6] or //------ НМ из FR3 или ...
+          (ObjZav[MainObj].bParam[7] and ObjZav[MainObj].bParam[14]);//----- МПР и ПрогЗам
+        end;
+
+        3 :
+        begin //--------------------------------------------------------------------- Н&НМ
+          ObjZav[Ptr].bParam[1] := ObjZav[MainObj].bParam[6] or //------ НМ из FR3 или ...
+          ObjZav[MainObj].bParam[8] or //-------------------------------- Н из FR3 или ...
+          ((ObjZav[MainObj].bParam[7] or ObjZav[MainObj].bParam[9]) //---- МПР или ППР ...
+          and ObjZav[MainObj].bParam[14]); //----------------------------------- и ПрогЗам
+        end;
+
+        4 : //----------------------------------- доступ к 2-битному объекту контроля кода
+        begin
+          MainCod := 0;
+          if ObjZav[MainObj].bParam[1] then MainCod := MainCod + 1;
+          if ObjZav[MainObj].bParam[2] then MainCod := MainCod + 2;
+          if MainCod <> ObjZav[MainObj].iParam[1] then //------------- есть изменение кода
+          begin
+            if ((ObjZav[Ptr].ObjConstI[MainCod+1]) <> 0) and (MainCod <> 0) then
+            begin
+              if MainCod = 1 then cvet_lamp := ObjZav[Ptr].ObjConstI[10];
+              if MainCod = 2 then cvet_lamp := ObjZav[Ptr].ObjConstI[11];
+              if MainCod = 3 then cvet_lamp := ObjZav[Ptr].ObjConstI[12];
+              if cvet_lamp = 28  then cvet_lamp := 1;
+              if cvet_lamp = 27  then cvet_lamp := 1;
+              if cvet_lamp = 29  then cvet_lamp := 2;
+              if cvet_lamp = 26  then cvet_lamp := 9;
+              if cvet_lamp = 7 then cvet_lamp := 1;
+              
+              TXT := MsgList[ObjZav[Ptr].ObjConstI[MainCod+1]];
+              PutShortMsg(cvet_lamp,LastX,LastY,TXT);
+              SingleBeep2 := WorkMode.Upravlenie;
+              AddFixMessage(TXT,cvet_lamp,0);
+            end;
+          end;
+          ObjZav[MainObj].iParam[1] := MainCod;
+        end;
+
+        5://------------------------------------- доступ к 3-битному объекту контроля кода
+        begin
+          MainCod := 0;
+          if ObjZav[MainObj].bParam[1] then MainCod := MainCod + 1;
+          if ObjZav[MainObj].bParam[2] then MainCod := MainCod + 2;
+          if ObjZav[MainObj].bParam[3] then MainCod := MainCod + 4;
+          if MainCod <> ObjZav[MainObj].iParam[1] then //------------- есть изменение кода
+          begin
+            if ObjZav[Ptr].ObjConstI[MainCod+1] <> 0 then
+            begin
+              TXT := MsgList[ObjZav[Ptr].ObjConstI[MainCod+1]];
+              PutShortMsg(0,LastX,LastY,TXT);
+              SingleBeep2 := WorkMode.Upravlenie;
+              AddFixMessage(TXT,0,0);
+            end;
+          end;
+          ObjZav[MainObj].iParam[1] := MainCod;
+        end;
+
+        else ObjZav[Ptr].bParam[1] := false;
       end;
-      2 : begin // НМ
-        ObjZav[Ptr].bParam[1] := ObjZav[ObjZav[Ptr].BaseObject].bParam[6] or
-          (ObjZav[ObjZav[Ptr].BaseObject].bParam[7] and ObjZav[ObjZav[Ptr].BaseObject].bParam[14]);
-      end;
-      3 : begin // Н&НМ
-        ObjZav[Ptr].bParam[1] := ObjZav[ObjZav[Ptr].BaseObject].bParam[6] or ObjZav[ObjZav[Ptr].BaseObject].bParam[8] or
-          ((ObjZav[ObjZav[Ptr].BaseObject].bParam[7] or ObjZav[ObjZav[Ptr].BaseObject].bParam[9]) and ObjZav[ObjZav[Ptr].BaseObject].bParam[14]);
-      end;
-    else
-      ObjZav[Ptr].bParam[1] := false;
     end;
+  except
+    reportf('Ошибка [MainLoop.PrepInside]');
+    Application.Terminate;
   end;
-except
-  reportf('Ошибка [MainLoop.PrepInside]');
-  Application.Terminate;
-end;
 end;
 //========================================================================================
 //------------------------------------ Подготовка кнопки(вкл/откл) для вывода на табло #36
@@ -7758,29 +8021,32 @@ begin
     if i > 0 then
     begin
       myt := FR3[i] and $38;   //------------------------- проверочные биты занятости ТУМС
-      if myt = $38 then
-      begin //---------------------------- выполняется установка маршрута-----------------
-        ObjZav[Ptr].bParam[8] := true;  //------------------ фиксировать признак занятости
-        ObjZav[Ptr].bParam[9] := false; //------------- сброс фиксации удачного завершения
-        ObjZav[Ptr].bParam[10] := false; //---------- сброс фиксации неудачного завершения
-      end else //----------------------------- если нет текущей установки маршрута в ТУМСе
+      if myt > 0 then
       begin
-        ObjZav[Ptr].bParam[8] := false; //------------------ сброс фиксации занятости ТУМС
-        if myt = $28 then //------------------------- проверочные биты удачного завершения
-        begin //------------------------------- если успешное завершение устаноки маршрута
-          ObjZav[Ptr].bParam[9] := true; //---------------- фиксировать удачное завершение
-          ObjZav[Ptr].bParam[10] := false; //--------------- сбросить неудачное завершение
-        end else
-        begin //----------------------------- если неудачное завершение установки маршрута
-          ObjZav[Ptr].bParam[9] := false; //------------------ сбросить удачное завершение
-          if not ObjZav[Ptr].bParam[10] then
-          begin
-            InsArcNewMsg(Ptr,4+$3000,0); //--- "неисправность основного источника питания"
-            {$IFDEF RMDSP}
-            AddFixMessage(GetShortMsg(1,4,'',0),4,4);
-            {$ENDIF}
+        if myt = $38 then
+        begin //-------------------------- выполняется установка маршрута-----------------
+          ObjZav[Ptr].bParam[8] := true;  //---------------- фиксировать признак занятости
+          ObjZav[Ptr].bParam[9] := false; //----------- сброс фиксации удачного завершения
+          ObjZav[Ptr].bParam[10] := false; //-------- сброс фиксации неудачного завершения
+        end else //--------------------------- если нет текущей установки маршрута в ТУМСе
+        begin
+          ObjZav[Ptr].bParam[8] := false; //---------------- сброс фиксации занятости ТУМС
+          if myt = $28 then //----------------------- проверочные биты удачного завершения
+          begin //----------------------------- если успешное завершение устаноки маршрута
+            ObjZav[Ptr].bParam[9] := true; //-------------- фиксировать удачное завершение
+            ObjZav[Ptr].bParam[10] := false; //------------- сбросить неудачное завершение
+          end else
+          begin //--------------------------- если неудачное завершение установки маршрута
+            ObjZav[Ptr].bParam[9] := false; //---------------- сбросить удачное завершение
+            if not ObjZav[Ptr].bParam[10] then //--------------- если неудачное завершение
+            begin
+              InsArcNewMsg(Ptr,4+$3000,0); //-------------------- "Маршрут не установлен "
+              {$IFDEF RMDSP}
+                AddFixMessage(GetShortMsg(1,4,'',0),4,4);
+              {$ENDIF}
+            end;
+            ObjZav[Ptr].bParam[10] := true; //----------- фиксировать неудачное завершение
           end;
-          ObjZav[Ptr].bParam[10] := true; //------------- фиксировать неудачное завершение
         end;
       end;
     end;
@@ -7791,7 +8057,7 @@ begin
     begin
       OVBuffer[ObjZav[Ptr].VBufferIndex].Param[16] := ObjZav[Ptr].bParam[31];//-активность
       for ii := 1 to 32 do
-      OVBuffer[ObjZav[Ptr].VBufferIndex].NParam[ii] := ObjZav[Ptr].NParam[ii];//парафазность
+      OVBuffer[ObjZav[Ptr].VBufferIndex].NParam[ii] := ObjZav[Ptr].NParam[ii];
 
       if ObjZav[Ptr].bParam[31] then
       begin
@@ -7841,7 +8107,7 @@ begin
               {$ENDIF}
             end else
             begin //---------------------------------------------- если включен 1 комплект
-              InsArcNewMsg(Ptr,367+$3000,0); //-------------------------- "Включение МПСУ-1"
+              InsArcNewMsg(Ptr,367+$3000,0); //------------------------ "Включение МПСУ-1"
               {$IFDEF RMDSP}
                 AddFixMessage(GetShortMsg(1,367,ObjZav[Ptr].Liter,0),5,0);
               {$ENDIF}
@@ -7864,7 +8130,7 @@ begin
               {$ENDIF}
             end else
             begin //------------------------------------------------ если включен комплект
-              InsArcNewMsg(Ptr,369+$3000,0); //-------------------------- "Включение МПСУ-2"
+              InsArcNewMsg(Ptr,369+$3000,0); //------------------------ "Включение МПСУ-2"
               {$IFDEF RMDSP}
                 AddFixMessage(GetShortMsg(1,369,ObjZav[Ptr].Liter,0),5,0);
               {$ENDIF}
@@ -7895,6 +8161,8 @@ begin
               end;
             end;
           end;
+          ObjZav[Ptr].bParam[13] := otu;  //------------------------------------ запомнить
+
           //------------------------------------------ изменение состояния интерфейса РОТУ
           if rotu <> ObjZav[Ptr].bParam[14] and not ObjZav[Ptr].NParam[14] then
           begin
@@ -7915,8 +8183,9 @@ begin
               end;
             end;
           end;
+          ObjZav[Ptr].bParam[14] := rotu;  //----------------------------------- запомнить
         end;
-        ObjZav[Ptr].bParam[14] := rotu;  //------------------------------------- запомнить
+
 
         if r <> ObjZav[Ptr].bParam[1] then  //---------- если переключение комплектов МПСУ
         begin
@@ -7942,6 +8211,7 @@ begin
           end;
           ObjZav[Ptr].bParam[1] := r; //---------------------------------------- запомнить
         end;
+
         //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         //-------------------------------------------------------- Работа с каналами связи
         if (config.SVAZ_TUMS[1][1] = config.SVAZ_TUMS[1][2]) and
@@ -7951,6 +8221,9 @@ begin
 
         if svaz1 <> ObjZav[Ptr].iParam[1] then //------------- изменилось состояние канала
         begin
+          if (svaz1 and $40) = $40 then WorkMode.OKError := true
+          else WorkMode.OKError := false;
+
           if ObjZav[Ptr].ObjConstI[13] = 1 then//------------------------------ для ТУМС 1
           begin
             if (svaz1 and $1) = $1 then //----------------------------------- потеря связи
@@ -7995,7 +8268,7 @@ begin
           end else
           if ObjZav[Ptr].ObjConstI[13] = 2 then //--------------------------------- ТУМС-2
           begin
-            if (svaz1 and $1) = $1 then //----------------------------------- потеря связи
+            if (svaz1 and $2) = $2 then //----------------------------------- потеря связи
             begin
               ObjZav[Ptr].bParam[18] := true;
               if not ObjZav[Ptr].bParam[33] then //--------- не было фиксации потери связи
@@ -8015,7 +8288,7 @@ begin
               ObjZav[Ptr].bParam[18] := false;
             end;
 
-            if (svaz1 and $4) = $4 then //-------------------------------------- потеря ТУ
+            if (svaz1 and $8) = $8 then //-------------------------------------- потеря ТУ
             begin
               ObjZav[Ptr].bParam[17] := true;
               if not ObjZav[Ptr].bParam[30] then //------------ не было фиксации потери ТУ
@@ -8035,6 +8308,7 @@ begin
               ObjZav[Ptr].bParam[17] := false;
             end;
           end;
+
           //-------------------------------------------------------------- перепут каналов
           if (svaz1 and $20) = $20 then
           begin
@@ -8220,7 +8494,7 @@ begin
     then WorkMode.VSU[group] := ObjZav[Ptr].bParam[4]; //- получить активность датчика ВСУ
 
     if ObjZav[Ptr].ObjConstI[6] > 0 //---------------------------------если есть датчик ДУ
-    then WorkMode.DU[group] := ObjZav[Ptr].bParam[5]; //-- получить активность датчика ДУ
+    then WorkMode.DU[group] := ObjZav[Ptr].bParam[5]; //--- получить активность датчика ДУ
 
     WorkMode.KRU[group] := ObjZav[Ptr].bParam[6];//------получить групповую готовность КРУ
 
@@ -8386,8 +8660,8 @@ begin
       ObjZav[VPSTR].bParam[5] := z; //----------------------------- состояние замыкания СП
 
 
-      //if (not ObjZav[VPSTR].bParam[20] or //-- если нет поездного маршрута отправления и
-      //ObjZav[VPSTR].bParam[21]) then exit; //----- нет трассировки поездного отправления
+      if (not ObjZav[VPSTR].bParam[20] or //-- если нет поездного маршрута отправления и
+      ObjZav[VPSTR].bParam[21]) then exit; //----- нет трассировки поездного отправления
 //----------------------------------------------------------------------------------------
       for i := 1 to 4 do
       begin
@@ -8401,7 +8675,7 @@ begin
           RZS := ObjZav[hvost_str_ohr].ObjConstI[12];
           dzs := ObjZav[RZS].bParam[1];
           inc(LiveCounter);
-          ObjZav[sp_otpr].bParam[14] := not z;
+          ObjZav[sp_otpr].bParam[14] := ObjZav[sp_otpr].bParam[14] and z;
 
           if ObjZav[VPSTR].ObjConstB[1] then //-------------------- для нечетных маршрутов
           ObjZav[str_ohr].bParam[27] := not z;
@@ -8480,13 +8754,16 @@ procedure PrepVP(Ptr : Integer);
 var
   i,o,sp_v_p,svetofor : integer;
 
-  z : boolean;
+  z,nepar,VP : boolean;
 begin
   try
     inc(LiveCounter);
+    VP := GetFR3(ObjZav[Ptr].ObjConstI[11],nepar,ObjZav[Ptr].bParam[31]); //---- объект ВП
     sp_v_p := ObjZav[Ptr].UpdateObject; //------------------- объект СП для стрелки в пути
     svetofor := ObjZav[Ptr].BaseObject; //-------------- светофор прикрытия стрелки в пути
     z := ObjZav[sp_v_p].bParam[2]; //-------------------- Получить замыкалку секции в пути
+
+    ObjZav[Ptr].bParam[1] := VP;
 
     if ObjZav[Ptr].bParam[3] <> z then //----------------------- если замыкалка изменилась
     if z then//---------------------------------------- произошло размыкание секции в пути
@@ -8536,7 +8813,7 @@ begin
     end else
     begin
       ObjZav[Ptr].bParam[3] := z;
-      ObjZav[Ptr].bParam[2] := false; //-- снять разрешение перезамыкания поездного маршрута
+      ObjZav[Ptr].bParam[2] := false; //- снять разрешение перезамыкания поездного маршрута
     end;
   except
     reportf('Ошибка [MainLoop.PrepVP]');
@@ -8744,14 +9021,11 @@ try
   ObjZav[Ptr].bParam[31] := true; //------------------------------------------ Активизация
   ObjZav[Ptr].bParam[32] := false; //-------------------------------------- Непарафазность
 
-  ObjZav[Ptr].bParam[2] :=
-  GetFR3(ObjZav[Ptr].ObjConstI[2],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//вкл.зона
+  ObjZav[Ptr].bParam[1] := //--------------------------------------------------------- КНМ
+  GetFR3(ObjZav[Ptr].ObjConstI[2],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
 
-  ObjZav[Ptr].bParam[3] :=
-  GetFR3(ObjZav[Ptr].ObjConstI[3],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//---- зМ
-
-  ObjZav[Ptr].bParam[4] :=
-  GetFR3(ObjZav[Ptr].ObjConstI[4],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);//конецЗМ
+  ObjZav[Ptr].bParam[2] := //---------------------------------------------------------- зМ
+  GetFR3(ObjZav[Ptr].ObjConstI[3],ObjZav[Ptr].bParam[32],ObjZav[Ptr].bParam[31]);
 
   if ObjZav[Ptr].VBufferIndex > 0 then
   begin
@@ -8759,9 +9033,8 @@ try
     OVBuffer[ObjZav[Ptr].VBufferIndex].Param[1] := ObjZav[Ptr].bParam[32];
     if ObjZav[Ptr].bParam[31] and not ObjZav[Ptr].bParam[32] then
     begin
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := ObjZav[Ptr].bParam[2];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := ObjZav[Ptr].bParam[3];
-      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[4] := ObjZav[Ptr].bParam[4];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[2] := ObjZav[Ptr].bParam[1];
+      OVBuffer[ObjZav[Ptr].VBufferIndex].Param[3] := ObjZav[Ptr].bParam[2];
     end;
   end;
 except
@@ -9469,7 +9742,7 @@ procedure PrepUKG(Ptr : Integer);
 var
   vkgd,vkgd1,kg,okg : boolean;
   ob_vkgd,ob_vkgd1, kod,i : integer;
-  TXT : string;
+  TXT1 : string;
 begin
   try
     kod := 0;
@@ -9541,42 +9814,42 @@ begin
             4,8,12:  //--------------------------------------------- исправно, но отключено
             begin
               InsArcNewMsg(Ptr,554+$1000,0); //------------------- необходимо включить УКГ
-              TXT := GetShortMsg(1,554,ObjZav[Ptr].Liter,0);
-              AddFixMessage(TXT,4,2);
-              PutShortMsg(7,LastX,LastY,TXT);
+              TXT1 := GetShortMsg(1,554,ObjZav[Ptr].Liter,0);
+              AddFixMessage(TXT1,4,2);
+              PutShortMsg(7,LastX,LastY,TXT1);
               SingleBeep2 := WorkMode.Upravlenie;
             end;
 
             1,5,9,13://------------------------------------------- неисправное отключенное
             begin
               InsArcNewMsg(Ptr,553+$1000,0); //----------------------------- УКГ отключено
-              TXT := GetShortMsg(1,553,ObjZav[Ptr].Liter,0);
-              AddFixMessage(TXT,4,2);
-              PutShortMsg(7,LastX,LastY,TXT);
+              TXT1 := GetShortMsg(1,553,ObjZav[Ptr].Liter,0);
+              AddFixMessage(TXT1,4,2);
+              PutShortMsg(7,LastX,LastY,TXT1);
             end;
 
             0://-------------------------------------- исправное состояние включенного УКГ
             begin
               InsArcNewMsg(Ptr,557+$1000,0); //------------------ УКГ возвращен в исходное
-              TXT := GetShortMsg(1,557,ObjZav[Ptr].Liter,0);
-              AddFixMessage(TXT,0,2);
-              PutShortMsg(2,LastX,LastY,TXT);
+              TXT1 := GetShortMsg(1,557,ObjZav[Ptr].Liter,0);
+              AddFixMessage(TXT1,0,2);
+              PutShortMsg(2,LastX,LastY,TXT1);
               SingleBeep2 := WorkMode.Upravlenie;
             end;
 
             3: //-------------------------------------------- сработали датчики КГ1 и ОКГ
             begin
               InsArcNewMsg(Ptr,552+$1000,0); //----------------------- Сработал датчик УКГ
-              TXT := GetShortMsg(1,552,ObjZav[Ptr].Liter,0);
-              AddFixMessage(TXT,4,3);
-              PutShortMsg(1,LastX,LastY,TXT);
+              TXT1:= GetShortMsg(1,552,ObjZav[Ptr].Liter,0);
+              AddFixMessage(TXT1,4,3);
+              PutShortMsg(1,LastX,LastY,TXT1);
             end;
             else
             begin
               InsArcNewMsg(Ptr,550+$1000,0); //---------------- неправильно работает схема
-              TXT := GetShortMsg(1,550,ObjZav[Ptr].Liter,0);
-              AddFixMessage(TXT,4,3);
-              PutShortMsg(11,LastX,LastY,TXT);
+              TXT1 := GetShortMsg(1,550,ObjZav[Ptr].Liter,0);
+              AddFixMessage(TXT1,4,3);
+              PutShortMsg(11,LastX,LastY,TXT1);
             end;
           end;
 

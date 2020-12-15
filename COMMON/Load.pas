@@ -925,7 +925,9 @@ end;
 //------------------------------------------------------------------------------
 //
 function CalcCRC_OZ(Index : Integer) : boolean;
-  var i : integer; ccrc : crc16_t;
+var
+  i : integer;
+  ccrc : crc16_t;
 begin
   if (Index > 0) and (Index <= High(ObjZav)) then
   begin
@@ -934,14 +936,24 @@ begin
          IntToStr(ObjZav[Index].RU)+ ';'+
          ObjZav[Index].Title+';'+
          ObjZav[Index].Liter+';'+
-         IntToStr(ObjZav[Index].Neighbour[1].TypeJmp)+ ':'+ IntToStr(ObjZav[Index].Neighbour[1].Obj)+ ':'+ IntToStr(ObjZav[Index].Neighbour[1].Pin)+ ';'+
-         IntToStr(ObjZav[Index].Neighbour[2].TypeJmp)+ ':'+ IntToStr(ObjZav[Index].Neighbour[2].Obj)+ ':'+ IntToStr(ObjZav[Index].Neighbour[2].Pin)+ ';'+
-         IntToStr(ObjZav[Index].Neighbour[3].TypeJmp)+ ':'+ IntToStr(ObjZav[Index].Neighbour[3].Obj)+ ':'+ IntToStr(ObjZav[Index].Neighbour[3].Pin)+ ';'+
+         IntToStr(ObjZav[Index].Neighbour[1].TypeJmp)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[1].Obj)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[1].Pin)+ ';'+
+         IntToStr(ObjZav[Index].Neighbour[2].TypeJmp)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[2].Obj)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[2].Pin)+ ';'+
+         IntToStr(ObjZav[Index].Neighbour[3].TypeJmp)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[3].Obj)+ ':'+
+         IntToStr(ObjZav[Index].Neighbour[3].Pin)+ ';'+
          IntToStr(ObjZav[Index].BaseObject)+ ';'+
          IntToStr(ObjZav[Index].UpdateObject)+ ';'+
          IntToStr(ObjZav[Index].VBufferIndex)+ ';';
-    for i := 1 to High(ObjZav[Index].ObjConstB) do if ObjZav[Index].ObjConstB[i] then s := s + 't;' else s := s + ';';
-    for i := 1 to High(ObjZav[Index].ObjConstI) do s := s + IntToStr(ObjZav[Index].ObjConstI[i])+ ';';
+    for i := 1 to High(ObjZav[Index].ObjConstB) do
+    if ObjZav[Index].ObjConstB[i] then s := s + 't;' else s := s + ';';
+
+    for i := 1 to High(ObjZav[Index].ObjConstI) do
+    s := s + IntToStr(ObjZav[Index].ObjConstI[i])+ ';';
+
     ccrc := CalculateCRC16(pchar(s),Length(s));
     result := ccrc = ObjZav[Index].CRC1;
     exit;
@@ -1058,7 +1070,7 @@ begin
     for i := 1 to memo.Count do
     begin
       s := memo.Strings[i-1];
-      Lex[i].msg := ''; Lex[i].Color := GetColor(0); c := ''; cl := false;
+      Lex[i].msg := ''; Lex[i].Color := GetColor1(0); c := ''; cl := false;
       j := 1;
       while j <= Length(s) do
       begin
@@ -1074,11 +1086,11 @@ begin
           begin
             j := StrToInt(c);
             case j of
-              2 :  Lex[i].Color := GetColor(2);
-              4 :  Lex[i].Color := GetColor(1);
-              14 : Lex[i].Color := GetColor(7);
+              2 :  Lex[i].Color := GetColor1(2);
+              4 :  Lex[i].Color := GetColor1(1);
+              14 : Lex[i].Color := GetColor1(7);
             else
-              Lex[i].Color := GetColor(0);
+              Lex[i].Color := GetColor1(0);
             end;
             break; // завершить чтение параметра в Lex
           end else
@@ -1112,7 +1124,7 @@ begin
     for i := 1 to memo.Count do
     begin
       s := memo.Strings[i-1];
-      Lex2[i].msg := ''; Lex2[i].Color := GetColor(0); c := ''; cl := false;
+      Lex2[i].msg := ''; Lex2[i].Color := GetColor1(0); c := ''; cl := false;
       j := 1;
       while j <= Length(s) do
       begin
@@ -1128,11 +1140,11 @@ begin
           begin
             j := StrToInt(c);
             case j of
-              2 :  Lex2[i].Color := GetColor(2);
-              4 :  Lex2[i].Color := GetColor(1);
-              14 : Lex2[i].Color := GetColor(7);
+              2 :  Lex2[i].Color := GetColor1(2);
+              4 :  Lex2[i].Color := GetColor1(1);
+              14 : Lex2[i].Color := GetColor1(7);
             else
-              Lex2[i].Color := GetColor(0);
+              Lex2[i].Color := GetColor1(0);
             end;
             break; // завершить чтение параметра в Lex
           end else
@@ -1166,7 +1178,7 @@ begin
     for i := 1 to memo.Count do
     begin
       s := memo.Strings[i-1];
-      Lex3[i].msg := ''; Lex3[i].Color := GetColor(0); c := ''; cl := false;
+      Lex3[i].msg := ''; Lex3[i].Color := GetColor1(0); c := ''; cl := false;
       j := 1;
       while j <= Length(s) do
       begin
@@ -1182,11 +1194,11 @@ begin
           begin
             j := StrToInt(c);
             case j of
-              2 :  Lex3[i].Color := GetColor(2);
-              4 :  Lex3[i].Color := GetColor(1);
-              14 : Lex3[i].Color := GetColor(7);
+              2 :  Lex3[i].Color := GetColor1(2);
+              4 :  Lex3[i].Color := GetColor1(1);
+              14 : Lex3[i].Color := GetColor1(7);
             else
-              Lex3[i].Color := GetColor(0);
+              Lex3[i].Color := GetColor1(0);
             end;
             break; // завершить чтение параметра в Lex
           end else

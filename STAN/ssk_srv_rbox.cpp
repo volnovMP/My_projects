@@ -65,7 +65,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	: TForm(Owner)
 {
 	unsigned int i,j,k,l,fu,opn_fil,jj;
-
+ 	unsigned char konvert_kom[28];
 	cikl_marsh = 0;
 	POVTOR_OTKR = 0;
 	DEL_TRASS_MARSH = 0;
@@ -79,9 +79,9 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 
 	KOL_STR[0] = 3; //----------------------------------------------- число объектов стрелок
 	KOL_SIG[0] = 5; //---------------------------------------------- число объектов сигналов
-	KOL_DOP[0] = 15;//---------------------------------------- число дополнительных объектов
-	KOL_SP[0] = 5; //----------------------------------------------------- число объектов СП
-	KOL_PUT[0] = 3;//-------------------------------------------------- число объектов путей
+	KOL_DOP[0] = 12;//---------------------------------------- число дополнительных объектов
+	KOL_SP[0] = 9; //----------------------------------------------------- число объектов СП
+	KOL_PUT[0] = 1;//-------------------------------------------------- число объектов путей
 	KOL_KONT[0]=5; //-------------------------------------------- число объектов контроллера
 
 	portA = ""; //-------------- обнуление переменной слежения за портом А кнопочной станции
@@ -101,7 +101,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	InitializeCriticalSection(&NOM_PACKET_ZAP);
 	FILE *fai;
 
-#ifdef RBOX
+#if RBOX == 1
 	Button4->Visible = false;
 	Button5->Visible = false;
 #endif
@@ -211,7 +211,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	while(fu!='\n')fu=fgetc(fai);
 	fscanf(fai,"%x",&PRT4);     //-------------------------------- порт канала обмена с ПЭВМ
 
-#ifdef RBOX
+#if RBOX == 1
 	fu=0;
 	while(fu!='\n')fu=fgetc(fai);
 	fscanf(fai,"%x",&PRT5);     //------------------------- порт A анализа кнопочной станции
@@ -232,7 +232,7 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	for(i=0;i<Nst;i++)
 	LIN_PZU=LIN_PZU +KOL_STR[i] +KOL_SIG[i] +KOL_DOP[i] +KOL_SP[i] +KOL_PUT[i] +KOL_KONT[i];
 
-  KOL_VO = LIN_PZU * 5 + 10;
+  KOL_VO = LIN_PZU * 5 + 25;
 
 #ifdef KOL_AVTOD
  //--------------------------------------------- заполнение массива маршрутов автодействия
@@ -257,13 +257,13 @@ __fastcall TStancia::TStancia(TComponent* Owner)
   KOL_ARM = KOL_VO;
   KOL_SERV = KOL_VO;
 
-	BD_OSN_BYT = new sp34[KOL_VO];
+	BD_OSN_BYT = new sp34[210];
+
 	ZeroMemory(BD_OSN_BYT,KOL_VO);
 	i=1;
 	do
-	{
+	{ if(i >= KOL_VO)KOL_VO = i;
 		read(opn_fil, &BD_OSN_BYT[i++],34);
-    if(i >= KOL_VO)break;
 	} while (!eof(opn_fil));
 	close(opn_fil);
 
@@ -281,13 +281,14 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 	char tmp[22];
 	do
 	{
+    if(i > KOL_VO)KOL_VO = i;;
 		read(opn_fil,&tmp,22);
 		tmp[20]=0;
 		tmp[21]=0;
 		for(j=0;j<22;j++)if(tmp[j]==0x20)tmp[j]=0;
 		PAKO[i++] = tmp;
-    if(i>=KOL_VO)break;
 	} while (!eof(opn_fil));
+
 	close(opn_fil);
 
 	//----------------------------------------------- заполнение массива стрелочных объектов
@@ -527,15 +528,79 @@ __fastcall TStancia::TStancia(TComponent* Owner)
 
 	//-------------------------------  инициализация параметров для работы с портом осн/рез.
 	STATUS=0;  SHN=0;  CIKL=0;
-
+  StatusAndKOK[0] = 0xFF;
+  StatusAndKOK[1] = 0xF;
+  StatusAndKOK[2] = 0;
 
 	// DC_PORT->ComNumber=PRT3;
 	// DC_PORT->Open();
+#ifdef  DC_COM
+  if(PRT3!=0) //-------------------------------------------- если существует ДЦ на станции
+  {
+  	Port_DC->ComNumber = PRT3;
+    for(k = 0; k<Nst; k++)
+    {
+    	for(i = 0; i <30; i++)
+    	{
+      	noviznaDC[k*30+i] = 0;
+      	peredalDC[k*30+i] = 0;
+      	priniatoDC[k*30+i] = 0;
+    		for(j = 0; j < 11; j++)VVOD_DC[k*30+i][j] = 0x40;
+    	}
+    	ukaz_DC[k] = 0;
+
+    }
+    strcpy(NameTmp,Put.c_str());
+		strcat(NameTmp,"dat\\OUTDC.str"); //------------------- файл с шаблонами вывода данных
+		opn_fil = open(NameTmp,O_BINARY);
+   	i=0;
+
+    //----------------------------------------- загрузка массива шаблонов сообщений для ДЦ
+		do
+		{
+			read(opn_fil, &konvert_kom,13);
+      for(j=0;j<11;j++)VVOD_DC[i][j] = konvert_kom[j];
+      i++;
+    } while (!eof(opn_fil));
+   	close(opn_fil);
+
+
+		strcpy(NameTmp,Put.c_str());
+		strcat(NameTmp,"dat\\COMDC.str"); //------------------------------ файл с командами ДЦ
+		opn_fil = open(NameTmp,O_BINARY);
+		i=0;
+
+    //--------------- загрузка массива конвертации команд ДЦ и вычисление контрольных сумм
+		do
+		{
+			read(opn_fil, &konvert_kom,28);
+      for(j=0;j<11;j++)KOMANDA_DC[i].Com_DC[j] = konvert_kom[j];
+      for(j=11;j<23;j++)KOMANDA_DC[i].Com_ARM[j-11] = konvert_kom[j];
+      KOMANDA_DC[i].Otv = konvert_kom[24];
+      KOMANDA_DC[i].KS_DC = CalculateCRC8(&konvert_kom[0],11);
+			KOMANDA_DC[i].KS_ARM = CalculateCRC8(&konvert_kom[11],12);
+      i++;
+ 			if(i >= DC_COM)break;
+		} while (!eof(opn_fil));
+   	close(opn_fil);
+
+    strcpy(NameTmp,Put.c_str());
+		strcat(NameTmp,"dat\\CONVTS.str"); //------------------ файл конвертации вывода данных
+    fai = fopen(NameTmp,"r");
+    i = 0;
+    int a1,a2,a3,a4,a5;
+    //--------------------------------------------- загрузка массива конвертации сообщений
+		for(k = 0; k<30; k++)
+    for(i = 0; i <5; i++)
+    for(j = 0; j <5; j++)
+		fscanf(fai, "%d" , &OUT_DC[k].paramDC[i][j]);
+   	fclose(fai);
+  }
+  #endif
+
 	FIXIR_TIME = 0;
 	CommPortOpt1->ComNumber = PRT1;
-	ArmPort1->ComNumber = PRT4;
-  if (PRT3!=0)Port_DC->ComNumber = PRT3;
-
+	if(PRT4!=0) ArmPort1->ComNumber = PRT4;
 	byla_trb = 0; //--------------------------- изначально считается рабочее состоение трубы
 }
 //========================================================================================
@@ -713,32 +778,37 @@ int __fastcall TStancia::diagnoze(int st,int kan)
 			kod = REG[st][0][7];
 		}
 		strk = TAKE_STROKA(gru,podgru-48,st);
-		if(strk == -1) error_diag = -1;
-		//--------------------------------------------------------- нахождение объекта сервера
-		switch(gru)
-		{
-		case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
-		case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
-		case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
-		default: error_diag = -1; break;
-		}
-		nom_serv = nm[bt*2] * 256 + nm[bt*2+1];
-		if(nom_serv > (int)KOL_VO)error_diag = -1;
-
-		//----------------------------------------------------------- нахождение объекта АРМов
-		for(i = 0; i < 2; i++)NOM_ARM[i] = OUT_OB[nom_serv].byt[i];
-		DIAGNOZ[0] = NOM_ARM[1];
-		DIAGNOZ[1] = NOM_ARM[0]|0x20;
-		switch(kod)
-		{
-			case 'P': DIAGNOZ[2] = 1; break;
-			case 'Z': DIAGNOZ[2] = 1; break;
-			case 'S': DIAGNOZ[2] = 2; break;
-			case 'T': DIAGNOZ[2] = 4; break;
+		if(strk < 0) error_diag = -1;
+    else
+    {
+			//--------------------------------------------------------- нахождение объекта сервера
+			switch(gru)
+			{
+			case 'E': for(i = 0; i < 10; i++) nm[i] = SPSIG[strk].byt[i]; break;
+			case 'F': for(i = 0; i < 15; i++) nm[i] = SPSPU[strk].byt[i]; break;
+			case 'I': for(i = 0; i < 15; i++) nm[i] = SPPUT[strk].byt[i]; break;
 			default: error_diag = -1; break;
+			}
+			nom_serv = nm[bt*2] * 256 + nm[bt*2+1];
+			if(nom_serv > (int)KOL_VO)error_diag = -1;
+  	  else
+    	{
+				//--------------------------------------------------------- нахождение объекта АРМов
+				for(i = 0; i < 2; i++)NOM_ARM[i] = OUT_OB[nom_serv].byt[i];
+				DIAGNOZ[0] = NOM_ARM[1];
+				DIAGNOZ[1] = NOM_ARM[0]|0x20;
+				switch(kod)
+				{
+					case 'P': DIAGNOZ[2] = 1; break;
+					case 'Z': DIAGNOZ[2] = 1; break;
+					case 'S': DIAGNOZ[2] = 2; break;
+					case 'T': DIAGNOZ[2] = 4; break;
+					default: error_diag = -1; break;
+				}
+				break;
+    	}
 		}
-		break;
-	}
+  }
 	return(error_diag);
 }
 //========================================================================================
@@ -1167,6 +1237,8 @@ void __fastcall TStancia::ZAPOLNI_FR3(unsigned char GRP,int STRKA,int sob,unsign
 					for(j=0;j<5;j++)tester =tester + (FR3[num[i]].byt[j*2+1]<<j);//заполнить текущее
 					if((tester>7)&&(tester<11))PROCESS=0x40; //-- если в норме, то управление от УВК
 					else PROCESS=0; //----------------------------------- иначе управление от пульта
+          if(tester == 0xA)Upr_DC = true;
+          else Upr_DC = false;
 				}
 				if(BD_OSN[0]==0x38F) //---------------------------- если этот объект является PAMX
 				{
@@ -1480,13 +1552,21 @@ void __fastcall TStancia::ARM_OUT(void)
 			BUF_OUT_ARM[n_out++]=OUT_OB[jf].byt[0]|0x80;//---------------------- данного объекта
 			BUF_OUT_ARM[n_out++]=OUT_BYTE;  //--------------- записать в буфер состояние объекта
     }
-		NOVIZNA_FR4[i] = NOVIZNA_FR4[i]+0x1000; //-------- увеличить признак новизны ограничений
+		NOVIZNA_FR4[i] = NOVIZNA_FR4[i]+0x1000; //------ увеличить признак новизны ограничений
 		if((NOVIZNA_FR4[i]&0x3000)==0x3000)NOVIZNA_FR4[i]=0;//- 3 передачи,  убрать из новизны
 		if(n_out>64)break;//------------------------------------ заполнен буфер передачи в АРМ
 	}
  	if(i==10)new_fr4=0; //-------------------------- заполнен перечень номеров, начать снова
 
+
   if(n_out<65)//------------------------------------ если в буфере передачи осталось место
+  {
+ 	  BUF_OUT_ARM[n_out++] = StatusAndKOK[0];
+		BUF_OUT_ARM[n_out++] = StatusAndKOK[1];
+		BUF_OUT_ARM[n_out++] = StatusAndKOK[2];
+    OldStatusAndKOK = StatusAndKOK[2];
+  }
+	if(n_out<65)//------------------------------------ если в буфере передачи осталось место
   {
   	if(((OUT_OB[povtor_fr4].byt[1]!=32)||(OUT_OB[povtor_fr4].byt[0]!=32)) &&
    	((OUT_OB[povtor_fr4].byt[1]!=0)||(OUT_OB[povtor_fr4].byt[0]!=0)))
@@ -1595,8 +1675,8 @@ void __fastcall TStancia::ARM_OUT(void)
 	SOST = SOST | 1;//--------------------- установить признак работающего сервера всегда(1)
 	j=0;
 
-	if(STATUS==1)SOST=SOST|0x80;  //------------------------------------------- АРМ основной
-	else SOST=SOST&0x7f; //--------------------------------------------------- АРМ резервный
+	if(STATUS == 1)SOST = SOST|0x80;  //--------------------------------------- АРМ основной
+	else SOST = SOST & 0x7f; //----------------------------------------------- АРМ резервный
 	/*
 	if(KONFIG_ARM==0xFF)SOST=SOST|0x80;  // АРМ основной
 	else SOST=SOST&0x7f; // АРМ резервный
@@ -1609,47 +1689,30 @@ void __fastcall TStancia::ARM_OUT(void)
 	if((KNOPKA_OK0==1) && (KOK_OT_TUMS == 1))
 	{
 		KNOPKA_OK=1;
-		SOST=SOST|0x20; //----------------------------------------- добавить нажатие кнопки ОК
+		SOST = SOST|0x20; //----------------------------------------- добавить нажатие кнопки ОК
 	}
 	else
 	{
-		KNOPKA_OK=0;
+		KNOPKA_OK = 0;
 		SOST = SOST & 0xDF; //--------------------------------------- убрать нажатие кнопки ОК
 	}
 	SOST = SOST|PROCESS; //-------------- добавить состояние режима управления УВК или пульт
 //  SOST=SOST&0xeF;
-	BUF_OUT_ARM[2]=SOST;
-	BUF_OUT_ARM[1]=ZAGOL;
-	BUF_OUT_ARM[3]=SVAZ;
+	BUF_OUT_ARM[2] = SOST;
+	BUF_OUT_ARM[1] = ZAGOL;
+	BUF_OUT_ARM[3] = SVAZ;
 	CRC=CalculateCRC16(&BUF_OUT_ARM[1],66); //------------------------------- подсчитать CRC
 
-	PAKETs[N_PAKET].KS_OSN=CRC; //----------------------- запомнить контрольную сумму пакета
-	PAKETs[N_PAKET].ARM_OSN_KAN=0x1f; //--------------------- заполнить биты передауи в АРМы
+	PAKETs[N_PAKET].KS_OSN = CRC; //--------------------- запомнить контрольную сумму пакета
+	PAKETs[N_PAKET].ARM_OSN_KAN = 0x1f; //------------------- заполнить биты передауи в АРМы
 
-	BUF_OUT_ARM[68]=(CRC&0xFF00)>>8;
-	BUF_OUT_ARM[67]=CRC&0xFF;
-	BUF_OUT_ARM[0]=0xAA;
-	BUF_OUT_ARM[69]=0x55;
+	BUF_OUT_ARM[68] = (CRC&0xFF00)>>8;
+	BUF_OUT_ARM[67] = CRC&0xFF;
+	BUF_OUT_ARM[0] = 0xAA;
+	BUF_OUT_ARM[69] = 0x55;
 
 	N_PAKET++;
 	if(N_PAKET==32) N_PAKET=0;
-// if(BUF_OUT_DC[0]==0)
-// for(i=0;i<70;i++)BUF_OUT_DC[i]=BUF_OUT_ARM[i];
-/*
-	for(i=0;i<70;i++)
-	{
-    if((BUF_OUT_ARM[i] == 0xbc) && (BUF_OUT_ARM[i+1] == 0xb1))
-		{
-			i = 0;
-			break;
-		}
-		if((BUF_OUT_ARM[i] == 0xb1) && (BUF_OUT_ARM[i+1] == 0xbc))
-		{
-			i = 0;
-			break;
-		}
-	}
-  */
 	for(i=0;i<28;i++)BUF_IN_ARM[i] = 0;
 	return;
 }
@@ -2535,35 +2598,35 @@ void __fastcall TStancia::ZAGRUZ_KOM_UVK(char tms,char grp,char pdgrp,char bt,ch
 #ifdef ORSK
 	switch(tms)
 	{
-		case 1: adr_kom='G';break;
-		case 2: adr_kom='K';break;
-		case 3: adr_kom='M';break;
-		case 4: adr_kom='N';break;
-		case 5: adr_kom='S';break;
-		case 6: adr_kom='U';break;
-		case 7: adr_kom='V';break;
-		case 8: adr_kom='Y';break;
-		default:return;
+		case 1 : adr_kom = 'G'; break;
+		case 2 : adr_kom = 'K'; break;
+		case 3 : adr_kom = 'M'; break;
+		case 4 : adr_kom = 'N'; break;
+		case 5 : adr_kom = 'S'; break;
+		case 6 : adr_kom = 'U'; break;
+		case 7 : adr_kom = 'V'; break;
+		case 8 : adr_kom = 'Y'; break;
+		default : return;
 	}
 #else
-  adr_kom=0x40;
-  if(tms==1)adr_kom=adr_kom|1;
-  if(tms==2)adr_kom=adr_kom|2;
-	if(STATUS==1)
+  adr_kom = 0x40;
+  if(tms == 1)adr_kom = adr_kom | 1;
+  if(tms == 2)adr_kom = adr_kom | 2;
+	if(STATUS == 1)
   {
-		if(NUM_ARM==1)adr_kom=adr_kom|4;
-    if(NUM_ARM==2)adr_kom=adr_kom|8;
+		if(NUM_ARM == 1) adr_kom = adr_kom | 4;
+    if(NUM_ARM == 2) adr_kom = adr_kom | 8;
   }
 #endif
-	KOMANDA_ST[tms-1][0]='(';
-	KOMANDA_ST[tms-1][1]=adr_kom; //------------------------------------- сформировать адрес
-	KOMANDA_ST[tms-1][2]=grp;
-	KOMANDA_ST[tms-1][3]=pdgrp;
-	for(j=4;j<10;j++)KOMANDA_ST[tms-1][j]='|';
-	KOMANDA_ST[tms-1][3+bt]=kd_cmd;
-	KOMANDA_ST[tms-1][10]=check_summ(KOMANDA_ST[tms-1]);
-	KOMANDA_ST[tms-1][11]=')';
-	KOMANDA_ST[tms-1][12]=0;
+	KOMANDA_ST[tms-1][0] = '(';
+	KOMANDA_ST[tms-1][1] = adr_kom; //----------------------------------- сформировать адрес
+	KOMANDA_ST[tms-1][2] = grp;
+	KOMANDA_ST[tms-1][3] = pdgrp;
+	for(j=4;j<10;j++)KOMANDA_ST[tms-1][j] = '|';
+	KOMANDA_ST[tms-1][3+bt] = kd_cmd;
+	KOMANDA_ST[tms-1][10] = check_summ(KOMANDA_ST[tms-1]);
+	KOMANDA_ST[tms-1][11] = ')';
+	KOMANDA_ST[tms-1][12] = 0;
 	return;
 }
 /****************************************************\
@@ -5132,8 +5195,12 @@ void __fastcall TStancia::FormClose(TObject *Sender, TCloseAction &Action)
   Sleep(1000);
 	ArmPort1->Open = false;
 	CommPortOpt1->Open = false;
+
+#ifdef DC_COM
   Port_DC->Open = false;
-#ifdef RBOX
+#endif
+
+#if RBOX == 1
 	PORTA->ClosePort();
 	PORTB->ClosePort();
 	delete PORTA;
@@ -5179,8 +5246,14 @@ void __fastcall TStancia::FormClose(TObject *Sender, TCloseAction &Action)
 void __fastcall TStancia::TimerDCTimer(TObject *Sender)
 {
 	int i,j,k;
+  char Packet_DC[11];
 	//DC_PORT->WriteBuffer(BUF_OUT_DC,70);
 	//for(i=0;i<70;i++)BUF_OUT_DC[i]=0;
+
+#if RBOX != 1
+  if((!Upr_DC)&&(KNOPKA_OK_ARM == 0))KNOPKA_OK0 = 0;
+#endif
+
 	if(zagruzka!=0)//-------------------------------- если загрузка данных из ТУМС выполнена
 	{
 		if(BUF_IN_SOSED[0] == 0xAA)
@@ -5212,8 +5285,50 @@ void __fastcall TStancia::TimerDCTimer(TObject *Sender)
 		}
 		OLD_STATUS = STATUS;
 	}
+
+  for(i = 0; i < 30; i++)
+  {
+  	if((noviznaDC[i] > 0) && (peredalDC[i] == 0))
+    {
+    	for(j=0;j<11;j++)Packet_DC[j] = VVOD_DC[i][j];
+
+     	Packet_DC[9] = check_summ(VVOD_DC[i]);
+      Lb2->Caption = Packet_DC;
+      Port_DC->PutBlock(Packet_DC,11);
+      peredalDC[i]++;
+      return;
+    }
+  }
+
+  for(i= 0; i < 30; i++)
+  {
+  	if((priniatoDC[i] == 0) && (peredalDC[i] == 0))
+    {
+    	for(j=0;j<11;j++)Packet_DC[j] = VVOD_DC[i][j];
+
+     	Packet_DC[9] = check_summ(VVOD_DC[i]);
+      
+      Lb2->Caption = Packet_DC;
+      Port_DC->PutBlock(Packet_DC,11);
+      peredalDC[i]++;
+      return;
+    }
+  }
+
+  i = ukaz_DC[0];
+  for(j = 0; j < 11; j++) Packet_DC[j] = VVOD_DC[i][j];
+  Packet_DC[9] = check_summ(VVOD_DC[i]);
+  if(Norma_DC > 0)Packet_DC[10] = '+';
+  Lb2->Caption = Packet_DC;
+  Port_DC->PutBlock(Packet_DC,11);
+  peredalDC[i]++;
+  if(peredalDC[i] > 3)peredalDC[i] = 3;
+  Norma_DC--;
+  if(Norma_DC<0)Norma_DC = 0;
+  ukaz_DC[0]++;
+  if(ukaz_DC[0]>=30)ukaz_DC[0] = 0;
 }
-//===============================================================================================
+//========================================================================================
 void __fastcall TStancia::FormActivate(TObject *Sender)
 {
 	int k;
@@ -5226,6 +5341,8 @@ void __fastcall TStancia::FormActivate(TObject *Sender)
 	{
 // 		Application->CreateForm(__classid(TVVOD_DAY), &VVOD_DAY);
 		VVOD_DAY = new TVVOD_DAY(this);
+    VVOD_DAY->Top = Screen->Height / 2 - VVOD_DAY->Height/2;
+    VVOD_DAY->Left = Screen->Width / 2 - VVOD_DAY->Width/2;
 		VVOD_DAY->ShowModal();
 		delete VVOD_DAY;
 		Vrem = Date();
@@ -5247,13 +5364,15 @@ void __fastcall TStancia::FormActivate(TObject *Sender)
 
 	for(k=0;k<Nst;k++)Norma_TS[k] = true;
 	for(k=0;k<Nst;k++)Norma_TU[k] = true;
+
 	Norma_Sosed = false;
 	Norma_Podkl = false;
+
 	InitializeCriticalSection(&NOM_PACKET_ZAP);
-  TimerKOK->Enabled = true; //-------------------- запустить опрос КОК
+
+  TimerKOK->Enabled = true; //---------------------------------------- запустить опрос КОК
 	Timer250->Enabled = true;
 	TimerMain->Enabled = true;
-
 }
 //========================================================================================
 //------------------------------------- процедура внесения номера объекта в список новизны
@@ -5307,7 +5426,8 @@ void __fastcall TStancia::TimerKOKTimer(TObject *Sender)
 			KNOPKA_OK0 = 0;
 		}
 #endif
-#ifdef RBOX
+
+#if RBOX == 1
 
 		DELTA_B = T_TIME - TimerB;
 		DELTA_A = T_TIME - TimerA;
@@ -5321,19 +5441,43 @@ void __fastcall TStancia::TimerKOKTimer(TObject *Sender)
     }
 
 		if(portA.c_str()[0] == 'B')statOSN++;
+    else
+    	if(portA.c_str()[0] == 'A')statREZ++;
+      else StatCIAN++;
 
-		if(portA.c_str()[0] == 'A')statREZ++;
+    if (statREZ > 3) {statREZ = 3; statOSN=0; STATUS = 0; StatCIAN = 0;}
 
-		if (statREZ > 3) {statREZ = 3; statOSN=0; STATUS = 0;}
+    if (statOSN > 3) { statOSN = 3; statREZ = 0; STATUS = 1; StatCIAN = 0;}
 
-    if (statOSN > 3) { statOSN = 3; statREZ = 0; STATUS = 1; }
+    if (statOSN > statREZ) STATUS = 1;  else STATUS = 0;
+
+		if(portB.c_str()[0] == 'B')
+    {
+    	KNOPKA_OK0 = 1; //------------------------------------ определение нажатия кнопки ОК
+      OK_CIAN = 0;
+    }
+    else
+   		if(portB.c_str()[0] == 'A')
+      {
+      	KNOPKA_OK0 = 0;
+        OK_CIAN = 0;
+      }
+      else OK_CIAN++;
+
+    if (StatCIAN >= 3)
+    {
+    	StatCIAN = 3;
+      StatusAndKOK[2] = StatusAndKOK[2] | 0x1;
+    }
+    else StatusAndKOK[2] = StatusAndKOK[2] & 0xFE;
 
 
-    if (statOSN > statREZ) STATUS = 1;
-    else STATUS = 0;
-
-		if(portB.c_str()[0] == 'B')KNOPKA_OK0 = 1; //----------- определение нажатия кнопки ОК
-		else	KNOPKA_OK0 = 0;
+    if(OK_CIAN >= 3)
+    {
+    	OK_CIAN = 3;
+      StatusAndKOK[2] = StatusAndKOK[2] |0x2;
+    }
+    else StatusAndKOK[2] = StatusAndKOK[2] & 0xFD;
 
 #endif
 	}
@@ -5453,6 +5597,8 @@ void __fastcall TStancia::Serv1ReadPacket(TObject *Sender, BYTE *Packet, int &Si
 //========================================================================================
 void __fastcall TStancia::FormCreate(TObject *Sender)
 {
+	int A;
+  A = 0;
 	KNOPKA_OK_N = 0;
 	TextHintTek="";
 	Serv1->Open();
@@ -5467,29 +5613,33 @@ void __fastcall TStancia::FormCreate(TObject *Sender)
 		if(!ArmPort1->FOpen)exit;
 	}
 
-  if(Port_DC->ComNumber != 0)
+  if(PRT3 != 0)
   {
+    Port_DC->ComNumber = PRT3;
     Port_DC->Open = true;
     if(!Port_DC->FOpen)exit;
   }
-#ifdef RBOX
-//	TCom_Port *PORTA = new TCom_Port(this);
-//	TCom_Port *PORTB = new TCom_Port(this);
-	if((PRT5!=0) & (PRT6!=0))
-	{
-		PORTA = new TCom_Port(this);
-		PORTB = new TCom_Port(this);
-		PORTA->PortName = "COM" + IntToStr(PRT5);
-		PORTB->PortName = "COM" + IntToStr(PRT6);
 
-		PORTA->OpenPort();
-		if(!PORTA->PortIsOpen)portA = "0000";
+  A = RBOX;
 
-		PORTB->OpenPort();
-		if(!PORTB->PortIsOpen)portB = "0000";
+	if(RBOX == 1)
+  {
+		//	TCom_Port *PORTA = new TCom_Port(this);
+		//	TCom_Port *PORTB = new TCom_Port(this);
+		if((PRT5!=0) & (PRT6!=0))
+		{
+			PORTA = new TCom_Port(this);
+			PORTB = new TCom_Port(this);
+			PORTA->PortName = "COM" + IntToStr(PRT5);
+			PORTB->PortName = "COM" + IntToStr(PRT6);
+
+			PORTA->OpenPort();
+			if(!PORTA->PortIsOpen)portA = "0000";
+
+			PORTB->OpenPort();
+			if(!PORTB->PortIsOpen)portB = "0000";
+		}
 	}
-#endif
-
 }
 //---------------------------------------------------------------------------
 
@@ -5591,7 +5741,9 @@ void __fastcall TStancia::CommPortOpt1DataReceivedOpt(TObject *Sender, BYTE *Pac
 
 void __fastcall TStancia::Timer250Timer(TObject *Sender)
 {
-	int i_st,ik,j,jj,ii,kk = -1,ijk,JJ[11],grup_test;
+	int i,i_st,ik,j,jj,ii,kk = -1,ijk,JJ[11],grup_test;
+  int soob,bait,bit;
+  unsigned char maska,maska1;
 	unsigned int ij,num[15];
 	Word Hrs,Min,Sec,Ms;
 	char BB[3];
@@ -5599,7 +5751,8 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 	Zagol_UVK, //------------------------------------------------- заголовок принятый от УВК
 	novizna,MYTHX,GRUPPA,STROKA,PODGR;
 	char Soob[] = "         ";
-#ifdef RBOX
+
+#if RBOX == 1
 		//----------------------------- анализ состояния кнопки "ОК" и переключателя "Осн/Рез"
 		PORTA->StrFromComm(&portA); //----------------------------- принять символы из порта А
 		PORTB->StrFromComm(&portB); //----------------------------- принять символы из порта B
@@ -5608,10 +5761,11 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		PORTB->StrToComm(OutPortB);//------------------------ выдать в порт B буквы "BBBBBBBB"
 
 		//----------------------------- обновление таймеров приема данных от кнопочной станции
-		if((portA.c_str()[0] == 'А')||(portA.c_str()[0] == 'B'))TimerA = T_TIME;
+		if((portA.c_str()[0] == 'A')||(portA.c_str()[0] == 'B')) TimerA = T_TIME;
 
-		if((portB.c_str()[0] == 'А')||(portB.c_str()[0] == 'B'))TimerB = T_TIME;
+		if((portB.c_str()[0] == 'A')||(portB.c_str()[0] == 'B')) TimerB = T_TIME;
 #endif
+
 	cikl_marsh++;
 
 	if(cikl_marsh>3)cikl_marsh=0;
@@ -5641,9 +5795,14 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		Timer250->Enabled = true;
 	}
 	*/
+  double DEL_KOK = (Timer_KOK_DC - Time_tek);
+
+  if((DEL_KOK < 0.3/86400) && (DEL_KOK>0.1/86400))
+  {
+  	 if(Upr_DC)KNOPKA_OK0 = 0;
+     Timer_KOK_DC = 0;
+  }
 	Time_tek = Time();
-
-
 	for(i_st = 0; i_st < Nst; i_st++)
 	{
     if(!Norma_TS[i_st])
@@ -5670,6 +5829,7 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 			Norma_TU[i_st] = false;
 		}
 	}
+
 	Zagol = 0;
 
 	if (STATUS == 1) //------------------------------ подготовка заголовка для основного АРМ
@@ -5677,6 +5837,7 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		if(NUM_ARM == 1) Zagol = Zagol | 0x04;
 		if(NUM_ARM == 2) Zagol = Zagol | 0x08;
 	}
+
 	for(i_st = 0; i_st < Nst; i_st++) //----------------- обработка вновь принятых сообщений
 	{
 		while(Last_Soob_TUMS[i_st] != First_Soob_TUMS[i_st])
@@ -5724,9 +5885,11 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 			else if(Soob[2]>=48)kk = Soob[2]-48;
 
 			if(kk<0)return;
+      if(kk==45)kk=44;
+
 
 			for(ij=0;ij<18;ij++)
-			Stroki_TUMS[i_st][kk][ij]=Soob_TUMS[i_st][First_Soob_TUMS[i_st]][ij];
+			Stroki_TUMS[i_st][kk][ij] = Soob_TUMS[i_st][First_Soob_TUMS[i_st]][ij];
 
 			for(ij=0;ij<8;ij++)Kvit_For_TUMS[i_st][ij] = Stroki_TUMS[i_st][kk][ij];
 
@@ -5749,16 +5912,74 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 				if(VVOD[i_st][kk][j]!=Stroki_TUMS[i_st][kk][j+10])novizna=novizna|(1<<j);
 				VVOD[i_st][kk][j] = Stroki_TUMS[i_st][kk][j+10];//- записать данные в массив ввода
 			}
+#ifdef DC_COM
+      if(kk<30) //--------------------------------- если попали в область сообщений для ДЦ
+      {
+      	for(i = 0; i<5; i++) //----------------- пройти по информационным байтам сообщения
+        {
+        	for(j= 0;j<5;j++) //----------------- пройти по битам очередного байта сообщения
+          {
+            if(OUT_DC[kk].paramDC[i][j] == 0)break; //- если принятый байт не используется
 
+        		if((OUT_DC[kk].paramDC[i][j] <= 127) && (OUT_DC[kk].paramDC[i][j] > 0))
+            {
+              maska = OUT_DC[kk].paramDC[i][j] & 0xFF;   //- биты, которые надо воспринять
+              maska1 = ~maska;   //------------------ биты, которые не надо трогать
+              VVOD_DC[kk][i+4] = VVOD_DC[kk][i+4] & maska1; //-------------- убрать лишнее
+              maska =  VVOD[i_st][kk][i] & maska; //----- использовать байт данных для ДЦ
+              VVOD_DC[kk][i+4] = VVOD_DC[kk][i+4] | maska;
+              VVOD_DC[kk][i+4] = VVOD_DC[kk][i+4] & 0x7F;
+              if(novizna != 0)
+              noviznaDC[kk] = novizna;
+              break;
+            }
+
+            if(OUT_DC[kk].paramDC[i][j] > 273) // если надо переместить бит в новый формат
+            { //--------------------- бит нового формата в сообщении kk, байте i, бите 4-j
+            	soob = ((OUT_DC[kk].paramDC[i][j] & 0xFF00)>>8) - 1;//определяем № сообщения
+              bait = ((OUT_DC[kk].paramDC[i][j] & 0xF0)>>4) - 1; //---- определяем № байта
+              bit =  (OUT_DC[kk].paramDC[i][j] & 0xF) - 1; //------- определяем номер бита
+
+              maska = 0x10 >> j; //------------ исследуемый бит в сообщении нового формата
+              maska = maska & VVOD[i_st][kk][i]; //-------- вносим в маску исследуемый бит
+
+							if(maska == 0)
+              {
+              	maska = ~(0x1 << bit);	//---------------- если бит нового формата сброшен
+								VVOD_DC[soob][bait+4] = VVOD_DC[soob][bait+4] & maska;
+              }
+            	else //---------------------------------- если бит нового формата установлен
+              {
+              	maska = 0x1 << bit;
+								VVOD_DC[soob][bait+4] = VVOD_DC[soob][bait+4] | maska;
+              }
+              VVOD_DC[soob][bait+4] = VVOD_DC[soob][bait+4] | 0x40;
+							VVOD_DC[soob][bait+4] = VVOD_DC[soob][bait+4] & 0x5F;
+              if(novizna != 0)noviznaDC[soob] = novizna;
+            }
+
+            if(OUT_DC[kk].paramDC[i][j] < 0 )continue;
+            if(novizna != 0)peredalDC[i_st*30 + kk] = 0; //----- обнулить признак передачи
+
+          }
+        }
+      /*
+       	for(j=4;j<9;j++)
+        {
+        	VVOD_DC[kk][j] = VVOD[i_st][kk][j-4]; //------------------- запись данных для ДЦ
+        }
+        */
+      }
+#endif
 			MYTHX = Stroki_TUMS[i_st][kk][15]; //----------------------- выделить принятый MYTHX
 			GRUPPA = Stroki_TUMS[i_st][kk][8];
 			STROKA = TAKE_STROKA(GRUPPA,kk,i_st);
 
 			//--------------------------------------------------- ДИАГНОСТИКА СЦБ --------------
-			if(kk==45)
+			if(kk==44)
 			{
 				for(ij=0;ij<9;ij++)REG[i_st][0][ij+1] = Soob[ij];
-				if(diagnoze(i_st,0)== -1) { for(jj=0;jj<3;jj++)DIAGNOZ[jj]=0;	return;	}
+				if(diagnoze(i_st,0)== -1) { for(jj=0;jj<3;jj++)DIAGNOZ[jj]=0;}
 			}
 
 			if(kk == 44) //------------------------------------------------- сообщение о модулях
@@ -5898,10 +6119,10 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 		{
 			for(ij=0;ij<8;ij++)Komanda_For_TUMS[i_st][ij] = Kvit_For_TUMS[i_st][ij];
 			for(ijk=2;ijk<10;ijk++)
-				{
-					Komanda_For_TUMS[i_st][ijk+6]=KOMANDA_TUMS[i_st][ijk];
-					FIXATOR_KOM[i_st][ijk-2]=KOMANDA_TUMS[i_st][ijk];
-				}
+      {
+				Komanda_For_TUMS[i_st][ijk+6]=KOMANDA_TUMS[i_st][ijk];
+				FIXATOR_KOM[i_st][ijk-2]=KOMANDA_TUMS[i_st][ijk];
+			}
 			FIXATOR_KOM[i_st][ijk-2]=0;
 			Komanda_For_TUMS[i_st][7] = Kvit_For_TUMS[i_st][7]&0xF3;
 			Komanda_For_TUMS[i_st][7] = Kvit_For_TUMS[i_st][7]|Zagol;
@@ -5910,10 +6131,10 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 			Komanda_For_TUMS[i_st][17] = 0x29;
 
 			if(CommPortOpt1->GotovWrite)
-                        {
-                          CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
-                          Kvitancia.Arhiv = true;
-                        }
+      {
+      	CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
+        Kvitancia.Arhiv = true;
+      }
 
 			Kvitancia.Komanda_Time = T_TIME;
 			Kvitancia.Nom_Paket[0] = Komanda_For_TUMS[i_st][5];
@@ -5944,11 +6165,16 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 					Komanda_For_TUMS[i_st][0] = 0X28;
 					Komanda_For_TUMS[i_st][17] = 0x29;
 					if(CommPortOpt1->GotovWrite)
-                                        {
-                                          CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
-                                          Kvitancia.Arhiv = true;
-                                        }
-
+          {
+          	CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
+            Kvitancia.Arhiv = true;
+            if((Upr_DC)&&(KNOPKA_OK0 == 1)&&(Kon_otv))
+        		{
+            	Nach_otv = false;
+          		Kon_otv = false;
+              Timer_KOK_DC = Time_tek + 2.0/86400;
+          	}
+          }
 					Kvitancia.Komanda_Time = T_TIME;
 					Kvitancia.Nom_Paket[0] = Komanda_For_TUMS[i_st][5];
 					Kvitancia.Nom_Paket[1] = Komanda_For_TUMS[i_st][6];
@@ -6025,10 +6251,10 @@ void __fastcall TStancia::Timer250Timer(TObject *Sender)
 					Komanda_For_TUMS[i_st][17] = 0x29;
 
 					if(CommPortOpt1->GotovWrite)
-                                        {
-                                          CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
-                                          Kvitancia.Arhiv = true;
-                                        }
+          {
+          	CommPortOpt1->PutBlock(Komanda_For_TUMS[i_st],18);
+            Kvitancia.Arhiv = true;
+          }
 
 					Kvitancia.Komanda_Time = T_TIME;
 					Kvitancia.Nom_Paket[0] = Komanda_For_TUMS[i_st][5];
@@ -6177,7 +6403,7 @@ void __fastcall TStancia::Button4Click(TObject *Sender)
 	return;
 #endif
 
-#ifndef RBOX
+#if RBOX == 0
 	Button4->Enabled = true;
 	if(STATUS == 1)
 	{
@@ -6200,16 +6426,21 @@ void __fastcall TStancia::Button5Click(TObject *Sender)
 	return;
 #endif
 
-#ifndef RBOX
-	if(KNOPKA_OK0 == 1)
+#if RBOX == 0
+	if((KNOPKA_OK0 == 1)&&(!Upr_DC))
 	{
 		KNOPKA_OK0 = 0;
+    KNOPKA_OK_ARM = 0;
 		Button5->Caption = "ОК отжата";
 	}
 	else
 	{
-		KNOPKA_OK0 = 1;
-		Button5->Caption = "ОК нажата";
+		if(!Upr_DC)
+    {
+    	KNOPKA_OK0 = 1;
+      KNOPKA_OK_ARM = 1;
+			Button5->Caption = "ОК нажата";
+    }
 	}
 #endif
 }
@@ -6252,10 +6483,103 @@ bool __fastcall SetPrivilege(char* aPrivilegeName, bool aEnabled)
 void __fastcall TStancia::Port_DCDataReceived(TObject *Sender, char *Packet, int Count,
       int NPAK)
 {
+  unsigned char kod1,kod2,komanda_TUM[12],KS1_crc,KS2_crc;
+  int beg,end,i,j,k;
+#ifdef DC_COM
 	if (Otladka1->Otlad == 5)
   {
   	Lb1->Caption = Packet;
   }
+
+  if((Count==11) && (STATUS == 1) && Upr_DC)
+  {
+	  kod1 = Packet[2]&0xF;
+  	kod2 = Packet[3]&0xF;
+	  kod2 = (kod1<<4)|kod2;
+  	switch(kod2)	//---------------------------- переключатель по коду принятой команды ДЦ
+		{
+	  	case 0x13: beg =  94; end =  99; break;
+  	 	case 0x14: beg = 100; end = 107; break;
+  		case 0x15: beg = 108; end = 116; break;
+	  	case 0x16: beg = 117; end = 128; break;
+  		case 0x17: beg = 129; end = 133; break;
+  		case 0x23: beg = 134; end = 134; break;
+	  	case 0x24: beg = 135; end = 146; break;
+  		case 0x25: beg = 147; end = 158; break;
+  		case 0x26: beg = 159; end = 159; break;
+			case 0x30: beg =   1; end =   9; break;
+  		case 0x31: beg =  10; end =  19; break;
+  		case 0x32: beg =  20; end =  26; break;
+	  	case 0x53: beg =  27; end =  31; break;
+  		case 0x54: beg =  32; end =  39; break;
+  		case 0x55: beg =  40; end =  47; break;
+	  	case 0x56: beg =  48; end =  53; break;
+  		case 0x57: beg =  54; end =  58; break;
+  		case 0x58: beg =  59; end =  64; break;
+	  	case 0x59: beg =  65; end =  66; break;
+  		case 0x5A: beg =  67; end =  69; break;
+  		case 0x5B: beg =  70; end =  72; break;
+	  	case 0x5C: beg =  73; end =  73; break;
+  		case 0x69: beg =  74; end =  83; break;
+  		case 0x6A: beg =  84; end =  93; break;
+      case 0xC3: beg = 160; end = 160; break;
+	  }
+
+  	for(i = beg - 1; i < end; i++)
+	  {
+  		for(j=0;j<11;j++)
+    	{
+    		if(KOMANDA_DC[i].Com_DC[j] != Packet[j])break;
+	    }
+  	  if(j==11)break;
+  	}
+
+  	if(j==11)
+  	{
+    	if(KOMANDA_DC[i].Otv == '1')
+    	{
+    		Nach_otv = true;
+      	if(Upr_DC)KNOPKA_OK0 = 1;
+      	Sleep(190);
+      	Kon_otv = false;
+    	}
+    	else
+    	if((KOMANDA_DC[i].Otv == '2') && (Nach_otv))
+    	{
+    		Nach_otv = false;
+      	Kon_otv = true;
+    	}
+    	else
+    	{
+    		Kon_otv = false;
+      	KNOPKA_OK0 = 0;
+    	}
+
+   		KS1_crc = CalculateCRC8(Packet,11);
+    	if(KS1_crc == KOMANDA_DC[i].KS_DC)
+    	{
+    		for(k=0;k<12;k++)komanda_TUM[k] = KOMANDA_DC[i].Com_ARM[k];
+      	KS2_crc = CalculateCRC8(&komanda_TUM,12);
+      	if(KS2_crc == KOMANDA_DC[i].KS_ARM)
+      	{
+        	komanda_TUM[10] = KS2_crc;
+        	for(k=0;k<12;k++)
+        	{
+        		KOMANDA_ST[0][k] = komanda_TUM[k];
+          	komanda_TUM[k] = 0;
+        	}
+      		Timer_KOK_DC = Time_tek + 20.0/86400;
+        	k = 0;
+      	}
+    	}
+  	}
+	}
+  if(Count==6)
+  {
+  	i = Packet[3] - 48;
+    if(i<45)priniatoDC[i] = 1;
+		Norma_DC = 3;
+  }
+#endif  
 }
-//---------------------------------------------------------------------------
 

@@ -50,8 +50,10 @@ begin
     if reg.ValueExists('key') then
     begin
       keyvalue := reg.ReadString('key');
-      for i := 1 to Length(keyvalue) do begin keyvalue[i] := char(byte(keyvalue[i])-i) end;
-    end else keyvalue := '262793';
+      for i := 1 to Length(keyvalue) do
+      begin keyvalue[i] := char(byte(keyvalue[i])-i) end;
+    end
+    else keyvalue := '262793';
     Reg.CloseKey;
   end;
   reg.Free;
@@ -68,7 +70,9 @@ end;
 
 procedure TPasswordDlg.FormActivate(Sender: TObject);
 begin
-  Password.Text := ''; Left := PasswordPos.X; Top := PasswordPos.Y;
+  Password.Text := '';
+  Left := PasswordPos.X;
+  Top := PasswordPos.Y;
 end;
 
 end.

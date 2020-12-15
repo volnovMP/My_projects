@@ -14,8 +14,12 @@
 #include <Menus.hpp>
 #include <StdCtrls.hpp>
 #include "CommPort.h"
-#define RBOX
-//#define  Debug 1
+
+#define RBOX 1 //---------------------------------- установить 1 при Release / 0 при Debug
+
+//#define  Debug 1 //--------------------------------------- закомментировать при  Release
+
+//#define DC_COM 160
 
 //----------------------------------------------------------------------------------------
 
@@ -24,6 +28,23 @@
 
 //----------------------------------------------------------------------------------------
 _RTL_CRITICAL_SECTION NOM_PACKET_ZAP; //---------- критическая секция записи данных в порт
+
+#ifdef DC_COM
+struct DC
+{
+	unsigned char Com_DC[11];
+	unsigned char Com_ARM[12];
+  char Otv;
+	unsigned char KS_DC;
+	unsigned char KS_ARM;
+}KOMANDA_DC[DC_COM];
+
+struct SOOB_FOR_DC
+{
+	int paramDC[5][5];
+  char New;
+}OUT_DC[30];
+#endif
 
 struct PAKET
 {
@@ -64,7 +85,7 @@ struct sp4
 	unsigned char byt[4];
 }*OUT_OB,*INP_OB;
 
-#ifdef RBOX
+#if RBOX == 1
 typedef int (*TMyF1)(int);
 typedef int (*TMyF2)(int,int);
 typedef int (*TMyF3)(void);
@@ -217,6 +238,7 @@ public:		// User declarations
 	unsigned int fixir;
 	int STOP_OTVET,Otladka;
 	unsigned char DIAGNOZ[3];
+  unsigned char StatusAndKOK[3],OldStatusAndKOK;
 	unsigned char NEPAR_OBJ[3];
 	unsigned char ERR_PLAT[6];
 

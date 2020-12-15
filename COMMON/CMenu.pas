@@ -1315,7 +1315,7 @@ begin
         if i = j then //------- если это то табло, которое соответствует району управления
         //begin
         if(shortMsg[i] = '') and (msg <> '') then shortMsg[i] := msg;
-        //; shortMsgColor[i] := GetColor(7); end
+        //; shortMsgColor[i] := GetColor1(7); end
         //else shortMsg[i] := '';
       end;
     end;
@@ -1358,11 +1358,11 @@ begin
         if ObjZav[Index].ObjConstB[1] then
         begin //-------------------------------------------------- если инверсия состояния
           if ObjZav[Index].bParam[1]
-          then result := MsgList[ObjZav[Index].ObjConstI[2]];    //---- сообщить об отказе
+          then result := MsgList[ObjZav[Index].ObjConstI[2]]; //------- сообщить об отказе
         end else
         begin //--------------------------------------------------------- прямое состояние
           if not ObjZav[Index].bParam[1]
-          then result := MsgList[ObjZav[Index].ObjConstI[2]];   //----- сообщить об отказе
+          then result := MsgList[ObjZav[Index].ObjConstI[2]]; //------- сообщить об отказе
         end;
       end;
 
@@ -1374,7 +1374,8 @@ begin
       end;
     end;
   except
-    reportf('Ошибка [CMenu.CheckStartTrace]'); result := '#';
+    reportf('Ошибка [CMenu.CheckStartTrace]');
+    result := '#';
   end;
 end;
 
@@ -1397,7 +1398,7 @@ end;
 //----- Проверить условия перезамыкания поездного маршрута маневровым для протяжки состава
 function CheckProtag(Index : SmallInt) : Boolean;
 var
-  o : integer;
+  o,put : integer;
 begin
   try
     result := false;
@@ -1405,11 +1406,14 @@ begin
     if o < 1 then exit;
 
     if ObjZav[o].TypeObj <> 42 then exit; //-------------------- нет объекта перезамыкания
+    put :=  ObjZav[o].ObjConstI[7];
 
     if ObjZav[ObjZav[index].BaseObject].bParam[2]
     then exit; //--------------------------- перекрывная секция не замкнута - нет протяжки
-    if ObjZav[o].bParam[1] and //--------------------------- поездной маршрут приемп и ...
-    ObjZav[o].bParam[2] then //----------------------------------- разрешено перезамыкание
+
+    if ObjZav[o].bParam[1] and //--------------------------- поездной маршрут прием  и ...
+    ObjZav[o].bParam[2] and //----------------------------------- разрешено перезамыкание
+    not (ObjZav[put].bParam[1] or ObjZav[put].bParam[16]) then //--- занят путь прибытием  
     begin
       if ObjZav[Index].ObjConstB[17] then
       begin //------------------------------------------------- с возбуждением признака НМ
@@ -1660,26 +1664,26 @@ begin
           1 :
           begin
             color := 1;
-            msg := GetShortMsg(1,329, '',color) + ' '; //--- "поезд на предмаршрутном участке"
+            msg := GetShortMsg(1,329, '',color) + ' '; //"поезд на предмаршрутном участке"
             InsArcNewMsg(ID_Obj,329+$5000,1);
           end;
 
           2 :
           begin
             color := 1;
-            msg := GetShortMsg(1,330, '',color) + ' '; //------------------- "поезд на маршруте"
+            msg := GetShortMsg(1,330, '',color) + ' '; //------------- "поезд на маршруте"
             InsArcNewMsg(ID_Obj,330+$5000,1);
           end;
 
           3 :
           begin
             color := 1;
-            msg := GetShortMsg(1,331, '',color) + ' '; //------ "поезд на участке приближения"
+            msg := GetShortMsg(1,331, '',color) + ' '; //-- "поезд на участке приближения"
             InsArcNewMsg(ID_Obj,331+$5000,1);
           end;
         end;
         color := 7;
-        msg:=msg+GetShortMsg(1,175,'от '+ObjZav[ID_Obj].Liter,color);//отменить маневровый $?
+        msg:=msg+GetShortMsg(1,175,'от '+ObjZav[ID_Obj].Liter,color);//отменить маневровый
         DspCommand.Command := CmdMenu_OtmenaManevrovogo;
         DspCommand.Obj := ID_Obj;
       end else
@@ -1926,9 +1930,9 @@ begin
           end;
         end else
         if ObjZav[ID_Obj].bParam[8] or //------------------ если есть Н из сервера или ...
-        ObjZav[ID_Obj].bParam[9] then //------------------------- поездная ППР трассировка
+        ObjZav[ID_Obj].bParam[9] then //----------------- поездная ППР трассировка сигнала
         begin
-          if ObjZav[ID_Obj].bParam[11] then //----------- если перекрывная секция замкнута
+          if ObjZav[ID_Obj].bParam[11] then //--- если перекрывная секция сигнала замкнута
           begin
             //------------------ проверить условия допустимости повтора поездного маршрута
             if ObjZav[ID_Obj].ObjConstI[14] > 0 then //----------- если есть условие для Н
@@ -1946,7 +1950,7 @@ begin
 
             if u1 or u2 then
             begin //---------------------------- выдать команду повтора поездного маршрута
-              InsArcNewMsg(ID_Obj,178+$4000,2);//-------------- Повторно открыть поездной $?
+              InsArcNewMsg(ID_Obj,178+$4000,2);//------------ Повторно открыть поездной $?
               msg := GetShortMsg(1,178, ObjZav[ID_Obj].Liter,2);
               DspCommand.Active := true;
               DspCommand.Command := CmdMenu_PovtorPoezdMarsh;
@@ -5399,7 +5403,7 @@ begin //-------------------------------------------------------------- Поездное 
         DspCommand.Obj := ID_Obj;
       end else
       begin //-------------------------------------------------------- включить оповещение
-        InsArcNewMsg(ID_Obj,197+$4000,7);
+        InsArcNewMsg(ID_Obj,197+$4000,7);  //----------------------- включить оповещение ?
         msg := GetShortMsg(1,197, ObjZav[ID_Obj].Liter,7);
         DspCommand.Command := CmdMenu_DatOpovechenie;
         DspCommand.Obj := ID_Obj;
@@ -6454,7 +6458,7 @@ begin   //------------------------------------------------------------ формирова
       if i = j then //--------- если это то табло, которое соответствует району управления
       begin
         shortMsg[i] := msg;
-        shortMsgColor[i] := GetColor(7);
+        shortMsgColor[i] := GetColor1(7);
       end
       else   shortMsg[i] := '';
     end;

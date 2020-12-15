@@ -148,7 +148,7 @@ void __fastcall TCommPort::OpenPort(void)
 
     if( FOnOpen )  FOnOpen( this, GetLastError() );
   }else{
-    Application->MessageBox("Не могу открыть COM-порт ", "COM-порт ошибка", MB_OK | MB_ICONSTOP );
+    MessageDlg("Не могу открыть COM-порт " + IntToStr(FComNumber),mtInformation, TMsgDlgButtons() << mbOK, 0);
   }
 }
 
