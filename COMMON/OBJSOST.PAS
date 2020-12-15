@@ -35,7 +35,7 @@ procedure DisplaySvetVhod(Obj: POVStruct;form: TCanvas); // нарисовать входной с
 procedure DisplaySvetPrig(Obj: POVStruct;form: TCanvas);// нарисовать приглас. светофор 23
 procedure DisplaySvetPovtor(Obj: POVStruct;form: TCanvas);//нарисовать повтор.светофора 24
 procedure DisplayFictSignal(Obj: POVStruct;form: TCanvas); // фиктивный сигнал (увязка) 25
-procedure DisplayKTDetskay(Obj: POVStruct;form: TCanvas); //-- контр. точка детской ж.д 26
+procedure DisplayKTAB(Obj: POVStruct;form: TCanvas); //---------- контр. точка перегона 26
 procedure DisplayKontrPereezd(Obj: POVStruct;form: TCanvas); //------ контроль переезда 30
 procedure DisplayUviazkaAB(Obj: POVStruct;form: TCanvas); //----- увязка с перегоном АБ 31
 procedure DisplayUviazkaABSvet(Obj:POVStruct;form:TCanvas);// АБ с прох.свет.,капремонт 32
@@ -197,7 +197,7 @@ begin
       23: DisplaySvetPrig(Obj,form);//---------------- нарисовать пригласительный светофор
       24: DisplaySvetPovtor(Obj,form);//----------------- нарисовать повторитель светофора
       25: DisplayFictSignal(Obj,form);//------------------------ Фиктивный сигнал (увязка)
-      26: DisplayKTDetskay(Obj,form);//-------------------- контрольная точка детской Ж.Д.
+      26: DisplayKTAB(Obj,form);//----------------------------- контрольная точка перегона
       30: DisplayKontrPereezd(Obj,form);//--------------------------- контрольная переезда
       31: DisplayUviazkaAB(Obj,form);//--------------------------------------- увязка с АБ
       32: DisplayUviazkaABSvet(Obj,form);//увязка с АБ с проходными светофорами, капремонт
@@ -2859,16 +2859,12 @@ procedure DisplaySvetPovtor(Obj: POVStruct;form: TCanvas);
 var
   VideoBuf : Integer;
   Ima : string;
-  OldBrashColor,OldPenColor : TColor;
 begin
-  OldBrashColor := form.Brush.Color;
-  OldPenColor := form.Pen.Color;
   form.Font.Style := [];
   VideoBuf := obj.ObjConstI[1];
   Ima := Obj.Title;
   form.Brush.Style := bsSolid;
   form.Brush.Color := armcolor8;
-  form.Pen.Color := armcolor8;
   //-------------------------------------------- если не парафазный или не активный датчик
   if OVBuffer[VideoBuf].Param[1] or not OVBuffer[VideoBuf].Param[16] then
   begin
@@ -2915,8 +2911,6 @@ begin
     begin
       form.TextOut(Obj.Points[1].X+2,Obj.Points[1].Y-6,Ima);
     end;
-    form.Brush.Color := OldBrashColor;
-    form.Pen.Color := OldPenColor;
     exit;
   end;
 
@@ -2981,8 +2975,6 @@ begin
     form.TextOut(Obj.Points[1].X + form.TextWidth(Ima) - 2,Obj.Points[1].Y-6, '!')
     else  form.TextOut(Obj.Points[1].X - form.TextWidth(Ima) -2 ,Obj.Points[1].Y-6, '!');
   end;
-  form.Brush.Color := OldBrashColor;
-  form.Pen.Color := OldPenColor;
 end;
 //========================================================================================
 //----------------------------------------------------------- фиктивный сигнал (увязка) 25
@@ -3087,8 +3079,8 @@ begin
   end;
 end;
 //========================================================================================
-//------------------------------------------- Контрольная сигнальная точка детской ж.д. 26
-procedure DisplayKTDetskay(Obj: POVStruct;form: TCanvas);
+//-------------------------------------------------- Контрольная сигнальная точка перегона
+procedure DisplayKTAB(Obj: POVStruct;form: TCanvas);
 begin
   if obj.ObjConstI[2] = 1 then  //------------------------ Определить ориентацию светофора
   begin //-------------------------------------------------------------------- нога справа
@@ -3111,8 +3103,8 @@ begin
     ptr[7].X := Obj.Points[1].X-form.TextWidth(Obj.Title)-2;ptr[7].Y := Obj.Points[1].Y-6;
   end;
   form.Font.Style := [];  form.Font.Size := 8;
-  form.Pen.Style := psSolid; form.Pen.Color := armcolor8;  //------------------------ циан
-  form.Brush.Style := bsSolid; form.Brush.Color := armcolor12; //-------------------- циан
+  form.Pen.Style := psSolid; form.Pen.Color := armcolor8;  //----------------- темно серый
+  form.Brush.Style := bsSolid; form.Brush.Color := armcolor12; //----- черынй (без данных)
   form.Pen.Width := 1;
   form.MoveTo(ptr[1].X,ptr[1].Y);  form.LineTo(ptr[2].X,ptr[2].Y);
   if ptr[3].X > 0 then
@@ -3125,21 +3117,18 @@ begin
     form.Pen.Color := armcolor12; form.Pen.Style := psSolid;   //------------------ черный
     form.Brush.Color := armcolor12; form.Brush.Style := bsSolid;
     form.Pen.Width := 1;
-  end
-  else
+  end else
   if OVBuffer[obj.ObjConstI[1]].Param[1] then
   begin //----------------------------------------------------------------- непарафазность
     form.Pen.Style := psSolid; form.Pen.Color := armcolor14;  //--------------------- циан
     form.Brush.Style := bsSolid; form.Brush.Color := armcolor14;
     form.Pen.Width := 1;
-  end
-  else
+  end else
   if not OVBuffer[obj.ObjConstI[1]].Param[16] or
   OVBuffer[obj.ObjConstI[1]].Param[1] then  //----------- неактивность или  непарафазность
   begin
     form.Font.Color := clBlack;  form.Brush.Style := bsClear;
-  end
-  else
+  end else
   begin  //------------------------------------------------------ если активно и парафазно
     //------------------------------------------------------- 1 этап = выбор цвета сигнала
     if Obj.ObjConstI[3] = 0 then //---------------------------------- если на 000 - желтый
@@ -7835,7 +7824,6 @@ begin
       form.Brush.Color := armcolor18; //--------------------------------------- фон кнопки
       form.Font.Color := armcolor9; //---------------------------------------------- белый
     end;
-
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+30, obj.Points[1].X+120,obj.Points[1].Y+47));
     form.TextOut(obj.Points[1].X+10,obj.Points[1].Y+32, 'Раздельный режим');
     if WorkMode.Upravlenie then //-------------------------------- если управление от АРМа
@@ -7854,7 +7842,6 @@ begin
       form.Brush.Color := armcolor18; //--------------------------------------- фон кнопки
       form.Font.Color := armcolor9; //---------------------------------------------- белый
     end;
-
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+50, obj.Points[1].X+120,obj.Points[1].Y+67));
     form.TextOut(obj.Points[1].X+8,obj.Points[1].Y+52, 'Маршрутный режим');
 
@@ -7931,7 +7918,7 @@ begin
     end;
     form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+140, obj.Points[1].X+120,obj.Points[1].Y+157));
     form.TextOut(obj.Points[1].X+23,obj.Points[1].Y+142, 'Сброс команд');
- {$IFNDEF RMSHN}
+
     //------------------------------------------------------------------------ часы РМ-ДСП
     form.Brush.Color := RGB(220,255,220);
     form.Font.Color := clBlack;
@@ -7942,7 +7929,6 @@ begin
     form.Font.Style := [fsBold];
     x1 := form.TextWidth(sLbl) div 2;
     form.TextOut(obj.Points[1].X-x1+60,obj.Points[1].Y+160, sLbl);
- {$ENDIF}
     TekFontSize := form.Font.Size;
   end;
 
@@ -8049,7 +8035,6 @@ begin
         form.Brush.Color := armcolor18;
         form.Font.Color := armcolor9;
       end;
-{$IFNDEF RMSHN}
       form.FillRect(rect(obj.Points[1].X,obj.Points[1].Y+70, obj.Points[1].X+120,obj.Points[1].Y+87));
       form.TextOut(obj.Points[1].X+23,obj.Points[1].Y+72, 'Ограничения');
 
@@ -8101,7 +8086,6 @@ begin
       form.Font.Style := [fsBold];
       x1 := form.TextWidth(sLbl) div 2;
       form.TextOut(obj.Points[1].X-x1+60,obj.Points[1].Y+130, sLbl);
-{$ENDIF}
       form.Font.Size := TekFontSize;
     end;
   end;

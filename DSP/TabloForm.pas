@@ -685,8 +685,6 @@ procedure TTabloMain.FormPaint(Sender: TObject);
 var
   i,x,y : integer;
   p : TPoint;
-  OldColor : TColor;
-  OldStyle : TFontStyles;
   n : Boolean;
 begin
   try
@@ -742,26 +740,22 @@ begin
     then x := configRU[config.ru].Tablo_Size.X;
     y := configRU[config.ru].Tablo_Size.Y;
 
-    OldColor := canvas.Font.Color;
-    OldStyle := canvas.Font.Style;
-    canvas.Font.Style := [fsBold];
-
     for i := 1 to High(shortmsg) do
     begin
       canvas.Brush.Style := bsSolid;
-       if shortmsg[i] <> '' then
+      canvas.Font.Style := [];
+      if shortmsg[i] <> '' then
       begin
-        //----------------------------------------- ¬ывести короткие сообщени€ под экраном
+        //---------------------------------------------------- ¬ывести короткие сообщени€
         canvas.Brush.Color := shortmsgcolor[i];
         if canvas.Brush.Color = 0 then
         canvas.Brush.Color := bkgndcolor;
-        canvas.FillRect(rect((i-1)*X, Y-20, i*X-32, Y));
+        canvas.FillRect(rect((i-1)*X, Y-15, i*X-32, Y));
         if canvas.Brush.Color <> 255 then canvas.Font.Color  := clBlack
         else canvas.Font.Color  := clWhite;
         TekFontSize := canvas.Font.Size;
-        //canvas.Font.Size := 12;
-        canvas.Font.Height := 20;
-        canvas.TextOut((i-1)*X+3, Y-20,shortmsg[i]);//-------------------- вывод сообщени€
+        canvas.Font.Size := 10;
+        canvas.TextOut((i-1)*X+3, Y-15,shortmsg[i]);//-------------------- вывод сообщени€
         canvas.Brush.Color := clWhite; canvas.FillRect(rect(i*X-32, Y-15, i*X-16, Y));
         canvas.Brush.Color := clRed; canvas.FillRect(rect(i*X-31, Y-14, i*X-27, Y-1));
         canvas.Brush.Color := clGreen; canvas.FillRect(rect(i*X-26, Y-14, i*X-22, Y-1));
@@ -786,9 +780,7 @@ begin
         ilGlobus.Draw(canvas, i*X-16, Y-15, GlobusIndex);
       end;
     end;
-
-    canvas.Font.Color := OldColor;
-    canvas.Font.Style := OldStyle;
+  
 
     //------------------------------------------------------------- поиск курсора на табло
     if FindCursor then

@@ -13349,7 +13349,8 @@ begin
           if ObjZav[jmp.Obj].ObjConstB[8] //если маневры окончены перед сигналом то конец
           then
           begin
-            result := trEndTrace;
+            if ObjZav[jmp.Obj].ObjConstB[23] then result := trEndTrace
+            else result := trStop;
             if jmp.Pin = 1  then jmp := ObjZav[jmp.Obj].Neighbour[2]
             else jmp := ObjZav[jmp.Obj].Neighbour[1];
           end

@@ -1714,14 +1714,14 @@ begin
           2 :
           begin
             color := 1;
-            msg := GetShortMsg(1,330, '',color) + ' '; //------------------ Поезд на маршруте!
+            msg := GetShortMsg(1,330, '',color) + ' '; //-------------- Поезд на маршруте!
             InsArcNewMsg(ID_Obj,330+$5000,1);
           end;
 
           3 :
           begin
             color := 1;
-            msg := GetShortMsg(1,331, '',color) + ' '; //------- Поезд на участке приближения!
+            msg := GetShortMsg(1,331, '',color) + ' '; //--- Поезд на участке приближения!
             InsArcNewMsg(ID_Obj,331+$5000,1);
           end;
         end;
@@ -1855,7 +1855,7 @@ begin
         if ObjZav[ID_Obj].bParam[2] or //------------------------------------ есть МС2 или
         ObjZav[ID_Obj].bParam[4] then //------------------------------------------ есть С2
         begin
-          InsArcNewMsg(ID_Obj,230+$4000,7);//------------------------- "Сигнал $ уже открыт"
+          InsArcNewMsg(ID_Obj,230+$4000,7);//----------------------- "Сигнал $ уже открыт"
           ShowShortMsg(230,LastX,LastY,ObjZav[ID_Obj].Liter);
           msg := GetShortMsg(1,230, ObjZav[ID_Obj].Liter,7);
           exit;
@@ -1917,7 +1917,7 @@ begin
 
             if u1 or u2 then
             begin //------------------------------------ выдать команду начала трассировки
-              InsArcNewMsg(ID_Obj,177+$4000,7); //----------- Повторно открыть маневровый $?
+              InsArcNewMsg(ID_Obj,177+$4000,7); //--------- Повторно открыть маневровый $?
               msg := GetShortMsg(1,177, ObjZav[ID_Obj].Liter,7);
               DspCommand.Active := true;
               DspCommand.Command := CmdMenu_PovtorManevrovogo;
@@ -2063,7 +2063,7 @@ begin
 
             if u1 or u2 then
             begin //---------------------------------------------- трассировать маневровый
-              InsArcNewMsg(ID_Obj,181+$4000,7); //-------------------- Маневровый маршрут $?
+              InsArcNewMsg(ID_Obj,181+$4000,7); //------------------ Маневровый маршрут $?
               msg := GetShortMsg(1,181, 'от ' + ObjZav[ID_Obj].Liter,7);
               DspCommand.Active := true;
               DspCommand.Command := CmdMenu_BeginMarshManevr;
