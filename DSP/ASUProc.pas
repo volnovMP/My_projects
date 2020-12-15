@@ -1,19 +1,6 @@
 unit ASUProc;
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//                 Процедуры обработки пакетов из сети АСУ
-//
-//
-//   Дата       12 января 2006 года
-//
-//   Версия     1
-//   редакция   1
-//
-////////////////////////////////////////////////////////////////////////////////
-
+//   Процедуры обработки пакетов из сети АСУ
 interface
-
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, StdCtrls;
@@ -25,9 +12,7 @@ var
   IkonkiOut : array[0..1006] of char; // буфер массива табличек для передачи в канал АСУ
   IkonkiIn  : array[0..999] of char;  // буфер для массива табличек, полученых из канала АСУ
   Dat : array[1..1000] of byte;
-  CountPack  : Integer;
   CountState : Integer;
-  ready      : Boolean;
 
 
 function ExtractPacketASU(Buf : pchar; pLen : PInteger) : Boolean;   // распаковка пакетов АСУ

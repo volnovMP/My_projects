@@ -1,6 +1,6 @@
 #include <vcl.h>
 #pragma hdrstop
-#include"CommPortOpt.h"
+#include "CommPortOpt.h"
 #pragma package(smart_init)
 
 //---------------------------------------------------------------------------

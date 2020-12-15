@@ -3,8 +3,19 @@ unit ViewObj;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ComCtrls, Registry, ExtCtrls;
+  Windows,
+  Messages,
+  SysUtils,
+  Variants,
+  Classes,
+  Graphics,
+  Controls,
+  Forms,
+  Dialogs,
+  ComCtrls,
+  Registry,
+  ExtCtrls, 
+  TypeALL;
 
 type
   TViewObjForm = class(TForm)
@@ -30,8 +41,7 @@ implementation
 {$R *.dfm}
 
 uses
-  TypeALL,
-  KanalArmSrv,
+  KanalArmSrvSHN,
   TabloSHN,
   ValueList;
 

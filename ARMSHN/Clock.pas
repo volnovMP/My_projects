@@ -28,7 +28,7 @@ implementation
 {$R *.dfm}
 
 uses
-TabloSHN;
+  TabloSHN;
 
 procedure TClockForm.FormCreate(Sender: TObject);
 begin

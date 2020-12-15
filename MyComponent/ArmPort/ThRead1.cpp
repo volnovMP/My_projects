@@ -58,27 +58,27 @@ void __fastcall TArmReadThread::Execute()
 					size = pos1 - pos2;
 				}
 
-				if( size > lpStat.cbInQue ) size = lpStat.cbInQue;//если размер больше очереди порта
-				if( size == 0 )  break; //--------------------------- если буфер переполнен, бросить
+				if( size > lpStat.cbInQue ) size = lpStat.cbInQue;//-- размер больше очереди порта
+				if( size == 0 )  break; //------------------------- если буфер переполнен, бросить
 				DWORD BytesReaded = 0;
 
 				//---------------------- пытаемся прочесть в буфер ввода(от конца ранее принятого)
-				bool OK = ReadFile( FArmHandle, &(FArmPort->IBuffer[pos2]), size, &BytesReaded, &ROL1);
+				bool OK = ReadFile(FArmHandle,&(FArmPort->IBuffer[pos2]),size,&BytesReaded,&ROL1);
 
 				//------------------------- если чтение не удалось по причине медлительности порта
 				if( !OK && GetLastError() == ERROR_IO_PENDING )
 				{
 					//------ запускаем ожидание события до тех пор, пока оно не произойдет
 					OK = GetOverlappedResult(FArmHandle, &ROL1, &BytesReaded, TRUE);
-					if(OK) ResetEvent(ROL1.hEvent); //по свершению события перезарядить "event" читалки
+					if(OK) ResetEvent(ROL1.hEvent); //------ по событию перезарядить "event" читалки
 				}
 
-				if( OK && BytesReaded > 0 ) //--------------------- если прочитаны байты
+				if( OK && BytesReaded > 0 ) //------------------------------- если прочитаны байты
 				{
 					EnterCriticalSection( &FArmPort->ReadSection ); //-- входим в критическую секцию
-          FArmPort->IBuffUsed += BytesReaded; // увеличить число новых байт в буфере
+          FArmPort->IBuffUsed += BytesReaded; //------ увеличить число новых байт в буфере
 					LeaveCriticalSection(&FArmPort->ReadSection);
-					SetEvent(FArmPort->reEvent); //--------- установить "event" компонента
+					SetEvent(FArmPort->reEvent); //------------------- установить "event" компонента
 				}
 			}
 		}

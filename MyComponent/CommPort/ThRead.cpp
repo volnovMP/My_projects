@@ -1,7 +1,7 @@
 #include <vcl.h>
 #pragma hdrstop
-
 #include "ThRead.h"
+
 #pragma package(smart_init)
 
 //---------------------------------------------------------------------------
@@ -41,9 +41,9 @@ void __fastcall TReadThread::Execute()
         	break;
         }
 
-				EnterCriticalSection( &FComPort->ReadSection ); //------ входим в критическую секцию
-				DWORD pos1 = FComPort->IBuffPos; //-------- запоминаем позицию 1 ( изначально это 0)
-				DWORD used = FComPort->IBuffUsed; // запоминаем прочитанное число (изначально это 0)
+				EnterCriticalSection( &FComPort->ReadSection ); //---- входим в критическую секцию
+				DWORD pos1 = FComPort->IBuffPos; //------ запоминаем позицию 1 ( изначально это 0)
+				DWORD used = FComPort->IBuffUsed;//запоминаем прочитанное число (изначально это 0)
 				LeaveCriticalSection(&FComPort->ReadSection);
 
 				DWORD pos2 = pos1 + used; //-------- позиция 2 = позиция 1 + прочитанное

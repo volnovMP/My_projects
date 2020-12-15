@@ -1,5 +1,5 @@
 unit MsgForm;
-
+{$INCLUDE d:\sapr2012\CfgProject}
 interface
 
 uses Windows, SysUtils, Classes, Graphics, Forms, Controls, StdCtrls, 

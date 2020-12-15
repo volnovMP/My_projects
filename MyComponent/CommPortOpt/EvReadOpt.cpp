@@ -1,20 +1,9 @@
 #include <vcl.h>
 #pragma hdrstop
 #include "EvReadOpt.h"
+#include "CRC.h"
 #pragma package(smart_init)
-//========================================================================================
-//---------------------------------------------------------------- процедура расчета CRC-8
-//--------------------------------------------- pData - указатель на буфер данных контроля
-//----------------------------------------------------------- dataLen -длина буфера данных
-unsigned char __fastcall CalculateCRC8(void *pData, int dataLen)
-{
-	unsigned char *ptr = (unsigned char *)pData;
-	unsigned char c = 0xff;
-	int n;
-	for (n = 0; n < dataLen; n++) c = crc8_table[ *ptr++ ^ c ];
-	return c ^ 0xff;
-}
-//---------------------------------------------------------------------------
+//========================================================================================//---------------------------------------------------------------------------
 __fastcall TReadEventThreadOpt::TReadEventThreadOpt(TCommPortOpt *ComPortOpt) : TThread(false)
 {
 	FComPortOpt = ComPortOpt;
@@ -49,8 +38,8 @@ void __fastcall TReadEventThreadOpt::Execute()
 	int Hvost; //----------- ------- указатель на конец прочитанного сообщения или квитанции
 	int Start; //------------------ указатель на начало прочитанного сообщения или квитанции
 	int FCount; //------------------------------------------------------ счетчик байт данных
-	try
-	{
+	//try
+//	{
 		while(!Terminated)
 		{
 			NomerStan = FComPortOpt->NumStan;
@@ -160,12 +149,13 @@ void __fastcall TReadEventThreadOpt::Execute()
 			for(i=Hvost;i<FCount;i++)FComPortOpt->OSTATOK[k++]=BufAll[i];
 			FComPortOpt->N_OSTAT = k;
 		}
-	}
+/*	}
 	catch (...)
 	{
 		Application->MessageBox("ОШИБКА","TReadEventThreadOpt",MB_OK);
 		return;
 	}
+	 */
 	return;
 }
 

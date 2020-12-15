@@ -2,8 +2,16 @@ unit Password;
 
 interface
 
-uses Windows, SysUtils, Classes, Graphics, Forms, Controls, StdCtrls,
-  Registry, Buttons;
+uses
+  Windows,
+  SysUtils,
+  Classes,
+  Graphics,
+  Forms,
+  Controls,
+  StdCtrls,
+  Registry,
+  Buttons;
 
 type
   TPasswordDlg = class(TForm)
@@ -51,7 +59,11 @@ end;
 
 procedure TPasswordDlg.OKBtnClick(Sender: TObject);
 begin
-  if keyvalue <> password.Text then begin modalResult := mrCancel; exit; end;
+  if keyvalue <> password.Text then
+  begin
+    modalResult := mrCancel;
+    exit;
+  end;
 end;
 
 procedure TPasswordDlg.FormActivate(Sender: TObject);

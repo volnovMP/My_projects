@@ -7,7 +7,9 @@ uses
   Forms,
   StdCtrls,
   Registry,
-  ComCtrls, Classes, Controls;
+  ComCtrls,
+  Classes,
+  Controls;
 
 type
   TMsgFormDlg = class(TForm)
@@ -19,7 +21,7 @@ type
     Memo: TMemo;
     procedure BtnCancelClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
- //   procedure FormDestroy(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
   public
@@ -35,10 +37,8 @@ implementation
 {$R *.dfm}
 
 uses
-  TabloForm;
-
-var
-  reg : TRegistry;
+  TypeALL,
+  TabloFormARC;
 
 procedure TMsgFormDlg.BtnCancelClick(Sender: TObject);
 begin
@@ -56,11 +56,14 @@ begin
     if reg.ValueExists('height') then Height := reg.ReadInteger('height') else Left := 0;
     if reg.ValueExists('width')  then Width  := reg.ReadInteger('width')  else Width  := 0;
     reg.CloseKey;
+    reg.Free;
   end;
 end;
-{
+
+
 procedure TMsgFormDlg.FormDestroy(Sender: TObject);
 begin
+  reg := TRegistry.Create;
   reg.RootKey := HKEY_LOCAL_MACHINE;
   if Reg.OpenKey(KeyRegMsgForm, false) then
   begin
@@ -72,6 +75,6 @@ begin
   end;
   reg.Free;
 end;
-}
+
 end.
 

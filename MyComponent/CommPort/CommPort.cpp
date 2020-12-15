@@ -2,7 +2,6 @@
 #pragma hdrstop
 #include "CommPort.h"
 #pragma package(smart_init)
-#pragma resource "*.res"
 
 //---------------------------------------------------------------------------
 // ValidCtrCheck is used to assure that the components created do not have

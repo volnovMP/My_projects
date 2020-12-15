@@ -6,7 +6,10 @@ uses
   Windows,
   Forms,
   StdCtrls,
-  ComCtrls, Classes, Controls;
+  ComCtrls,
+  Classes,
+  Registry,
+  Controls;
 
 type
   TMsgFormDlg = class(TForm)
@@ -53,7 +56,9 @@ var s : string;
 
 procedure TMsgFormDlg.BtnUpdateClick(Sender: TObject);
 begin
-  UpdateMsgQuery := true; BtnUpdate.Enabled := false; refreshMsg := true;
+  UpdateMsgQuery := true;
+  BtnUpdate.Enabled := false;
+  refreshMsg := true;
   if PageControl.ActivePageIndex = 0 then
   begin
     Memo.SetFocus;
@@ -75,6 +80,7 @@ end;
 //========================================================================================
 procedure TMsgFormDlg.FormCreate(Sender: TObject);
 begin
+  reg := TRegistry.Create;
   reg.RootKey := HKEY_LOCAL_MACHINE;
   if Reg.OpenKey(KeyRegMsgForm, false) then
   begin

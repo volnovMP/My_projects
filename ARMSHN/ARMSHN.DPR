@@ -1,56 +1,42 @@
-program ARMSHN;
+program armshn;
 
 uses
-  ExceptionLog,
+  ShareMem,
   Windows,
   Forms,
-  LoadSaveDBS in 'E:\Сапр_new\Commons\LoadSaveDBS.pas',
-  CMenu in 'E:\Сапр_new\Commons\CMenu.pas',
-  Commands in 'E:\Сапр_new\Commons\Commands.pas',
-  Commons in 'E:\Сапр_new\Commons\Commons.pas',
-  COMPORT in 'E:\Сапр_new\Commons\COMPORT.PAS',
-  CRCCALC in 'E:\Сапр_new\Commons\CRCCALC.PAS',
-  KanalArmSrv in 'E:\Сапр_new\Commons\KanalArmSrv.pas',
-  MainLoop in 'E:\Сапр_new\Commons\MainLoop.pas',
-  Marshrut in 'E:\Сапр_new\Commons\Marshrut.pas',
-  TypeALL in 'E:\Сапр_new\Commons\TypeALL.pas',
-  Clock in 'Clock.pas' {ClockForm},
-  Load in 'E:\Сапр_new\Commons\Load.pas',
-  OBJSOST in 'E:\Сапр_new\Commons\OBJSOST.PAS',
-  Notify in 'Notify.pas' {NotifyForm},
-  ViewFr in 'ViewFr.pas' {FrForm},
+  Registry,
+  Tabloshn in 'Tabloshn.pas' {TabloMain},
+  KanalArmSrvSHN in 'KanalArmSrvSHN.pas',
+  ValueList in 'ValueList.pas' {ValueListDlg},
   MsgForm in 'MsgForm.pas' {MsgFormDlg},
   Password in 'Password.pas' {PasswordDlg},
-  ValueList in 'ValueList.pas' {ValueListDlg},
+  ViewFr in 'ViewFr.pas' {FrForm},
+  Clock in 'Clock.pas' {ClockForm},
   ViewObj in 'ViewObj.pas' {ViewObjForm},
-  TabloSHN in 'TabloSHN.pas' {TabloMain};
+  CMenu in 'D:\SAPR2012\COMMON\CMenu.pas',
+  Commands in 'D:\SAPR2012\COMMON\Commands.pas',
+  Commons in 'D:\SAPR2012\COMMON\Commons.pas',
+  CRCCALC in 'D:\SAPR2012\COMMON\CRCCALC.PAS',
+  Load in 'D:\SAPR2012\COMMON\Load.pas',
+  LoadSaveDBS in 'D:\SAPR2012\COMMON\LoadSaveDBS.pas',
+  MainLoop in 'D:\SAPR2012\COMMON\MainLoop.pas',
+  Marshrut in 'D:\SAPR2012\COMMON\Marshrut.pas',
+  OBJSOST in 'D:\SAPR2012\COMMON\OBJSOST.PAS',
+  TypeALL in 'D:\SAPR2012\COMMON\TypeALL.pas',
+  COMPORT in 'D:\SAPR2012\COMMON\COMPORT.PAS';
 
-{$R *.RES}
 
-var h,o : THandle;
+{$R *.res}
 
 begin
-  h := FindWindowEx(0,0,PChar('TTabloMain'+#0),PChar('АРМ ШН - Контроль станции в реальном времени'+#0));
-  if h > 0 then
-  begin
-    o := GetWindow(h,GW_OWNER);
-    if o > 0 then
-    begin
-      SetForegroundWindow(o);
-      ShowWindow(o,SW_SHOWNORMAL);
-    end;
-  end else
-  begin
-    Application.Initialize;
-    Application.Title := 'АРМ ШН';
-    Application.CreateForm(TTabloMain, TabloMain);
-  Application.CreateForm(TClockForm, ClockForm);
-  Application.CreateForm(TNotifyForm, NotifyForm);
-  Application.CreateForm(TFrForm, FrForm);
-  Application.CreateForm(TMsgFormDlg, MsgFormDlg);
-  Application.CreateForm(TPasswordDlg, PasswordDlg);
+  Application.Initialize;
+  Application.MainFormOnTaskbar := True;
+  Application.CreateForm(TTabloMain, TabloMain);
   Application.CreateForm(TValueListDlg, ValueListDlg);
+  Application.CreateForm(TMsgFormDlg, MsgFormDlg);
+  Application.CreateForm(TFrForm, FrForm);
+  Application.CreateForm(TClockForm, ClockForm);
   Application.CreateForm(TViewObjForm, ViewObjForm);
+  Application.CreateForm(TPasswordDlg, PasswordDlg);
   Application.Run;
-  end;
 end.

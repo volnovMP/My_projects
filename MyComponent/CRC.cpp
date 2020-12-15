@@ -1,10 +1,6 @@
 //---------------------------------------------------------------------------
-
-
 #pragma hdrstop
-
 #include "CRC.h"
-
 //---------------------------------------------------------------------------
 
 #pragma package(smart_init)
@@ -22,3 +18,4 @@ char __fastcall CalculateCRC8(void *pData, int dataLen)
   for (n = 0; n < dataLen; n++) c = crc8_table[ *ptr++ ^ c ];
   return c ^ 0xff;
 }
+

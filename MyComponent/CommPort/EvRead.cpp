@@ -26,20 +26,20 @@ int __fastcall TReadEventThread::byla_com(unsigned char REG_[12])
 	}
 	return(0);
 }
-//----------------------------------------------------------------------------------------
+//========================================================================================
 //------------------------- процедура непрерывного ожидания чтения последовательного порта
 void __fastcall TReadEventThread::Execute()
 {
 	int j,i,k,podt_com,size;
 	unsigned char test_sum, KVIT[6], *BuferALL;
 	bool it_is_kvit,Analiz;
-	unsigned char BufTums[18]; //-------------------------------- буфер для входных данных
-	unsigned char BufBuf[80]; //------------------------------- промежуточный буфер данных
+	unsigned char BufTums[18]; //---------------------------------- буфер для входных данных
+	unsigned char BufBuf[80]; //--------------------------------- промежуточный буфер данных
 	unsigned char BufAll[80];
-	int Konec[8]; //------------------------ указатели конечных позиций при записи буфера
-	int Nachalo[8]; //--------------------- указатели начальных позиций при записи буфера
-	int Konec_Buf; //------------- указатель конечной позиции записи в промежуточный буфер
-	int FCount; //---------------------------------------------------- счетчик байт данных
+	int Konec[8]; //--------------------------- указатели конечных позиций при записи буфера
+	int Nachalo[8]; //------------------------ указатели начальных позиций при записи буфера
+	int Konec_Buf; //--------------- указатель конечной позиции записи в промежуточный буфер
+	int FCount; //------------------------------------------------------ счетчик байт данных
 	j = 0;
 	Konec_Buf = 0; N_pak = 0;
 	for(i=0;i<8;i++){Konec[i]=0xFF;Nachalo[i]=0xFF;}
@@ -47,28 +47,28 @@ void __fastcall TReadEventThread::Execute()
 	{
 		Raznica = 0;
 		if(WaitForSingleObject(FComPort->reEvent, INFINITE) != WAIT_OBJECT_0 )continue;
-    j = Konec_Buf;
+		j = Konec_Buf;
 		for (k=0; k < 12; k++)REG[k]=0;
 		ZeroMemory(&BufAll,80);
-		EnterCriticalSection( &FComPort->ReadSection ); //------ входим в критическую секцию
+		EnterCriticalSection( &FComPort->ReadSection ); //-------- входим в критическую секцию
 		size = FComPort->InBuffUsed;
 		LeaveCriticalSection(&FComPort->ReadSection);
-     if(size<80)	FCount = FComPort->GetBlock(BufAll, size);
-     else
-      {
-      	PurgeComm(FComPort->ComHandle, PURGE_RXABORT | PURGE_RXCLEAR);
+		if(size<80)	FCount = FComPort->GetBlock(BufAll, size);
+		else
+		{
+				PurgeComm(FComPort->ComHandle, PURGE_RXABORT | PURGE_RXCLEAR);
         continue;
-      }
+			}
 			for(i=0;i<FCount;i++)
 			{
         if(Terminated)break;
       	if(i>79)j=0;
 				BufBuf[j] = BufAll[i];
-				if(BufBuf[j] == '(')Nachalo[N_pak] = j; //--------------- фиксируем найденное начало
+				if(BufBuf[j] == '(')Nachalo[N_pak] = j; //------------- фиксируем найденное начало
 				if((BufBuf[j]==')')||(BufBuf[j]=='+'))
 				{
 					if(Nachalo[N_pak] != 0xFF)
-					Konec[N_pak++] = j; //-------- фиксируем найденный конец
+					Konec[N_pak++] = j; //-------------------------------- фиксируем найденный конец
 				}
 				if(N_pak > 7) N_pak = 7;
 				j++;
@@ -79,13 +79,13 @@ void __fastcall TReadEventThread::Execute()
 			while(Konec[0]!=0xFF)
 			{
         if(Terminated)break;
-				it_is_kvit = false;  //----------- исходные значения
+				it_is_kvit = false;  //----------------------------------------- исходные значения
 				if (Konec[0] > Nachalo[0]) Raznica = Konec[0] - Nachalo[0];
 				else Raznica = 80 - Nachalo[0] + Konec[0];
 				Analiz = true;
 
 				if(Raznica == 5) it_is_kvit = true;
-				if((Raznica !=5) && (Raznica !=11 ))
+				if((Raznica !=5) && (Raznica !=11 )&& (Raznica !=10 ))
 				{
 					Analiz = 0; i = Nachalo[0];
 					while ( i != Konec[0])
@@ -114,13 +114,14 @@ void __fastcall TReadEventThread::Execute()
 				}
 				else
         {
-           Analiz = 0;
+          Analiz = 0;
          	Konec_Buf = 0; N_pak = 0;
 					for(i=0;i<8;i++){Konec[i]=0xFF;Nachalo[i]=0xFF;}
-           PurgeComm(FComPort->ComHandle, PURGE_RXABORT | PURGE_RXCLEAR );
-           ZeroMemory(&BufAll,80);
+          PurgeComm(FComPort->ComHandle, PURGE_RXABORT | PURGE_RXCLEAR );
+          ZeroMemory(&BufAll,80);
          	continue;
-         }
+        }
+
 				if(it_is_kvit)
 				{
 					podt_com = byla_com(REG);

@@ -2,9 +2,9 @@ object ClockForm: TClockForm
   Left = 194
   Top = 680
   BorderIcons = [biSystemMenu]
-  BorderStyle = bsSingle
+  BorderStyle = bsToolWindow
   Caption = #1063#1072#1089#1099
-  ClientHeight = 60
+  ClientHeight = 62
   ClientWidth = 212
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -12,6 +12,7 @@ object ClockForm: TClockForm
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  FormStyle = fsStayOnTop
   OldCreateOrder = False
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
@@ -35,7 +36,7 @@ object ClockForm: TClockForm
   end
   object lbCalendar: TLabel
     Left = 0
-    Top = 36
+    Top = 38
     Width = 212
     Height = 24
     Align = alBottom
@@ -48,7 +49,6 @@ object ClockForm: TClockForm
     Font.Name = 'Courier New'
     Font.Style = []
     ParentFont = False
-    ExplicitTop = 38
   end
   object trClock: TTimer
     Interval = 300

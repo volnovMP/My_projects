@@ -1,5 +1,5 @@
 unit Password;
-{$INCLUDE e:\Сапр_new\CfgProject}
+{$INCLUDE d:\sapr2012\CfgProject}
 interface
 
 uses
@@ -30,42 +30,30 @@ type
 var
   PasswordDlg: TPasswordDlg;
 
-implementation
-
-uses
-{$IFDEF RMSHN}
-  TabloSHN;
-{$ENDIF}
-
-{$IFDEF TABLO}
-  TabloForm1;
-{$ENDIF}
-
-{$R *.dfm}
-
+  implementation
 var
-  reg : TRegistry;
-
-  keyvalue : string;
+ keyvalue : string;
+ reg1 : TRegistry;
+{$R *.dfm}
 
 procedure TPasswordDlg.FormCreate(Sender: TObject);
   var i : integer;
 begin
-  reg := TRegistry.Create;
-  reg.RootKey := HKEY_LOCAL_MACHINE;
-  if Reg.OpenKey('\Software\SHNRPCTUMS', false) then
+  reg1 := TRegistry.Create;
+  reg1.RootKey := HKEY_LOCAL_MACHINE;
+  if Reg1.OpenKey('\Software\SHNRPCTUMS', false) then
   begin
-    if reg.ValueExists('key') then
+    if reg1.ValueExists('key') then
     begin
-      keyvalue := reg.ReadString('key');
+      keyvalue := reg1.ReadString('key');
       for i := 1 to Length(keyvalue) do
       begin
         keyvalue[i] := char(byte(keyvalue[i])-i)
       end;
-    end else keyvalue := '490287';
-    Reg.CloseKey;
+    end else keyvalue := '262793';
+    Reg1.CloseKey;
   end;
-  reg.Free;
+  reg1.Destroy;
 end;
 
 procedure TPasswordDlg.OKBtnClick(Sender: TObject);
@@ -80,7 +68,6 @@ end;
 procedure TPasswordDlg.FormActivate(Sender: TObject);
 begin
   Password.Text := '';
-
 end;
 end.
 

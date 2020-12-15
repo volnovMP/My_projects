@@ -1,10 +1,9 @@
 unit TabloForm;
-{$INCLUDE e:\Сапр_new\CfgProject} //--------------------------------- параметры компиляции
+{$INCLUDE d:\sapr2012\CfgProject} //--------------------------------- параметры компиляции
 {$UNDEF SAVEKANAL}     //-------------------------------- сохранять данные каналов в файлы
 //**************************************************************************************\\
 //                       Главное окно программы РМ-ДСП                                  **
 //**************************************************************************************//
-
 interface
 
 uses
@@ -50,14 +49,15 @@ type
     procedure DspPopupHandler(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormCanResize(Sender: TObject; var NewWidth, NewHeight: Integer; var Resize: Boolean);
-    procedure FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure ASUTimer(Sender: TObject);
-
     procedure Edit1Change(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X,
+      Y: Integer);
+
 
   private
-    function RefreshTablo : Boolean; // Обновление образа табло
+    function RefreshTablo : Boolean; //--------------------------- Обновление образа табло
     procedure SetPlakat(X,Y : integer);
     procedure GetPlakat(X,Y : integer);
     procedure DrawPlakat(X,Y : integer);
@@ -77,7 +77,7 @@ var
   AppStart       : Boolean;      //---------------- признак старта главного окна программы
   SendToSrvCloseRMDSP : Boolean; //-- послать уведомление серверу о завершении работы АРМа
   SendRestartServera  : Boolean; //---------------- выдать команду на перезагрузку сервера
-  OpenMsgForm         : Boolean; // Запрос открытия формы сообщений
+  OpenMsgForm         : Boolean; //----------------------- Запрос открытия формы сообщений
   shiftscr    : integer; // сдвиг картинки
   GlobusIndex : integer; //
 
@@ -114,11 +114,13 @@ uses
   Comport,
   Password,
   PipeProc,
-  //ASUProc,
   MsgForm,
-  TimeInput, ViewFr;
+  TimeInput,
+  ViewOzOv,
+  ViewFr;
 
 {$R *.DFM}
+{$R CURSOR.RES}
 
 var
   sMsg,sPar : string; // строковые переменные для всех спроцедур формы
@@ -131,12 +133,14 @@ var
 
 function SetPrivilege(aPrivilegeName : string; aEnabled : boolean ): boolean;
 var
-  TPPrev, TP : TTokenPrivileges; Token : THandle; dwRetLen : DWord;
+  TPPrev, TP : TTokenPrivileges;
+  Token      : THandle;
+  dwRetLen   : DWord;
 begin
   Result := False;
   OpenProcessToken(GetCurrentProcess,TOKEN_ADJUST_PRIVILEGES or TOKEN_QUERY, Token );
   TP.PrivilegeCount := 1;
-  if( LookupPrivilegeValue(nil, PChar( aPrivilegeName ), TP.Privileges[ 0 ].LUID ) ) then
+  if(LookupPrivilegeValue(nil, PChar( aPrivilegeName ), TP.Privileges[ 0 ].LUID ) ) then
   begin
     if( aEnabled )then TP.Privileges[0].Attributes:= SE_PRIVILEGE_ENABLED else TP.Privileges[0].Attributes:= 0;
     dwRetLen := 0;
@@ -144,23 +148,14 @@ begin
   end;
   CloseHandle( Token );
 end; 
-
+//========================================================================================
 procedure TTabloMain.FormDestroy(Sender: TObject);
 begin
-  // остановить обработку программных каналов
-  {
-  if DspToDspEnabled then CloseHandle(DspToDspThread);
-  if hDspToDspEventWrt <> INVALID_HANDLE_VALUE then CloseHandle(hDspToDspEventWrt);
-  if hDspToDspEventRd <> INVALID_HANDLE_VALUE then CloseHandle(hDspToDspEventRd);
-  if hDspToDspPipe <> INVALID_HANDLE_VALUE then CloseHandle(hDspToDspPipe);
-  if DspToArcEnabled then CloseHandle(DspToArcThread);
-  if hDspToArcEventWrt <> INVALID_HANDLE_VALUE then CloseHandle(hDspToArcEventWrt);
-  if hDspToArcEventRd <> INVALID_HANDLE_VALUE then CloseHandle(hDspToArcEventRd);
-  if hDspToArcPipe <> INVALID_HANDLE_VALUE then CloseHandle(hDspToArcPipe);
-  if hWaitKanal <> INVALID_HANDLE_VALUE then CloseHandle(hWaitKanal);
- }
   if LoopHandle > 0 then
-  begin LoopSync := false; CloseHandle(LoopHandle); end; //закрыть поток канала АРМ-Сервер
+  begin
+    LoopSync := false;
+    CloseHandle(LoopHandle);
+  end; //закрыть поток канала АРМ-Сервер
 
   DateTimeToString(sMsg, 'dd/mm/yy h:nn:ss.zzz', Date+Time);
   //FixStatKanal(1);
@@ -183,7 +178,7 @@ begin
   begin
     if SetPrivilege('SeShutdownPrivilege', true) then
     begin
-      if not ExitWindowsEx(EWX_FORCE or EWX_REBOOT, 0) then Beep;
+      if not ExitWindowsEx(EWX_FORCE or EWX_REBOOT, 0) then SimpleBeep;
       SetPrivilege('SeShutdownPrivilege', False);
     end;
     MessageBeep(MB_ICONHAND);
@@ -198,19 +193,8 @@ procedure TTabloMain.FormCreate(Sender: TObject);
     i,h,aiElements,aColors : integer;
 
 begin
-  StopALL := 0;
   Caption := 'Табло';
-  {
-  hDspToDspEventWrt := INVALID_HANDLE_VALUE; //---------------------------- событие записи
-  hDspToDspEventRd := INVALID_HANDLE_VALUE;  //---------------------------- событие чтения
-  DspToDspThread := INVALID_HANDLE_VALUE;    //----------------------------- поток ДСП-ДСП
-  hDspToDspPipe := INVALID_HANDLE_VALUE;  //-------------------------------- труба ДСП-ДСП
-  hDspToArcEventWrt := INVALID_HANDLE_VALUE;  //----------------- событие "запись в архив"
-  hDspToArcEventRd := INVALID_HANDLE_VALUE;  //-------------------- событие "читать архив"
-  DspToArcThread := INVALID_HANDLE_VALUE; //------------------------------ поток ДСП-архив
-  hDspToArcPipe := INVALID_HANDLE_VALUE; //------------------------------- труба ДСП-архив
-  ASU.Interval := ASU_TIMER_INTERVAL;    //-------------------------- интервал таймера АСУ
-  }
+
   GlobusIndex := 0; //---------------------------------- индекс стартовой картинки глобуса
   ilGlobus.BkColor := armcolor15; //-------------------------фоновый цвет картинки глобуса
   ilClock.BkColor := armcolor15; //--------------------- фоновый цвет картинки таймера МСП
@@ -255,6 +239,10 @@ begin
 
     if reg.ValueExists('ru') then config.ru := reg.ReadInteger('ru')
     else begin err := true; reportf('Нет ключа "ru"'); end;
+
+    if reg.ValueExists('avtodst') then config.avtodst := reg.ReadInteger('avtodst')
+    else begin err := true; reportf('Нет ключа "avtodst"'); end;
+
     {
       if (config.ru < 1) or (config.ru > 3) then config.ru := 1;
       DirState[1] := config.ru;
@@ -277,12 +265,11 @@ begin
 
     KanalSrv[1].config := sMsg; KanalSrv[2].config := sMsg;
 
-    if reg.ValueExists('namepipein') then
-    KanalSrv[1].nPipe:= reg.ReadString('namepipein') //------------ труба для связи с STAN
+    //------------------------------------------------------------- труба для связи с STAN
+    if reg.ValueExists('namepipein') then KanalSrv[1].nPipe:= reg.ReadString('namepipein')
     else sMsg := '';
 
-    if reg.ValueExists('namepipeout')then
-    KanalSrv[2].nPipe:=reg.ReadString('namepipeout')
+    if reg.ValueExists('namepipeout')then KanalSrv[2].nPipe:=reg.ReadString('namepipeout')
     else sMsg := '';
 
     if (KanalSrv[1].nPipe = '') and (KanalSrv[2].nPipe = '')  then KanalType := 0
@@ -292,7 +279,7 @@ begin
       begin err := true; reportf('Неверно определен тип канала связи с сервером'); end;
 
     if reg.ValueExists('AnsverTimeOut') then
-      AnsverTimeOut := reg.ReadDateTime('AnsverTimeOut')
+    AnsverTimeOut := reg.ReadDateTime('AnsverTimeOut')
     else
       begin err := true; reportf('Нет ключа "AnsverTimeOut"'); end;
 
@@ -335,7 +322,7 @@ begin
       else
       if sMsg[1] = '1' then DspToDspType := 1 //--------------------ДСП(ведомый) -- клиент
       else
-      begin err := true; reportf('неверный параметр конфигурации канала АСУ1'); Beep; end;
+      begin err := true; reportf('неверный параметр конфигурации канала АСУ1'); SimpleBeep; end;
 
       if not err then DspToDspEnabled := true;
       nDspToDspPipe := '';
@@ -387,7 +374,8 @@ begin
   begin
     reportf('Нет ключа "DSPRPCTUMS"');
     ShowMessage('Завершение работы из-за обнаружения ошибки при инициализации программы. (Создан файл ошибок DSP.RPT)');
-    Application.Terminate; exit;
+    Application.Terminate;
+    exit;
   end;
   Left := 0;
   Top := 0;
@@ -395,10 +383,14 @@ begin
 
 
   if not InitpSD then //------------ если не удалось создать пустую структуру безопасности
-  begin err := true; reportf('Ошибка инициализации структуры безопасности'); Beep; end;
+  begin
+    err := true;
+    reportf('Ошибка инициализации структуры безопасности');
+    SimpleBeep;
+  end;
 
   if not InitEventPipes then //-- создать события R/W и внести в асинхр.структуры для труб
-  begin err := true; reportf('Ошибка инициализации системных ресурсов'); Beep; end;
+  begin err := true; reportf('Ошибка инициализации системных ресурсов'); SimpleBeep; end;
 
   CreateKanalSrv; //-- создать 1-й и 2-й каналы связи с сервером через СОМ-порты или трубы
   InitKanalSrv(1); //----------------------- инициировать канал 1 через СОМ-порт или трубу
@@ -448,16 +440,16 @@ begin
   //----------------------------------------------------------------- Загрузка базы данных
   if not LoadBase(database) then err := true;
 {$IFNDEF DEBUG}
-  if (DesktopSize.X < configru[config.ru].TabloSize.X) or
-  (DesktopSize.Y < configru[config.ru].TabloSize.Y) then
+  if (DesktopSize.X < configru[config.ru].Tablo_Size.X) or
+  (DesktopSize.Y < configru[config.ru].Tablo_Size.Y) then
   begin //------------- если мониторов не достаточно для АРМа РМ-ДСП - завершить по ошибке
-    reportf('Размер табло ['+ IntToStr(configru[config.ru].TabloSize.X)+ 'x'+
-    IntToStr(configru[config.ru].TabloSize.Y)+'] больше размера рабочего стола Windows!');
+    reportf('Размер табло ['+ IntToStr(configru[config.ru].Tablo_Size.X)+ 'x'+
+    IntToStr(configru[config.ru].Tablo_Size.Y)+'] больше размера рабочего стола Windows!');
     err := true;
   end;
 {$ENDIF}
   SetParamTablo; //---------------------------------------------- установить размеры табло
-   NameAvarMutex := 'AVAR';//---------------------- имя мьютекса для аварийного перезапуска
+
   //--------------------------------------------------- загрузка коротких сообщений РМ-ДСП
   if not LoadLex(config.path + 'LEX.SDB')   then err := true;
   if not LoadLex2(config.path + 'LEX2.SDB') then err := true;
@@ -496,7 +488,7 @@ begin
   TimeInputPos.X := configRU[config.ru].MsgLeft+1; //------ позиция окна для ввода времени
   TimeInputPos.Y := configRU[config.ru].MsgTop+1;
 
-  hWaitKanal := CreateEvent(nil,false,false,nil);  //----- создать событие ожидания канала
+  //hWaitKanal := CreateEvent(nil,false,false,nil);  //----- создать событие ожидания канала
   IsBreakKanalASU := false; //------- сбросить признак завершения обслуживания каналов АСУ
 
   if err then //-------если возникли ошибки при чтении реестра или инициализации программы
@@ -504,6 +496,7 @@ begin
     ShowMessage('Конец работы из-за ошибки при инициализации.Создан файл ошибок DSP.RPT');
     Application.Terminate;
   end;
+
   aiElements := COLOR_MENU;
   aColors := armcolor7;
   SetSysColors(1,aiElements,aColors);
@@ -515,30 +508,29 @@ procedure TTabloMain.FormActivate(Sender: TObject);
   var Dummy : Cardinal;
 begin
   if not AppStart then exit; // если нет признака старта главного окна программы, то конец
-   InsNewArmCmd($7ffb,0); //--------- иначе внести в архив код $7ffb (Начало работы РМ ДСП)
+  InsNewArmCmd($7ffb,0); //--------- иначе внести в архив код $7ffb (Начало работы РМ ДСП)
 {$IFNDEF DEBUG}
   ShowWindow(Application.Handle,SW_HIDE);//----------------------------------- скрыть окно
 {$ENDIF}
   AppStart := false; //-------------------------------- сбросить признак старта приложения
   //------------------------------------------------ первичная инициализация главного окна
   PresetObjParams; //----- Установить параметры объектов зависимостей в исходное состояние
-  Cursor := curTablo1; //--------------------- установить курсор обычного вида (стрелочка)
+  Screen.Cursor := curTablo1; //-------------- установить курсор обычного вида (стрелочка)
   FindCursor := false; //-------------------------------- отключить признак поиска курсора
   FindCursorCnt := 0; //---------------------------------- сбросить счетчик поиска курсора
   DrawTablo(Tablo1); //------------------------------------------------ нарисовать табло 1
   DrawTablo(Tablo2); //------------------------------------------------ нарисовать табло 2
-  {
+
   if config.cur_id = 1 then //------------------------------ если курсор имеет обычный вид
   begin
   //-------------------------------------------- Проверить разрешение на тестовую проверку
-    if FileExists('a:0000000-1a47jdv-kbmndws.ini') then //если существует такой файл на а:
+    if FileExists('c:/0000000-1a47jdv-kbmndws.ini') then //если существует такой файл на а:
     begin //------------------------------ Получено подтверждение режима тестовой проверки
       asTestMode := $aa;
     end
     else asTestMode := $55;
   end
   else
-  }
   asTestMode := $55;
   //--------------------------------------------------------------------------------------
   if DspToDspEnabled then
@@ -583,6 +575,7 @@ begin
   LockCommandDsp := false;//сброс блок. дейст.оператора на время восприятия предупреждения
   // создать поток обслуживания канала АРМ - Сервер и начать синхронизацию
   LoopSync := true;  //--------- установить признак обслуживания каналов обмена с сервером
+
   LoopHandle := //------------------------------создать поток, начать обслуживание каналов
   CreateThread(nil,0,@SyncReadyThread,nil,0,Dummy);
   if LoopHandle > 0 then  //------------------ если поток удачно создан и запущен в работу
@@ -602,11 +595,7 @@ end;
 procedure TTabloMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
   ec : cardinal;
-  error : integer;
-  NameMutex : PAnsiChar;
-  MutexStop : Cardinal;
 begin
-  NameMutex := 'STOP';
   if WorkMode.Upravlenie and ((StateRU and $40) = $40) then
   begin
   //-- при включенном управлении с АРМа и включенном сервере не завершать работу программы
@@ -655,10 +644,8 @@ begin
     ShowWindow(Application.Handle,SW_SHOW); // активизировать и отобразить окно приложения
     if PasswordDlg.ShowModal = mrOk then
     begin
-      InsArcNewMsg(0,89); //------------------------- "Ожидается завершение работы РМ ДСП"
+      InsArcNewMsg(0,89,7); //----------------------- "Ожидается завершение работы РМ ДСП"
       ShowShortMsg(89,LastX,LastY,'');
-      MutexStop := CreateMutex(nil,true,NameMutex);
-      error := GetLastError();
       SendCommandToSrv(WorkMode.DirectStateSoob,cmdfr3_logoff,0);  //--- остановить сервер
       SendToSrvCloseRMDSP := true; //------- фиксируем передачу останова в серверную часть
       StopAll := 15;
@@ -681,13 +668,16 @@ procedure TTabloMain.FormPaint(Sender: TObject);
 var
   i,x,y : integer;
   p : TPoint;
-  n : boolean;
+  n : Boolean;
 begin
   try
     n := false;
+
     for i := 1 to 20 do if stellaj[i] then begin n := true; break; end;
 
-    if IkonkaMove or n then begin GetCursorPos(p);
+    if IkonkaMove or n then
+    begin
+      GetCursorPos(p);
       canvas.DrawFocusRect(rect(p.X+IkonkaDeltaX,p.Y+
       IkonkaDeltaY,p.X+12++IkonkaDeltaX,p.Y+12++IkonkaDeltaY));
     end;
@@ -729,9 +719,10 @@ begin
     end;
 
     x := configRU[config.ru].MonSize.X;
-    if configRU[config.ru].TabloSize.X < x
-    then x := configRU[config.ru].TabloSize.X;
-    y := configRU[config.ru].TabloSize.Y;
+    if configRU[config.ru].Tablo_Size.X < x
+    then x := configRU[config.ru].Tablo_Size.X;
+    y := configRU[config.ru].Tablo_Size.Y;
+
     for i := 1 to High(shortmsg) do
     begin
       canvas.Brush.Style := bsSolid;
@@ -740,8 +731,11 @@ begin
       begin
         //---------------------------------------------------- Вывести короткие сообщения
         canvas.Brush.Color := shortmsgcolor[i];
+        if canvas.Brush.Color = 0 then
+        canvas.Brush.Color := bkgndcolor;
         canvas.FillRect(rect((i-1)*X, Y-15, i*X-32, Y));
-        canvas.Font.Color  := clBlack;
+        if canvas.Brush.Color <> 255 then canvas.Font.Color  := clBlack
+        else canvas.Font.Color  := clWhite;
         TekFontSize := canvas.Font.Size;
         canvas.Font.Size := 10;
         canvas.TextOut((i-1)*X+3, Y-15,shortmsg[i]);//-------------------- вывод сообщения
@@ -769,6 +763,7 @@ begin
         ilGlobus.Draw(canvas, i*X-16, Y-15, GlobusIndex);
       end;
     end;
+  
 
     //------------------------------------------------------------- поиск курсора на табло
     if FindCursor then
@@ -800,7 +795,7 @@ begin
           end
           else begin FindCursor := false; FindCursorCnt := 0; end;
         end else begin FindCursor := false; FindCursorCnt := 0; end;
-      end else
+      end  else
       begin FindCursor := false; FindCursorCnt := 0; end; //--------- завершить бег кругов
     end;
   except
@@ -811,7 +806,9 @@ end;
 //========================================================================================
 //------------------------------------ теневая подготовка образа табло для вывода на экран
 procedure TTabloMain.DrawTablo(tablo: TBitmap);
-  var i,x,y,c : integer;
+var
+  i,x,y,c : integer;
+  OldColor : TColor;
 begin
   try
     if not Assigned(tablo) then
@@ -828,7 +825,7 @@ begin
     Brush.Style := bsSolid;
     FillRect(rect(0, 0, tablo.width, tablo.height));
   end;
-
+  OldColor := shortmsgcolor[1];
   if FixMessage.Count > 0 then
   begin
   //--------------------------------------------------- Нарисовать фиксированные сообщения
@@ -854,7 +851,7 @@ begin
       configRU[config.ru].MsgTop,
       configRU[config.ru].MsgRight,
       configRU[config.ru].MsgBottom);
-      Tablo.Canvas.Brush.Color := Tablo.Canvas.Pen.Color;
+      //Tablo.Canvas.Brush.Color := Tablo.Canvas.Pen.Color;
       if FixMessage.StartLine > 1 then
       begin
         Tablo.Canvas.Polygon(
@@ -871,6 +868,7 @@ begin
       end;
     end;
   end;
+shortmsgcolor[1] := OldColor;
 
   //--------------------------------------------------------- прорисовка полки со значками
   fix := 4;
@@ -935,7 +933,7 @@ begin
     if c > 300 then
     begin
       SyncReady;
-      WaitForSingleObject(hWaitKanal,ChTO);
+      WaitForSingleObject(hWaitKanal,INFINITE); //ChTO);
       c := 0;
     end;
   end;
@@ -982,7 +980,7 @@ begin
     configRU[config.ru].MsgBottom);
     Pen.Color := armcolor12;
     Pen.Width := 2;
-    for i := 1 to (configRU[config.ru].TabloSize.X div configRU[config.ru].MonSize.X)-1 do
+    for i := 1 to (configRU[config.ru].Tablo_Size.X div configRU[config.ru].MonSize.X)-1 do
     begin
       MoveTo(i*configRU[config.ru].MonSize.X,0);
       LineTo(i*configRU[config.ru].MonSize.X,configRU[config.ru].MonSize.Y);
@@ -999,6 +997,15 @@ begin
   end;
 end;
 //========================================================================================
+//----------------------------------------- процедура обработки нажатия правой кнопки мыши
+procedure TTabloMain.FormMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  GetPlakat(X,Y); //----------------- получить параметры перемещаемого плаката (если есть)
+  OperatorDirect := LastTime + 1/86400;
+  if MarhTracert[1].TraceRazdel then ResetTrace;//----- сбросить трассу раздельного режима
+end;
+//=======================================================================================
 //------------------------------------------ процедура обработки перемещения курсора мышки
 procedure TTabloMain.FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 var
@@ -1009,45 +1016,45 @@ begin
   if PopupMenuCmd.PopupComponent <> nil then exit;// прервать если на экране выведено меню
 
   if IkonkaDown > 0 then   //------------------------- если выбрана иконка для перемещения
-    if not SetIkonRezNonOK and //----- если запрещена установка иконок на резервном АРМе и
-    not WorkMode.OtvKom and //--------------------- АРМ не в режиме ответственных команд и
-    not WorkMode.Upravlenie then //---------------- АРМ не в режиме основного управляющего
-    begin //-------------------------------------------- все связанное с иконками сбросить
-      for i := 1 to High(Stellaj) do stellaj[i] := false;
-      IkonkaMove := false; IkonkaMoved := false; IkonkaDown := 0;
-      IkonkaDeltaX := 0;
-      IkonkaDeltaY := 0;
-    end
-    else  IkonkaMoved := true; //------------------------- иначе разрешить движение иконки
+  if not SetIkonRezNonOK and //------- если запрещена установка иконок на резервном АРМе и
+  not WorkMode.OtvKom and //----------------------- АРМ не в режиме ответственных команд и
+  not WorkMode.Upravlenie then //------------------ АРМ не в режиме основного управляющего
+  begin //---------------------------------------------- все связанное с иконками сбросить
+    for i := 1 to High(Stellaj) do stellaj[i] := false;
+    IkonkaMove := false; IkonkaMoved := false; IkonkaDown := 0;
+    IkonkaDeltaX := 0;
+    IkonkaDeltaY := 0;
+  end
+  else  IkonkaMoved := true; //--------------------------- иначе разрешить движение иконки
 
-    if ObjHintIndex > 0 then //---------------------- если ранее курсор указывал на объект
-    begin ResetShortMsg; ObjHintIndex := 0; end;
+  if ObjHintIndex > 0 then //------------------------ если ранее курсор указывал на объект
+  begin ResetShortMsg; ObjHintIndex := 0; end;
 
-    LastMove := Date+Time; //--------------------------------- фиксируем время перемещения
-    LastX := x;   LastY := y;
-    o := cur_obj;//-------------------------------------------- Номер объекта зависимостей
-    cur_obj := -1; //------------------------------------------ сброс объекта под курсором
+  LastMove := Date+Time; //----------------------------------- фиксируем время перемещения
+  LastX := x;   LastY := y;
+  o := cur_obj;//---------------------------------------------- Номер объекта зависимостей
+  cur_obj := -1; //-------------------------------------------- сброс объекта под курсором
 
-    //------------------------------------------------ проход по всем управляющим объектам
-    for i := configRU[config.ru].OUmin to configRU[config.ru].OUmax do
+  //-------------------------------------------------- проход по всем управляющим объектам
+  for i := configRU[config.ru].OUmin to configRU[config.ru].OUmax do
+  begin
+    if (x+shiftscr >= ObjUprav[i].Box.Left) and //----- если курсор в зоне захвата объекта
+    (y >= ObjUprav[i].Box.Top) and
+    (x+shiftscr <= ObjUprav[i].Box.Right) and
+    (y <= ObjUprav[i].Box.Bottom) then
     begin
-      if (x+shiftscr >= ObjUprav[i].Box.Left) and //--- если курсор в зоне захвата объекта
-      (y >= ObjUprav[i].Box.Top) and
-      (x+shiftscr <= ObjUprav[i].Box.Right) and
-      (y <= ObjUprav[i].Box.Bottom) then
-      begin
-        cur_obj := i;
-        ID_obj := ObjUprav[i].IndexObj;
-        ID_menu := ObjUprav[i].MenuID;
-        break;
-      end;
+      cur_obj := i;
+      ID_obj := ObjUprav[i].IndexObj;
+      ID_menu := ObjUprav[i].MenuID;
+      break;
     end;
+  end;
 
   if o <> cur_obj then
   begin
     canvas.Pen.Width := 1;
     if (o > 0) and (o < 20000) then
-    with canvas do
+    with canvas do  //---------------- стереть прямоугольник с прежнего объекта управления
     begin
       Pen.Color := bkgndcolor;
       Pen.Mode := pmCopy;
@@ -1058,7 +1065,7 @@ begin
       LineTo(ObjUprav[o].Box.Left-shiftscr, ObjUprav[o].Box.Top);
     end;
     if (cur_obj > 0) and (ObjUprav[cur_obj].MenuID > 0) then
-    with canvas do
+    with canvas do //---------------- нарисовать прямоугольник на новом объекте управления
     begin
       Pen.Color := clRed; Pen.Mode := pmCopy;
       MoveTo(ObjUprav[cur_obj].Box.Left-shiftscr, ObjUprav[cur_obj].Box.Top);
@@ -1116,7 +1123,6 @@ begin
   DspCommand.Active := false; //--------------------------------- сброс активности команды
   DspMenu.obj := -1; //----------------------------------------- сброс объекта для команды
   ResetTrace; //---------------------------------------------- Сбросить набираемый маршрут
-  WorkMode.GoTracert := false; //----------------------------------------- трассировки нет
   WorkMode.GoMaketSt := false; //---------------------------------- установки на макет нет
   WorkMode.GoOtvKom := false; //--------------------------- ввода ответственных команд нет
   Workmode.MarhOtm := false; //--------------------------------------- отмены маршрута нет
@@ -1126,7 +1132,7 @@ begin
   begin
     InsNewArmCmd(0,0);
     OtvCommand.Active := false;
-    InsArcNewMsg(0,156);  //------------------------- "ввод ответственной команды прерван"
+    InsArcNewMsg(0,156,1);  //----------------------- "ввод ответственной команды прерван"
     showShortMsg(156,LastX,LastY,'');
   end else
   if VspPerevod.Active then //--------- если активизирован вспомогательный перевод стрелки
@@ -1136,17 +1142,17 @@ begin
     VspPerevod.Strelka := 0;
     VspPerevod.Reper := 0;
     VspPerevod.Active := false;
-    InsArcNewMsg(0,149); //------------------------- "Отменено ожидание нажатия кнопки ВСП"
+    InsArcNewMsg(0,149,1); //---------------------- "Отменено ожидание нажатия кнопки ВСП"
     showShortMsg(149,LastX,LastY,'');
   end
   else ResetShortMsg; //---------------------------------- Сбросить все короткие сообщения
 end;
+
 //========================================================================================
 //------------------------------------------------------------- работа с ярлыками на табло
 procedure TTabloMain.SetPlakat(X,Y : integer);
   var i,j,dx : integer; uu : boolean;
 begin
-try
   if not SetIkonRezNonOK and not WorkMode.OtvKom and not WorkMode.Upravlenie then
   begin
     for i := 1 to High(Stellaj) do stellaj[i] := false;
@@ -1162,32 +1168,51 @@ try
   for j := 0 to 19 do
   begin
     dx := j * 12 + 1; if j > 10 then dx := dx + 3;
-    if (X >= configRU[config.ru].BoxLeft+dx) and (Y >= configRU[config.ru].BoxTop) and
-       (X < configRU[config.ru].BoxLeft+dx+12) and (Y < configRU[config.ru].BoxTop+13) then
+    if (X >= configRU[config.ru].BoxLeft+dx) and
+    (Y >= configRU[config.ru].BoxTop) and
+    (X < configRU[config.ru].BoxLeft+dx+12) and
+    (Y < configRU[config.ru].BoxTop+13) then
     begin
-      for i := 1 to 20 do if i <> (j+1) then stellaj[i] := false else stellaj[i] := not stellaj[i]; uu := true; IkonkaDeltaX := 0; IkonkaDeltaY := 0;
+      for i := 1 to 20 do
+      if i <> (j+1) then stellaj[i] := false
+      else stellaj[i] := not stellaj[i];
+      uu := true;
+      IkonkaDeltaX := 0;
+      IkonkaDeltaY := 0;
     end;
   end;
-  if ((X+12+IkonkaDeltaX) >= configRU[config.ru].BoxLeft) and ((Y+12+IkonkaDeltaY) >= configRU[config.ru].BoxTop) and
-     ((X+IkonkaDeltaX) < configRU[config.ru].BoxLeft+12*20+7) and ((Y+IkonkaDeltaY) < configRU[config.ru].BoxTop+16) then
-  begin // проверить зону чувствительности полки с плакатами
-    uu := true; for i := 1 to 20 do stellaj[i] := false;
+  if ((X+12+IkonkaDeltaX) >= configRU[config.ru].BoxLeft) and
+  ((Y+12+IkonkaDeltaY) >= configRU[config.ru].BoxTop) and
+  ((X+IkonkaDeltaX) < configRU[config.ru].BoxLeft+12*20+7) and
+  ((Y+IkonkaDeltaY) < configRU[config.ru].BoxTop+16) then
+  begin //------------------------------ проверить зону чувствительности полки с плакатами
+    uu := true;
+    for i := 1 to 20 do stellaj[i] := false;
   end;
   if not uu then
   begin
-    // поиск вида плаката
+    //----------------------------------------------------------------- поиск вида плаката
     j := 0;
-    for i := 1 to High(Stellaj) do if stellaj[i] then begin j := i; break; end;
-    if j > 0 then
-    begin // установить плакат
+
+    for i := 1 to High(Stellaj) do //------------------------ пройтись по стелажу табличек
+    if stellaj[i] then //---------------------------- если есть выделенная табличка-плакат
+    begin
+      j := i;  //-------------------------------------- получить номер выделенного плаката
+      break;
+    end;
+
+    if j > 0 then //------------------------------------------- если есть выбранный плакат
+    begin //------------------------------------------------------------ установить плакат
       case config.ru of
-        1 : begin // RU1
-          for i := 1 to High(Ikonki) do
+        1 :
+        begin //---------------------------------------------------------------------- RU1
+          for i := 1 to High(Ikonki) do  //----- ищем в массиве иконок ближайшую свободную
           begin
             if Ikonki[i,1] = 0 then
-            begin // поместить иконку на табло
-              IkonNew := true; IkonSend := true;
-              case j of
+            begin //-------------------------------------------- поместить иконку на табло
+              IkonNew := true;
+              IkonSend := true;
+              case j of         //--------------------- находим код изображения для иконки
                 1  : Ikonki[i,1] := 13;
                 2  : Ikonki[i,1] := 14;
                 3  : Ikonki[i,1] := 15;
@@ -1209,16 +1234,21 @@ try
                 19 : Ikonki[i,1] := 11;
                 20 : Ikonki[i,1] := 12;
               end;
-              Ikonki[i,2] := X; Ikonki[i,3] := Y; uu := true; break;
+              Ikonki[i,2] := X; Ikonki[i,3] := Y; //------------------ ставим координаты
+              uu := true;
+              break;
             end;
           end;
         end;
-        2 : begin // RU2
+
+        2 :
+        begin //-------------------------------------------------------------------- RU2
           for i := 1 to High(Ikonki) do
           begin
             if Ikonki2[i,1] = 0 then
-            begin // поместить иконку на табло
-              IkonNew := true; IkonSend := true;
+            begin //-------------------------------------------- поместить иконку на табло
+              IkonNew := true;
+              IkonSend := true;
               case j of
                 1  : Ikonki2[i,1] := 13;
                 2  : Ikonki2[i,1] := 14;
@@ -1241,23 +1271,27 @@ try
                 19 : Ikonki2[i,1] := 11;
                 20 : Ikonki2[i,1] := 12;
               end;
-              Ikonki2[i,2] := X; Ikonki2[i,3] := Y; uu := true; break;
+              Ikonki2[i,2] := X; Ikonki2[i,3] := Y;
+              uu := true;
+              break;
             end;
           end;
         end;
       end;
-      if not uu then Beep;
+      if not uu then SimpleBeep;
     end;
-    for i := 1 to High(Stellaj) do stellaj[i] := false; // сброс на полке
+
+    for i := 1 to High(Stellaj)
+    do stellaj[i] := false; //--------------------------------------------- сброс на полке
   end;
-except
-  reportf('Ошибка [TabloForm.TTabloMain.SetPlakat]'); Application.Terminate;
 end;
-end;
+//========================================================================================
 procedure TTabloMain.Timer1Timer(Sender: TObject);
 begin
   vremia_zapisi := true;
 end;
+
+
 
 //========================================================================================
 procedure TTabloMain.GetPlakat(X,Y : integer);
@@ -1282,28 +1316,32 @@ begin
       (Y >= configRU[config.ru].BoxTop) and
       (X < configRU[config.ru].BoxLeft+dx+12) and
       (Y < configRU[config.ru].BoxTop+13) then
-      begin
-        for i := 1 to 20 do
+      begin  //---------------------------------- если на экране попали на табличку-плакат
+        for i := 1 to 20 do //------------------ сбросить все не выбранные сейчас таблички
         if i <> (j+1) then stellaj[i] := false
-        else stellaj[i] := not stellaj[i];
-        uu := true;
+        else stellaj[i] := not stellaj[i];   //---------- выбранную табличку "перевернуть"
+        uu := true;   //------------------------------- установить признак выбора таблички
       end;
     end;
-    if not uu then
+
+    if not uu then  //-------------------------------------- если не было выбрано табличек
     begin
       case config.ru of
         1 :
-        begin //------------------------------------------------------------------------ RU1
-          for i := High(Ikonki) downto 1 do
+        begin //---------------------------------------------------------------------- RU1
+          for i := High(Ikonki) downto 1 do   //----------- пройтись по списку всех ихонок
           if Ikonki[i,1] > 0 then
           begin
             if (Ikonki[i,2] <= X) and
             (Ikonki[i,2]+12 >= X) and
             (Ikonki[i,3] <= Y) and
-            (Ikonki[i,3]+12 >= Y) then
+            (Ikonki[i,3]+12 >= Y) then   //если курсор нашел иконку на экране
             begin
-              IkonkaDown := i; IkonkaMove := true; IkonkaMoved := false;
-              IkonkaDeltaX := Ikonki[i,2] - X; IkonkaDeltaY := Ikonki[i,3] - Y;
+              IkonkaDown := i;
+              IkonkaMove := true;
+              IkonkaMoved := false;
+              IkonkaDeltaX := Ikonki[i,2] - X;
+              IkonkaDeltaY := Ikonki[i,3] - Y;
               break;
             end;
           end;
@@ -1319,8 +1357,12 @@ begin
               (Ikonki2[i,3] <= Y) and
               (Ikonki2[i,3]+12 >= Y) then
             begin
-              IkonkaDown := i; IkonkaMove := true; IkonkaMoved := false;
-              IkonkaDeltaX := Ikonki2[i,2] - X; IkonkaDeltaY := Ikonki2[i,3] - Y;
+              IkonkaDown := i;
+              IkonkaMove := true;
+              IkonkaMoved := false;
+
+              IkonkaDeltaX := Ikonki2[i,2] - X;
+              IkonkaDeltaY := Ikonki2[i,3] - Y;
               break;
             end;
           end;
@@ -1416,16 +1458,19 @@ begin
     reportf('Ошибка [TabloForm.ResetAllPlakat]'); Application.Terminate;
   end;
 end;
+{
 //========================================================================================
-//------------------------------------------------------------ Реакция на нажатие на мышку
-procedure TTabloMain.FormMouseDown(Sender:TObject;Button:TMouseButton;Shift:TShiftState;X,Y:Integer);
+//------------------------------------------------ Реакция на нажатие правой клавиши мышки
+procedure TTabloMain.FormMouseDown(Sender : TObject; Button : TMouseButton;
+Shift : TShiftState; X,Y : Integer);
 begin
   GetPlakat(X,Y); //----------------- получить параметры перемещаемого плаката (если есть)
   OperatorDirect := LastTime + 1/86400;
   if MarhTracert[1].TraceRazdel then ResetTrace;//----- сбросить трассу раздельного режима
 end;
-
+ }
 var LastID_Obj : integer;
+
 //========================================================================================
 //------------------------------------------------------------ реакция на отпускание мышки
 procedure TTabloMain.FormMouseUp(Sender: TObject; Button: TMouseButton;
@@ -1435,9 +1480,10 @@ var
 begin
   if PopupMenuCmd.PopupComponent <> nil then exit; //если на экран выведено меню, то выйти
 
-  if LockCommandDsp then  begin  SingleBeep := true; exit; end;//если заблокировано, выйти
+  if LockCommandDsp then
+  begin  SingleBeep := true; exit; end;//----------------------- если заблокировано, выйти
 
-  if Button = mbLeft then  //------------------------------ если нажата левая кнопка мышки
+  if Button = mbLeft then  //------------------------- если была нажата левая кнопка мышки
   begin
     if IkonkaMove and  IkonkaMoved and  //---------------- если работа с выбранной иконкой
     (IkonkaDown > 0) and (cur_obj < 0)
@@ -1483,8 +1529,8 @@ begin
     else // -------------------------------- если курсор не в поле фиксированных сообщений
     if cur_obj < 0 then  //------------------- если курсор не связан с каким-либо объектом
     begin //-------------------------------------------------------------- проверить точку
-      //##################################################################################
       if WorkMode.GoTracert then //--------------------------------- если идет трассировка
+      //________________________Т Р А С С И Р О В К А ____________________________________
       begin //-------------------- проверить не выбраны ли остряки стрелки при трассировке
         n := -1;
         for i := configRU[config.ru].OVmin to configRU[config.ru].OVmax do// по всем видео
@@ -1524,16 +1570,14 @@ begin
               CreateDspMenu(ID_menu, X, Y); break;
             end;
           end;
-        end
-        //------------------------------------------------------- не найден видеобуфер, то
-        else begin SetPlakat(X,Y);ResetCommands;exit;end;//проверить нажатие ярлыка и выйти
-      end
-      else
-      //##################################################################################
+        end else //---------------------------------------------- не найден видеобуфер, то
+        begin SetPlakat(X,Y);ResetCommands;exit;end; //-- проверить нажатие ярлыка и выйти
+      end else
+
       //------------------------------------------------ если идет не трассировка маршрута
-      begin SetPlakat(X,Y); ResetCommands; exit; end; //------ проверить не нажат ли ярлык
-    end
-    else //----------------------------------------------- если курсор уже с чем-то связан
+      begin  SetPlakat(X,Y);ResetCommands; exit; end; //------ проверить не нажат ли ярлык
+
+    end else //------------------------------------------- если курсор уже с чем-то связан
     for i := 1 to High(Stellaj) do stellaj[i] := false; //----- сбросить полку с плакатами
 
     //--- если есть объект под курсором и  ожидаем команды или её подтверждения оператором
@@ -1544,7 +1588,7 @@ begin
       begin
         //-------------------------- для режима ответственных команд сброс команды и выход
         if WorkMode.OtvKom then begin  ResetCommands; exit; end
-        else //------------------------------------------------------------------ иначе ....
+        else //----------------------------------------------------------------- иначе ...
         if (MarhTracert[1].Finish or //--------- если запрос выдачи маршрутной команды или
         (MarhTracert[1].GonkaStrel and //------------ разрешена гонка стрелок в маршрута и
         (MarhTracert[1].GonkaList > 0))) and //----------------- есть стрелки для перевода
@@ -1554,8 +1598,8 @@ begin
           MarhTracert[1].Finish := false;
           DspCommand.Active := true;
           SelectCommand;
-        end
-        else  ResetCommands; exit;//-------------------------- иначе сброс команды и выход
+        end else  ResetCommands;
+        exit;//----------------------------------------------- иначе сброс команды и выход
       end;
     end;
 
@@ -1615,15 +1659,20 @@ begin
     begin
       n := (Y - configRU[config.ru].MsgTop) div 16 + FixMessage.StartLine;//- Номер строки
       if n <= FixMessage.Count then
-      begin FixMessage.MarkerLine := n; ResetFixMessage; end
+      begin
+        FixMessage.MarkerLine := n;
+        ResetFixMessage;
+      end
       else SingleBeep := true;
     end;
   end;
 end;
+
 //----------------------------------------------------------------------------------------
 var
   LastKey : Word;        // Код последней нажатой клавиши
   LastKeyPress : Double; // Время нажатия последней клавиши
+
 //========================================================================================
 //-------------------------------------------------------- Обработка нажатия на клавиатуре
 procedure TTabloMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -1641,36 +1690,36 @@ begin
         VK_ESCAPE : sMsg := 'ESC';
         VK_SPACE : sMsg := 'ПРОБЕЛ';
         VK_BACK : sMsg := 'ЗАБОЙ';
-        VK_F1 : sMsg := 'F1';
-        VK_F2 : sMsg := 'F2';
-        VK_F3 : sMsg := 'F3';
-        VK_F4 : sMsg := 'F4';
-        VK_F5 : sMsg := 'F5';
-        VK_F6 : sMsg := 'F6';
-        VK_F7 : sMsg := 'F7';
-        VK_F8 : sMsg := 'F8';
-        VK_F9 : sMsg := 'F9';
-        VK_F10 : sMsg := 'F10';
-        VK_F11 : sMsg := 'F11';
-        VK_F12 : sMsg := 'F12';
-        VK_INSERT : sMsg := 'INSERT';
-        VK_DELETE : sMsg := 'DELETE';
-        VK_HOME : sMsg := 'HOME';
-        VK_END : sMsg := 'END';
-        VK_NEXT : sMsg := 'Page Down';
-        VK_PRIOR : sMsg := 'Page Up';
-        VK_LEFT : sMsg := 'Стрелка влево';
-        VK_RIGHT : sMsg := 'Стрелка вправо';
-        VK_DOWN : sMsg := 'Стрелка вниз';
-        VK_UP : sMsg := 'Стрелка вверх';
+        VK_F1 : sMsg := 'F1'; //-------- Установить маршрутный/раздельный режим управления
+        VK_F2 : sMsg := 'F2'; //--------------------------------------------- Ввод времени
+        VK_F3 : sMsg := 'F3'; //--------------------------------------- ввод номера поезда
+        VK_F4 : sMsg := 'F4'; //------------------------------ Сброс фиксируемых сообщений
+        VK_F5 : sMsg := 'F5'; //-- Просмотр сообщений по ненормам устройств(для резервной)
+        VK_F6 : sMsg := 'F6'; //--- отключить управление в случае экстренной необходимости
+        VK_F7 : sMsg := 'F7'; //---------- сброс разрешения управления с РМ-ДСП(аварийный)
+        VK_F8 : sMsg := 'F8'; //------------------- переключатель подсветки номера поездов
+        VK_F9 : sMsg := 'F9'; //---------------- переключатель подсветки положения стрелок
+        VK_F10 : sMsg := 'F10'; //------------- выдача команд в обход интерфейса оператора
+        VK_F11 : sMsg := 'F11'; //--------------------------- подсветить положение курсора
+        VK_F12 : sMsg := 'F12'; //------------------------------ Сброс фиксируемого звонка
+        VK_INSERT : sMsg := 'INSERT'; //Просмотр списка значений FR3, FR4 (при Ctrl+Shift)
+        VK_DELETE : sMsg := 'DELETE'; //--- сброс всех информационных тпбличек (при Shift)
+        VK_HOME : sMsg := 'HOME';  //----- Перевести курсор на кнопки выбора режима работы
+        VK_END : sMsg := 'END'; //-- Конец набора маршрута(или сброс маршрута, если Shift)
+        VK_NEXT : sMsg := 'Page Down'; //----- сдвиг экранов табло вправо (в режиме DEBUG)
+        VK_PRIOR : sMsg := 'Page Up';  //------ сдвиг экранов табло влево (в режиме DEBUG)
+        VK_LEFT : sMsg := 'Стрелка влево';   //- переместить курсор на объект экрана влево
+        VK_RIGHT : sMsg := 'Стрелка вправо';//- переместить курсор на объект экрана вправо
+        VK_DOWN : sMsg := 'Стрелка вниз'; //----- переместить курсор на объект экрана вниз
+        VK_UP : sMsg := 'Стрелка вверх';//------ переместить курсор на объект экрана вверх
         VK_SHIFT : sMsg := 'SHIFT';
         VK_MENU : sMsg := 'ALT';
         VK_CONTROL : sMsg := 'CTRL';
-        else  sMsg := Char(Key); //------------------- для всех остальных клавиш взять имя 
+        else  sMsg := Char(Key); //------------------- для всех остальных клавиш взять имя
       end;
       InsNewArmCmd($7fe7,0);
+      AddFixMessage(GetShortMsg(1,141,'<' + sMsg + '>',0),4,3);
       ShowShortMsg(141,LastX,LastY,'<'+ sMsg+ '>');//---------- "длительно нажата клавиша"
-      Beep;
     end;
   end else
   begin //------------------------------------------ сохранить код клавиши и время нажатия
@@ -1698,6 +1747,9 @@ begin
     begin
       if Shift = [ssShift,ssCtrl] //----------- если также одновременно нажаты управляющие
       then FrForm.Show;//------------------------------- Просмотр списка значений FR3, FR4
+
+      if Shift = [ssShift,ssAlt] //----------- если также одновременно нажаты управляющие
+      then ViewBaza.Show;//------------------------------- Просмотр списка значений FR3, FR4
     end;
 
     VK_DELETE : //---------------------------------------------- если нажата клавиша <Del>
@@ -1750,7 +1802,7 @@ begin
           if FixMessage.MarkerLine < FixMessage.StartLine
           then FixMessage.StartLine := FixMessage.MarkerLine;
         end
-        else  Beep;
+        else  SimpleBeep;
       end
       else
       if Shift = [] then
@@ -1776,7 +1828,7 @@ begin
           if FixMessage.MarkerLine > FixMessage.StartLine + 4
           then FixMessage.StartLine := FixMessage.MarkerLine - 4;
         end
-        else  Beep;
+        else  SimpleBeep;
       end else
       if Shift = [] then
       begin
@@ -1794,12 +1846,16 @@ begin
     VK_RETURN : //------------------------------------------------- нажата клавиша <Enter>
     begin
       //------------------------------------- если команды заблокированы, то пикнуть и все
-      if LockCommandDsp then  begin  SingleBeep := true;  exit;  end;
+      if LockCommandDsp then
+      begin  SingleBeep := true;  exit;  end;
 
       if DspMenu.WC then //------------------- если есть ожидание подтверждения оператором
       begin
         if cur_obj = DspMenu.obj then // если курсор на том объекте, для которого ожидание
-        begin DspCommand.Active := true; SelectCommand; end //------------ Выбрать команду
+        begin
+          DspCommand.Active := true;
+          SelectCommand; //----------------------------------------------- Выбрать команду
+        end
         else
         begin //------------------ Сброс ранее подготовленной команды, если ушли с объекта
           ResetShortMsg; //------------------------------- Сбросить все короткие сообщения
@@ -1811,8 +1867,8 @@ begin
       //------------------------------------------------------- но ожидается выбор команды
       if DspMenu.Ready then SelectCommand
       else
-      begin //------------------------------------------- если нет ожидания выбора командц
-        if cur_obj < 0 then Beep //------- если курсор стоит не на объекте, только пикнуть
+      begin //------------------------------------------- если нет ожидания выбора команды
+        if cur_obj < 0 then SimpleBeep //------- если курсор стоит не на объекте, только пикнуть
         else
         begin
           x := ObjUprav[cur_obj].Box.Left;
@@ -1821,7 +1877,7 @@ begin
           begin
             CreateDspMenu(ID_menu, X, Y);  //---------------------------- подготовить меню
             if not DspMenu.WC then SelectCommand; //- если без подтверждения, то выполнить
-          end else Beep;
+          end else SimpleBeep;
         end;
       end;
     end;
@@ -1835,11 +1891,11 @@ begin
       SetCursorPos(ObjUPrav[cur_obj].Box.Right-shiftscr-2,ObjUPrav[cur_obj].Box.Bottom-2);
     end;
 
-    VK_SPACE :
+    VK_SPACE :                        
     begin
 
 {$IFDEF DEBUG}
-      if Shift = [ssCtrl] then // Технологическая функция
+      if Shift = [ssCtrl] then //-------------- Технологическая функция KOK = Ctrl + SPACE
       begin
         WorkMode.PushOK := not WorkMode.PushOK;
       end else
@@ -1869,7 +1925,7 @@ begin
           SelectCommand;
         end else
         if Shift = [ssShift] then
-        begin // Сброс набора
+        begin //------------------------------------------------------------- Сброс набора
           DspMenu.obj := 0;
           CreateDSPMenu(KeyMenu_ClearTrace,LastX,LastY);
           SelectCommand;
@@ -1898,7 +1954,7 @@ begin
           end;
         end;
         GetCursorPos(t);//------------ получить позицию мышиного курсора в формате точки t
-        FindCursorCnt:=configRU[config.ru].TabloSize.X+configRU[config.ru].TabloSize.Y-t.X-t.Y;
+        FindCursorCnt:=configRU[config.ru].Tablo_Size.X+configRU[config.ru].Tablo_Size.Y-t.X-t.Y;
         FindCursor := true;
       end;
     end;
@@ -1908,7 +1964,7 @@ begin
 {$IFDEF DEBUG}
       //-------------------------------------------------------- сдвиг экранов табло влево
       if shiftscr >= 800 then shiftscr := shiftscr - 800
-      else begin shiftscr := 0; Beep; end;
+      else begin shiftscr := 0; SimpleBeep; end;
 {$ENDIF}
     end;
 
@@ -1916,9 +1972,9 @@ begin
     begin
 {$IFDEF DEBUG}
       //------------------------------------------------------- сдвиг экранов табло вправо
-      if shiftscr < (configru[config.ru].TabloSize.X - configru[config.ru].MonSize.X)
+      if shiftscr < (configru[config.ru].Tablo_Size.X - configru[config.ru].MonSize.X)
       then shiftscr := shiftscr + 800
-      else Beep;
+      else SimpleBeep;
 {$ENDIF}
     end;
 
@@ -1980,7 +2036,8 @@ begin
       begin //--------------------- отключить управление в случае экстренной необходимости
         if Application.MessageBox('Подтвердите завершение работы РМ-ДСП','РМ-ДСП',MB_OKCANCEL) = IDOK then
         begin
-          ReBoot := false; Application.Terminate;
+          ReBoot := false;
+          Application.Terminate;
         end;
 {$IFDEF DEBUG}
       end else
@@ -1994,14 +2051,15 @@ begin
       end;
     end;
 
-    VK_F7 : // сброс разрешения управления с РМ-ДСП(аварийный при отсутствии другой возможности)
+    VK_F7 : //---- сброс разрешения управления с РМ-ДСП(при отсутствии другой возможности)
     begin
       if (Shift = [ssShift,ssAlt,ssCtrl]) and not WorkMode.Upravlenie then
       begin
         if config.ru <> 1 then
         begin
 {$IFNDEF DEBUG}
-          if (DesktopSize.X >= configru[1].TabloSize.X) and (DesktopSize.Y >= configru[1].TabloSize.Y) then
+          if (DesktopSize.X >= configru[1].Tablo_Size.X) and
+          (DesktopSize.Y >= configru[1].Tablo_Size.Y) then
 {$ENDIF}
           begin
             InsNewArmCmd($7fec,0); NewRegion := 1; ChRegion := true;
@@ -2010,7 +2068,8 @@ begin
         if config.ru <> 2 then
         begin
 {$IFNDEF DEBUG}
-          if (DesktopSize.X >= configru[2].TabloSize.X) and (DesktopSize.Y >= configru[2].TabloSize.Y) then
+          if (DesktopSize.X >= configru[2].Tablo_Size.X) and
+          (DesktopSize.Y >= configru[2].Tablo_Size.Y) then
 {$ENDIF}
           begin
             InsNewArmCmd($7feb,0); NewRegion := 2; ChRegion := true;
@@ -2045,7 +2104,7 @@ begin
 
 
     VK_F9 :
-    begin // переключатель подсветки положения стрелок, района местного управления
+    begin //-------- переключатель подсветки положения стрелок, района местного управления
       if Shift = [] then
       begin
         DspMenu.obj := 20001;
@@ -2057,8 +2116,10 @@ begin
     VK_F10 :
     begin //--------- технологическая функция - выдача команд в обход интерфейса оператора
       if (asTestMode = $55) then exit;
+      TabloMain.Visible := false;
       if Shift = [ssShift] then
       begin //---------------------------------------------------- Ввод маршрутной команды
+
         sMsg := InputBox('Ввод маршрутной команды', 'Введите маршрут', '');
         if sMsg <> '' then
         begin
@@ -2158,7 +2219,7 @@ begin
             CmdCnt := 1;
             CmdSendT := LastTime;
           end
-          else Beep;
+          else SimpleBeep;
         end;
       end;
     end;
@@ -2166,7 +2227,8 @@ begin
     VK_F11 :
     begin //------------------------------------------------- подсветить положение курсора
       GetCursorPos(t);
-      FindCursorCnt := configRU[config.ru].TabloSize.X + configRU[config.ru].TabloSize.Y - t.X - t.Y;
+      FindCursorCnt := configRU[config.ru].Tablo_Size.X +
+      configRU[config.ru].Tablo_Size.Y - t.X - t.Y;
       if (t.X + t.Y) > FindCursorCnt
       then FindCursorCnt := t.X + t.Y;
       FindCursor := true;
@@ -2194,6 +2256,16 @@ var
 begin
   try
   {$IFNDEF DEBUG} shiftscr := 0; {$ENDIF}
+
+ {$IFDEF DEBUG}
+    WorkMode.LockCmd := false;
+    //WorkMode.Upravlenie := true;
+    for i := 1 to  1024 do
+    begin
+      ObjZav[i].bParam[31] := true;
+    end;
+ {$ENDIF}
+
     if LoopHandle > 0 then   //-------------------- если существует поток связи с сервером
     begin
       if GetExitCodeThread(LoopHandle,ec) then  //-------------------- если поток в работе
@@ -2244,6 +2316,7 @@ begin
     else //---------------------------------------------------- иначе --------------------
     if (LastTime - LastSync > RefreshTimeOut) //----- если прошло достаточно много времени
     then inc(CntSyncTO); //-------------------------------- увеличить счетчик по тайм-ауту
+
     try
       if (LastTime - LastSync > RefreshTimeOut) or
       MySync[1] or MySync[2] then //--------------------------- интервал регенерации табло
@@ -2290,6 +2363,7 @@ begin
         if WorkMode.OtvKom    then b := b + $20;  //--------------------------- нажата КОК
         if WorkMode.Podsvet   then b := b + $40;  //-------------------- подсветка стрелок
         if WorkMode.GoTracert then b := b + $80;  //----------------- ввод трассы маршрута
+
         if (ArmState <> b) and
         (WorkMode.ArmStateSoob > 0) then  //----- если есть изменения - сохранить в архиве
         begin
@@ -2348,17 +2422,17 @@ begin
               UpdateMsgQuery := false; //----- снять запрос на обновление списка сообщений
               st := 1;
               i := 0;
-              while st <= Length(ListNeisprav) do //-- пройти по списку неисправностей СЦБ
+              while st <= Length(LstNN) do //-- пройти по списку неисправностей СЦБ
               begin
-                if ListNeisprav[st] = #10 then inc(i);//конец строки, счет нужно увеличить
+                if LstNN[st] = #10 then inc(i);//конец строки, счет нужно увеличить
                 if i < 700 then inc(st) //------- если меньше 700 штук продолжаем движение
                 else   //--------------------------------------------- если более 700 штук
                 begin
-                  SetLength(ListNeisprav,st); //-------------- обрезаем список и прерываем
+                  SetLength(LstNN,st); //-------------- обрезаем список и прерываем
                   break;
                 end;
               end;
-              MsgFormDlg.Memo.Lines.Text := ListNeisprav;//-список неисправностей на экран
+              MsgFormDlg.Memo.Lines.Text := LstNN;//-список неисправностей на экран
 
               st := 1;
               i := 0;
@@ -2403,7 +2477,7 @@ begin
               InsNewArmCmd($7ffc,0); //------- записать в архив ДСП сообщение о ненорме БД
               ShowShortMsg(526,LastX,LastY,'объекта зависимостей в строке '+
               IntToStr(cntObjZav));
-              Beep;
+              SimpleBeep;
             end;
             inc(cntObjZav); //-------------------------------- перейти на следующий объект
           end
@@ -2426,7 +2500,7 @@ begin
                 InsNewArmCmd($7ffc,0);
                 ShowShortMsg(526,LastX,LastY,'объекта табло в строке '+
                 IntToStr(cntObjView));
-                Beep;
+                SimpleBeep;
               end;
             end;
             inc(cntObjView);
@@ -2450,7 +2524,7 @@ begin
                 InsNewArmCmd($7ffc,0);  //-------------------------------------ошибка в БД
                 ShowShortMsg(526,LastX,LastY,'объекта управления в строке '
                 + IntToStr(cntObjUprav));
-                Beep;
+                SimpleBeep;
               end;
             end;
             inc(cntObjUprav);
@@ -2475,7 +2549,7 @@ begin
                 InsNewArmCmd($7ffc,0);
                 PutShortMsg(526,LastX,LastY,'буфера отображения в строке '+
                 IntToStr(cntOVBuffer));
-                Beep;
+                SimpleBeep;
               end;
             end;
             inc(cntOVBuffer);
@@ -2505,9 +2579,10 @@ begin
             SyncTime := true;//------------------- установить признак формирования команды
           end;
         end;
-{$IFDEF DEBUG}
-        WorkMode.OtvKom := WorkMode.PushOK;
-{$ELSE}
+
+//{$IFDEF DEBUG}
+//        WorkMode.OtvKom := WorkMode.PushOK;
+//{$ELSE}
         if ((StateRU and $20) = $20) then
         begin
           WorkMode.PushOK := true;
@@ -2518,7 +2593,7 @@ begin
           WorkMode.OtvKom := false;//----------------------------------- Нет разрешения ОК
           WorkMode.PushOK := false;
         end;
-{$ENDIF}
+//{$ENDIF}
         if WorkMode.OtvKom <> lastCurOK then  //----------------- изменилось состояние КОК
         begin
           lastCurOK := WorkMode.OtvKom;
@@ -2528,11 +2603,11 @@ begin
 
         if WorkMode.CmdReady or //---------------------- если разд.команда АРМа готова или
         WorkMode.MarhRdy then //--------------------------- маршрутная команда АРМа готова
-        Cursor := crAppStart //--------------------------- при занятости канала АРМ-Сервер
+        Screen.Cursor := crAppStart //-------------------- при занятости канала АРМ-Сервер
         else
         begin //---------------------------------------- при свободности канала АРМ-Сервер
-          if WorkMode.OtvKom then Cursor := curTablo1ok //--------- при нажатой кнопке КОК
-          else Cursor := crArrow; //--------------------------- обычный курсор - стрелочка
+          if WorkMode.OtvKom then Screen.Cursor := curTablo1ok //---при нажатой кнопке КОК
+          else Screen.Cursor := crArrow; //-------------------- обычный курсор - стрелочка
         end;
 
         //------- при многоэкранном табло выявлен дефект ПО - исчезает курсор в режиме ОК.
@@ -2542,7 +2617,8 @@ begin
 
         if ChRegion then ChangeRegion(NewRegion); //---------- изменение района управления
 
-        if ChDirect then ChangeDirectState(StDirect); //--- изменение состояния управления
+        if ChDirect then
+        ChangeDirectState(StDirect); //-------------------- изменение состояния управления
 
         if WorkMode.Upravlenie and
         WorkMode.OU[0] and
@@ -2594,7 +2670,7 @@ begin
         end;
 
         if MsgStateRM <> '' then
-        begin //--------------------------------------- вывод сообщения об изменении статуса
+        begin //------------------------------------- вывод сообщения об изменении статуса
           PutShortMsg(MsgStateClr,LastX,LastY,MsgStateRM);
           MsgStateRM := '';
         end;
@@ -2737,12 +2813,12 @@ begin
         begin //------------------------ проверить время ожидания выдачи команды на сервер
           if CmdSendT + (5/86400) < LastTime then
           begin //--------------------------------------- превышено время ожидания команды
-            InsArcNewMsg(0,296);  //----------------------------------- "сброшена команда"
+            InsArcNewMsg(0,296,0);  //--------------------------------- "сброшена команда"
             CmdCnt := 0;
             WorkMode.MarhRdy := false;
             WorkMode.CmdReady := false; //----------------------------------- сброс команд
             if not StartRM then //---------------------------------- если не старт системы
-            AddFixMessage(GetShortMsg(1,296,GetNameObjZav(CmdBuff.LastObj)),4,1);
+            AddFixMessage(GetShortMsg(1,296,GetNameObjZav(CmdBuff.LastObj),0),4,1);
          end;
         end;
       end;
@@ -2766,9 +2842,11 @@ begin
     Application.Terminate;
   end;
 end;
+
 //========================================================================================
 var
   FixVspPerevod : boolean;
+
 //========================================================================================
 //---------------------------------------------------------------- Обновление образа табло
 function TTabloMain.RefreshTablo : Boolean;
@@ -2781,18 +2859,19 @@ begin
     LastSync := LastTime;
     if SVAZ <> config.SVAZ_TUMS[1][1] then config.SVAZ_TUMS[1][1] := SVAZ
     else
-      if SVAZ <> config.SVAZ_TUMS[1][2] then config.SVAZ_TUMS[1][2] := SVAZ
+    if SVAZ <> config.SVAZ_TUMS[1][2] then config.SVAZ_TUMS[1][2] := SVAZ
     else
-      if SVAZ <> config.SVAZ_TUMS[1][3] then
-    begin
-      config.SVAZ_TUMS[1][3] := SVAZ;
-    end;
+    if SVAZ <> config.SVAZ_TUMS[1][3] then config.SVAZ_TUMS[1][3] := SVAZ;
+
     PrepareOZ; //----------------------------------- подготовка всех объектов зависимостей
+
+    //--------------------------------- работа со структурой текущей ответственной команды
     if OtvCommand.Active then //---- если ждем выдачу исполнительной ответственной команды
     begin
       //--------------------------------------------------- проверить сообщения из сервера
       if OtvCommand.State <> GetFR3(OtvCommand.Check,a,b)//контролируемый датчик изменился
       then OtvCommand.Ready := false; //это подтверждение предв.ком,разреши исполнительную
+
       //-------------------------------------------------------- обработать состояние ОтвК
       Delta := OtvCommand.Reper - LastTime; //---------------------------- Остаток времени
       if Delta > 0 then
@@ -2803,8 +2882,8 @@ begin
           WorkMode.GoOtvKom := false;
           OtvCommand.Ready := false;
           ShowShortMsg(156, LastX, LastY, ''); //-----"ввод ответственной команды прерван"
-          InsArcNewMsg(0,156);
-          SingleBeep := true;
+          InsArcNewMsg(0,156,1);
+//          SingleSimpleBeep := true;
         end
         else
         if OtvCommand.Second > 0 then
@@ -2814,8 +2893,8 @@ begin
             OtvCommand.Active := false;
             WorkMode.GoOtvKom := false;
             ResetShortMsg;
-            AddFixMessage(GetShortMsg(1,155,''),1,1);//--------"нарушен порядок выдачи ОК"
-            InsArcNewMsg(0,155);
+            AddFixMessage(GetShortMsg(1,155,'',1),1,1);//------"нарушен порядок выдачи ОК"
+            InsArcNewMsg(0,155,1);
           end
           else
           if (OtvCommand.Second = OtvCommand.Cmd) and //-если получена ожидаемая команды и
@@ -2835,8 +2914,8 @@ begin
             WorkMode.GoOtvKom := false;
             OtvCommand.Ready := false;
             ResetShortMsg;
-            AddFixMessage(GetShortMsg(1,153,''),1,1);//"исполнит. противоречит предварит."
-            InsArcNewMsg(0,153);
+            AddFixMessage(GetShortMsg(1,153,'',1),1,1);//"исполн. противоречит предварит."
+            InsArcNewMsg(0,153,1);
           end;
         end
         else
@@ -2845,7 +2924,7 @@ begin
           (OtvCommand.SObj > 0)) then //------------- на объект была выдача исполнительной
           begin // вывод отсчета таймера
             delta := delta * 84000;
-            PutShortMsg(7,LastX,LastY,GetShortMsg(1,154,'')+FloatToStrF(delta,ffFixed,2,0));
+            PutShortMsg(7,LastX,LastY,GetShortMsg(1,154,'',1)+FloatToStrF(delta,ffFixed,2,0));
           end;
         end;
       end
@@ -2855,8 +2934,8 @@ begin
         WorkMode.GoOtvKom := false;
         OtvCommand.Ready := false;
         ShowShortMsg(152, LastX, LastY, '');//------------------"превышено время ожидания"
-        InsArcNewMsg(0,152);
-        SingleBeep := true;
+        InsArcNewMsg(0,152,1);
+//        SingleSimpleBeep := true;
       end;
     end
     else
@@ -2887,24 +2966,24 @@ begin
             case VspPerevod.Cmd of
               CmdStr_ReadyVPerevodPlus : //----------- вспомогательный перевод стрелки в +
               begin
-                sMsg:=GetShortMsg(1,99,ObjZav[ptr].Liter)+//"ожидается нажатие - осталось"
+                sMsg:=GetShortMsg(1,99,ObjZav[ptr].Liter,7)+//ожидается нажатие - осталось
                 FloatToStrF(delta,ffFixed,2,0);
                 PutShortMsg(7, LastX, LastY, sMsg);
                 if not FixVspPerevod then
                 begin
-                  InsArcNewMsg(ptr,99);
+                  InsArcNewMsg(ptr,99,7);
                   FixVspPerevod := true;
                 end;
               end;
 
               CmdStr_ReadyVPerevodMinus : //---------- вспомогательный перевод стрелки в -
               begin
-                sMsg:=GetShortMsg(1,100,ObjZav[ptr].Liter)+//"ожидается нажатие - осталось"
+                sMsg:=GetShortMsg(1,100,ObjZav[ptr].Liter,7)+//ожидается нажатие- осталось
                 FloatToStrF(delta,ffFixed,2,0);
                 PutShortMsg(7, LastX, LastY, sMsg);
                 if not FixVspPerevod then
                 begin
-                  InsArcNewMsg(ptr,100);
+                  InsArcNewMsg(ptr,100,7);
                   FixVspPerevod := true;
                 end;
               end;
@@ -2917,7 +2996,7 @@ begin
           WorkMode.VspStr := false;
           FixVspPerevod := false;
           ShowShortMsg(148, LastX, LastY, ObjZav[ptr].Liter); //"превышено время для ВСП"
-          InsArcNewMsg(ptr,148);
+          InsArcNewMsg(ptr,148,1);
         end;
       end
       else
@@ -2932,7 +3011,8 @@ begin
 
     if mem_page then DrawTablo(Tablo2) //--------------- Подготовка табло2 для отображения
     else DrawTablo(Tablo1);            //--------------- Подготовка табло1 для отображения
-    Invalidate;                        //------------------------------ Перерисовка экрана
+
+    Invalidate;              //---------------------------------------- Перерисовка экрана
     result := true;
   except
     reportf('Ошибка [TabloForm.TTabloMain.RefreshTablo]');
@@ -2940,35 +3020,37 @@ begin
   end;
 end;
 
-//------------------------------------------------------------------------------
-// обработчик таймера выработки звукового сигнала
+//========================================================================================
+//----------------------------------------- обработчик таймера выработки звукового сигнала
 procedure TTabloMain.BeepTimerTimer(Sender: TObject);
 begin
-try
-  if WorkMode.Upravlenie and WorkMode.OU[0] and Sound and Assigned(ObjectWav) then
-  PlaySound(PAnsiChar(ObjectWav.Strings[2]),0,SND_ASYNC);
-except
-  reportf('Ошибка [TabloForm.TTabloMain.BeepTimerTimer]'); Application.Terminate;
-end;
+  try
+    if WorkMode.Upravlenie and WorkMode.OU[0] and Sound and Assigned(ObjectWav) then
+    PlaySound(PAnsiChar(ObjectWav.Strings[2]),0,SND_ASYNC);
+  except
+    reportf('Ошибка [TabloForm.TTabloMain.SimpleBeepTimerTimer]');
+    Application.Terminate;
+  end;
 end;
 
-//------------------------------------------------------------------------------
-// Инкремент счетчика ответственных команд
+//========================================================================================
+//------------------------------------------------ Инкремент счетчика ответственных команд
 procedure IncrementKOK;
 begin
-try
-  inc(KOKCounter);
-  reg.RootKey := HKEY_LOCAL_MACHINE;
-  if Reg.OpenKey(KeyName, false) then
-  begin
-    if reg.ValueExists('KOK') then reg.WriteInteger('KOK',KOKCounter);
-    reg.CloseKey;
+  try
+    inc(KOKCounter);
+    reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKey(KeyName, false) then
+    begin
+      if reg.ValueExists('KOK') then reg.WriteInteger('KOK',KOKCounter);
+      reg.CloseKey;
+    end;
+  except
+    reportf('Ошибка [TabloForm.IncrementKOK]');
+    Application.Terminate;
   end;
-except
-  reportf('Ошибка [TabloForm.IncrementKOK]');
-  Application.Terminate;
 end;
-end;
+
 //========================================================================================
 //------------------------------------ установить начальные значения переменных в объектах
 procedure PresetObjParams;
@@ -2977,45 +3059,57 @@ begin
 try
   for i := 1 to High(ObjZav) do
     case ObjZav[i].TypeObj of
-      2 : begin // стрелка
+      2 :
+      begin //-------------------------------------------------------------------- стрелка
         ObjZav[i].bParam[4] := false;
         ObjZav[i].bParam[5] := false;
       end;
-      3 : begin // Секция
-        ObjZav[i].bParam[1] := true;  // СП
-        ObjZav[i].bParam[2] := true;  // з
-        ObjZav[i].bParam[4] := true;  // МСП
-        ObjZav[i].bParam[5] := true;  // МИ
-        ObjZav[i].bParam[8] := true;  // Предварительное замыкание
-        ObjZav[i].bParam[10] := true; // Аварийное замыкание
+
+      3 :
+      begin //--------------------------------------------------------------------- Секция
+        ObjZav[i].bParam[1] := true;  //----------------------------------------------- СП
+        ObjZav[i].bParam[2] := true;  //------------------------------------------------ з
+        ObjZav[i].bParam[4] := true;  //---------------------------------------------- МСП
+        ObjZav[i].bParam[5] := true;  //----------------------------------------------- МИ
+        ObjZav[i].bParam[8] := true;  //------------------------ Предварительное замыкание
+        ObjZav[i].bParam[10] := true; //------------------------------ Аварийное замыкание
       end;
-      4 : begin // Путь
-        ObjZav[i].bParam[1] := true; // П(ч)
-        ObjZav[i].bParam[2] := true; // ЧИ
-        ObjZav[i].bParam[3] := true; // НИ
-        ObjZav[i].bParam[5] := true; // МИ(ч)
-        ObjZav[i].bParam[6] := true; // МИ(н)
-        ObjZav[i].bParam[8] := true; // Предварительное замыкание
-        ObjZav[i].bParam[10] := true; // Аварийное замыкание
-        ObjZav[i].bParam[16] := true; // П(н)
+
+      4 :
+      begin //----------------------------------------------------------------------- Путь
+        ObjZav[i].bParam[1] := true; //---------------------------------------------- П(ч)
+        ObjZav[i].bParam[2] := true; //------------------------------------------------ ЧИ
+        ObjZav[i].bParam[3] := true; //------------------------------------------------ НИ
+        ObjZav[i].bParam[5] := true; //--------------------------------------------- МИ(ч)
+        ObjZav[i].bParam[6] := true; //--------------------------------------------- МИ(н)
+        ObjZav[i].bParam[8] := true; //------------------------- Предварительное замыкание
+        ObjZav[i].bParam[10] := true; //------------------------------ Аварийное замыкание
+        ObjZav[i].bParam[16] := true; //--------------------------------------------- П(н)
       end;
-      5 : begin // Светофор
+
+      5 :
+      begin //------------------------------------------------------------------- Светофор
         ObjZav[i].iParam[1] := 0;
         ObjZav[i].iParam[2] := 0;
         ObjZav[i].iParam[3] := 0;
       end;
-      15 : begin // АБ
+
+      15 :
+      begin //------------------------------------------------------------------------- АБ
         ObjZav[i].bParam[6] := false;
-        ObjZav[i].bParam[9] := false; // для МПЦ установить true;
+        ObjZav[i].bParam[9] := false; //------------------------- для МПЦ установить true;
       end;
-      34 : begin // Питание
+
+      34 :
+      begin //-------------------------------------------------------------------- Питание
         ObjZav[i].bParam[1] := true;
         ObjZav[i].bParam[2] := true;
       end;
-      38 : begin // контроль надвига
+
+      38 :
+      begin //----------------------------------------------------------- контроль надвига
         ObjZav[i].bParam[1] := false;
       end;
-
     end;
 {$IFDEF DEBUG}
 // Установить признак активности объектов FR3s
@@ -3023,232 +3117,324 @@ try
   for i := 1 to FR_LIMIT do FR4s[i] := LastTime;
 {$ENDIF}
 except
-  reportf('Ошибка [TabloForm.PresetObjParams]'); Application.Terminate;
+  reportf('Ошибка [TabloForm.PresetObjParams]');
+  Application.Terminate;
 end;
 end;
 
-//------------------------------------------------------------------------------
-// Выполнить переключение Управление -> резерв -> Управление
+//========================================================================================
+//------------------------------ Выполнить переключение Управление -> резерв -> Управление
 procedure ChangeDirectState(State : Boolean);
-  var i: Integer; f : Byte;
+var
+  i: Integer;
+  f : Byte;
 begin
-try
-  ChDirect := false;
-  for i := 1 to 16 do
-  begin
-    config.SVAZ_TUMS[i][1] := $0;
-    config.SVAZ_TUMS[i][2] := $0;
-    config.SVAZ_TUMS[i][3] := $0;
-  end;
-  for i := 1 to High(ObjZav) do
-  begin // Сбросить признаки трассировки
-    case ObjZav[i].TypeObj of
-      1 : begin // хвост стрелки
-        ObjZav[i].bParam[6]  := false;
-        ObjZav[i].bParam[7]  := false;
-        ObjZav[i].bParam[14] := false;
-      end;
-      2 : begin // стрелка
-        ObjZav[i].bParam[6]  := false;
-        ObjZav[i].bParam[7]  := false;
-        ObjZav[i].bParam[10] := false;
-        ObjZav[i].bParam[11] := false;
-        ObjZav[i].bParam[12] := false;
-        ObjZav[i].bParam[13] := false;
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].iParam[1] := 0;
-      end;
-      3 : begin // участок
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].iParam[1] := 0;
-        ObjZav[i].bParam[8] := true;
-        ObjZav[i].bParam[19] := false;
-        ObjZav[i].bParam[22] := false;
-        ObjZav[i].bParam[23] := false;
-      end;
-      4 : begin // путь
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].iParam[1] := 0;
-        ObjZav[i].bParam[8] := true;
-        ObjZav[i].bParam[19] := false;
-        ObjZav[i].bParam[21] := false;
-        ObjZav[i].bParam[22] := false;
-        ObjZav[i].bParam[23] := false;
-      end;
-      5 : begin // светофор
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].iParam[1] := 0;
-        ObjZav[i].bParam[7] := false;
-        ObjZav[i].bParam[9] := false;
-        ObjZav[i].bParam[19] := false;
-        ObjZav[i].bParam[20] := false;
-        ObjZav[i].bParam[22] := false;
-        ObjZav[i].bParam[23] := false;
-      end;
-      15 : begin // АБ
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].bParam[15] := false;
-      end;
-      25 : begin // маневровая колонка
-        ObjZav[i].bParam[14] := false;
-        ObjZav[i].bParam[8] := false;
+  try
+    ChDirect := false;
+    for i := 1 to 16 do
+    begin
+      config.SVAZ_TUMS[i][1] := 0;
+      config.SVAZ_TUMS[i][2] := 0;
+      config.SVAZ_TUMS[i][3] := 0;
+    end;
+
+    for i := 1 to High(ObjZav) do
+    begin //------------------------------------------------ Сбросить признаки трассировки
+      case ObjZav[i].TypeObj of
+        1 :
+        begin //------------------------------------------------------------ хвост стрелки
+          ObjZav[i].bParam[6]  := false;//------------------------------------ сбросить ПУ
+          ObjZav[i].bParam[7]  := false; //----------------------------------- сбросить МУ
+          ObjZav[i].bParam[14] := false; //---------------- сбросить программное замыкание
+        end;
+
+        2 :
+        begin //------------------------------------------------------------------ стрелка
+          ObjZav[i].bParam[6]  := false;//------------------------------------ сбросить ПУ
+          ObjZav[i].bParam[7]  := false;//------------------------------------ сбросить МУ
+          ObjZav[i].bParam[10] := false;//--- сбросить признак первого прохода трассировки
+          ObjZav[i].bParam[11] := false;//--- сбросить признак второго прохода трассировки
+          ObjZav[i].bParam[12] := false;//---- сбросить признак пошерстного "+" в маршруте
+          ObjZav[i].bParam[13] := false;//---- сбросить признак пошерстного "-" в маршруте
+          ObjZav[i].bParam[14] := false; //---------------- сбросить программное замыкание
+          ObjZav[i].iParam[1] := 0; //--------------------------- сбросить индекс маршрута
+        end;
+
+        3 :
+        begin //------------------------------------------------------------------ участок
+          ObjZav[i].bParam[14] := false; //---------------- сбросить программное замыкание
+          ObjZav[i].iParam[1] := 0; //---------------------- сбросить счетчик времени МСПД
+          ObjZav[i].bParam[8] := true; //-- сбросить предварительное замыкание трассировки
+          ObjZav[i].bParam[19] := false;//---------------- сбросить фиксацию неисправности
+          ObjZav[i].bParam[22] := false; //------------- сбросить признак ложной занятости
+          ObjZav[i].bParam[23] := false;//------------ сбросить признак ложной свободности
+        end;
+
+        4 :
+        begin //--------------------------------------------------------------------- путь
+          ObjZav[i].bParam[14] := false;
+          ObjZav[i].iParam[1] := 0;
+          ObjZav[i].bParam[8] := true;
+          ObjZav[i].bParam[19] := false;
+          ObjZav[i].bParam[21] := false;
+          ObjZav[i].bParam[22] := false;
+          ObjZav[i].bParam[23] := false;
+        end;
+
+        5 :
+        begin //----------------------------------------------------------------- светофор
+          ObjZav[i].bParam[14] := false;
+          ObjZav[i].iParam[1] := 0;
+          ObjZav[i].bParam[7] := false;
+          ObjZav[i].bParam[9] := false;
+          ObjZav[i].bParam[19] := false;
+          ObjZav[i].bParam[20] := false;
+          ObjZav[i].bParam[22] := false;
+          ObjZav[i].bParam[23] := false;
+        end;
+
+        15 :
+        begin //----------------------------------------------------------------------- АБ
+          ObjZav[i].bParam[14] := false;
+          ObjZav[i].bParam[15] := false;
+        end;
+
+        25 :
+        begin //------------------------------------------------------- маневровая колонка
+          ObjZav[i].bParam[14] := false;
+          ObjZav[i].bParam[8] := false;
+        end;
       end;
     end;
-  end;
 
-  // сбросить список фиксированных сообщений
-  FixMessage.Count := 0; FixMessage.MarkerLine := 0; FixMessage.StartLine := 0;
-  maket_strelki_index := 0; maket_strelki_name  := '';
+    //-------------------------------------------- сбросить список фиксированных сообщений
+   // FixMessage.Count := 0;
+   // FixMessage.MarkerLine := 0;
+   // FixMessage.StartLine := 0;
+   // maket_strelki_index := 0;
+   // maket_strelki_name  := '';
 
-  if State then
-  begin // Получено разрешение на включение управления
-    if not WorkMode.Upravlenie then
-    begin // Выполнить переключение Резерв -> Управление
+    if State = State then
+    begin //---------------------------------- Получено разрешение на включение управления
+  {    if not WorkMode.Upravlenie then //--------------------------- если перешли в резерв
+      begin //-------------------------------- Выполнить переключение Резерв -> Управление
+  }
       for i := 1 to High(ObjZav) do
-      begin // Установить состояния объектов
-      // применить FR4
+      begin //---------------------------------------------- Установить состояния объектов
+        //------------------------------------------------------------------ применить FR4
         case ObjZav[i].TypeObj of
-          1 : begin // хвост стрелки
-            f := fr4[ObjZav[i].ObjConstI[1] div 8]; // буфер FR4
-            ObjZav[i].bParam[19] := (f and $2) = $2; // макет
+          1 :
+          begin //---------------------------------------------------------- хвост стрелки
+            f := fr4[ObjZav[i].ObjConstI[1] div 8]; //-------------------------- буфер FR4
+            ObjZav[i].bParam[19] := (f and $2) = $2; //----------------------------- макет
             if ObjZav[i].bParam[19] and (ObjZav[i].RU = config.ru) then
-            begin // повесить литер стрелки на макетный шильдик
-              maket_strelki_index := i; maket_strelki_name  := ObjZav[i].Liter;
+            begin //--------------------------- повесить литер стрелки на макетный шильдик
+              maket_strelki_index := i;
+              maket_strelki_name  := ObjZav[i].Liter;
             end;
             if ObjZav[i].ObjConstI[8] > 0 then
-            begin // ограничения для ближней стрелки
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[15] := ObjZav[i].bParam[19]; // макет
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[16] := (f and $4) = $4; // закр.движ.
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[18] := (f and $1) = $1; // откл.упр.
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[17] := (f and $10) = $10; // закр.противош.движ.
+            begin //------------------------------------ ограничения для ближней стрелки
+              ObjZav[ObjZav[i].ObjConstI[8]].bParam[15] := ObjZav[i].bParam[19];//-- макет
+              ObjZav[ObjZav[i].ObjConstI[8]].bParam[16] := (f and $4) = $4; //- закр.движ.
+              ObjZav[ObjZav[i].ObjConstI[8]].bParam[18] := (f and $1) = $1; //-- откл.упр.
+              ObjZav[ObjZav[i].ObjConstI[8]].bParam[17] := (f and $10) = $10;// закрыть ПШ
             end;
             if ObjZav[i].ObjConstI[9] > 0 then
-            begin // ограничения для дальней стрелки
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[15] := ObjZav[i].bParam[19]; // макет
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[16] := (f and $8) = $8; // закр.движ.
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[18] := (f and $1) = $1; // откл.упр.
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[17] := (f and $20) = $20; // закр.противош.движ.
+            begin //-------------------------------------- ограничения для дальней стрелки
+              ObjZav[ObjZav[i].ObjConstI[9]].bParam[15] := ObjZav[i].bParam[19];//-- макет
+              ObjZav[ObjZav[i].ObjConstI[9]].bParam[16] := (f and $8) = $8;//-- закр.движ.
+              ObjZav[ObjZav[i].ObjConstI[9]].bParam[18] := (f and $1) = $1; //-- откл.упр.
+              ObjZav[ObjZav[i].ObjConstI[9]].bParam[17] := (f and $20) = $20;// закрыть ПШ
             end;
           end;
-          3 : begin // участок
-            f := fr4[ObjZav[i].ObjConstI[1]]; // буфер FR4
-            ObjZav[i].bParam[25] := (f and $1) = $1; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := (f and $2) = $2; // закр.движ.пер.т
-            ObjZav[i].bParam[13] := (f and $4) = $4; // закр.движ.
-            ObjZav[i].bParam[24] := (f and $8) = $8; // закр.движ.э.т
+
+          3 :
+          begin //-------------------------------------------------------------- участок
+            f := fr4[ObjZav[i].ObjConstI[1]]; //------------------------------ буфер FR4
+            ObjZav[i].bParam[25] := (f and $1) = $1; //---------------- закр.движ.пост.т
+            ObjZav[i].bParam[26] := (f and $2) = $2; //----------------- закр.движ.пер.т
+            ObjZav[i].bParam[13] := (f and $4) = $4; //---------------------- закр.движ.
+            ObjZav[i].bParam[24] := (f and $8) = $8; //------------------- закр.движ.э.т
           end;
-          4 : begin // путь
-            f := fr4[ObjZav[i].ObjConstI[1]]; // буфер FR4
-            ObjZav[i].bParam[25] := (f and $1) = $1; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := (f and $2) = $2; // закр.движ.пер.т
-            ObjZav[i].bParam[13] := (f and $4) = $4; // закр.движ.
-            ObjZav[i].bParam[24] := (f and $8) = $8; // закр.движ.э.т
+
+          4 :
+          begin //----------------------------------------------------------------- путь
+            f := fr4[ObjZav[i].ObjConstI[1]]; //------------------------------ буфер FR4
+            ObjZav[i].bParam[25] := (f and $1) = $1; //---------------- закр.движ.пост.т
+            ObjZav[i].bParam[26] := (f and $2) = $2; //----------------- закр.движ.пер.т
+            ObjZav[i].bParam[13] := (f and $4) = $4; //---------------------- закр.движ.
+            ObjZav[i].bParam[24] := (f and $8) = $8; //------------------- закр.движ.э.т
           end;
-          5 : begin // светофор
-            f := fr4[ObjZav[i].ObjConstI[1]]; // буфер FR4
-            ObjZav[i].bParam[13] := (f and $4) = $4; // заблокирован
+
+          5 :
+          begin //------------------------------------------------------------- светофор
+            f := fr4[ObjZav[i].ObjConstI[1]]; //------------------------------ буфер FR4
+            ObjZav[i].bParam[13] := (f and $4) = $4; //-------------------- заблокирован
           end;
-          15 : begin // АБ
-            f := fr4[ObjZav[i].ObjConstI[3] div 8]; // буфер FR4
-            ObjZav[i].bParam[25] := (f and $1) = $1; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := (f and $2) = $2; // закр.движ.пер.т
-            ObjZav[i].bParam[13] := (f and $4) = $4; // закр.движ.
-            ObjZav[i].bParam[24] := (f and $8) = $8; // закр.движ.э.т
+
+          15 :
+          begin //------------------------------------------------------------------- АБ
+            f := fr4[ObjZav[i].ObjConstI[3] div 8]; //------------------------ буфер FR4
+            ObjZav[i].bParam[25] := (f and $1) = $1; //---------------- закр.движ.пост.т
+            ObjZav[i].bParam[26] := (f and $2) = $2; //----------------- закр.движ.пер.т
+            ObjZav[i].bParam[13] := (f and $4) = $4; //---------------------- закр.движ.
+            ObjZav[i].bParam[24] := (f and $8) = $8; //------------------- закр.движ.э.т
           end;
-          24 : begin // Увязка с ЭЦ
-            f := fr4[ObjZav[i].ObjConstI[8] div 8]; // буфер FR4
-            ObjZav[i].bParam[25] := (f and $1) = $1; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := (f and $2) = $2; // закр.движ.пер.т
-            ObjZav[i].bParam[15] := (f and $4) = $4; // закр.движ.
-            ObjZav[i].bParam[24] := (f and $8) = $8; // закр.движ.э.т
+
+          24 :
+          begin //---------------------------------------------------------- Увязка с ЭЦ
+            f := fr4[ObjZav[i].ObjConstI[8] div 8]; //------------------------ буфер FR4
+            ObjZav[i].bParam[25] := (f and $1) = $1; //---------------- закр.движ.пост.т
+            ObjZav[i].bParam[26] := (f and $2) = $2; //----------------- закр.движ.пер.т
+            ObjZav[i].bParam[15] := (f and $4) = $4; //---------------------- закр.движ.
+            ObjZav[i].bParam[24] := (f and $8) = $8; //------------------- закр.движ.э.т
           end;
-          26 : begin // РПБ
-            f := fr4[ObjZav[i].ObjConstI[13] div 8]; // буфер FR4
-            ObjZav[i].bParam[25] := (f and $1) = $1; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := (f and $2) = $2; // закр.движ.пер.т
-            ObjZav[i].bParam[13] := (f and $4) = $4; // закр.движ.
-            ObjZav[i].bParam[24] := (f and $8) = $8; // закр.движ.э.т
+
+          26 :
+          begin //------------------------------------------------------------------ РПБ
+            f := fr4[ObjZav[i].ObjConstI[13] div 8]; //----------------------- буфер FR4
+            ObjZav[i].bParam[25] := (f and $1) = $1; //---------------- закр.движ.пост.т
+            ObjZav[i].bParam[26] := (f and $2) = $2; //----------------- закр.движ.пер.т
+            ObjZav[i].bParam[13] := (f and $4) = $4; //---------------------- закр.движ.
+            ObjZav[i].bParam[24] := (f and $8) = $8; //------------------- закр.движ.э.т
           end;
-          32 : begin // надвиг
+
+          32 :
+          begin //--------------------------------------------------------------- надвиг
             f := fr4[ObjZav[i].ObjConstI[1]]; // буфер FR4
             ObjZav[i].bParam[13] := (f and $4) = $4; // заблокирован
           end;
         end;
       end;
-      SingleBeep := false; Sound := false; SingleBeep3 := false; SingleBeep2 := false; SingleBeep4 := false; SingleBeep5 := false; SingleBeep6 := false; Ip1Beep := false; Ip2Beep := false;
-      InsArcNewMsg(0,273); AddFixMessage(GetShortMsg(1,273,''),0,2);
-      WorkMode.Upravlenie := true;
-      MsgFormDlg.Hide; // Скрыть окно просмотра сообщений
+      SingleBeep := false;
+      Sound := false;
+      SingleBeep3 := false;
+      SingleBeep2 := false;
+      SingleBeep4 := false;
+      SingleBeep5 := false;
+      SingleBeep6 := false;
+      Ip1Beep := false;
+      Ip2Beep := false;
+
+      if not WorkMode.RU[0] and WorkMode.OU[0] then
+      begin
+        if WorkMode.DU[0] then  //-------------------------- если диспетчерское управление
+        begin
+          InsArcNewMsg(0,571,0); //------------------- РМ-ДСП переведен в управление от ДЦ
+          sMsg:=GetShortMsg(1,571,'',0);
+          PutShortMsg(9,LastX, LastY, sMsg);
+          AddFixMessage(sMsg,0,0);
+          WorkMode.Upravlenie := false;
+        end else
+        if not WorkMode.Upravlenie then //---------------------- если переход в управление
+        begin //------------------------------ Выполнить переключение Резерв -> Управление
+          InsArcNewMsg(0,273,2); //-------------- РМ-ДСП переведен в управляющее состояние
+          sMsg:=GetShortMsg(1,273,'',2);
+          PutShortMsg(5,LastX, LastY, sMsg);
+          AddFixMessage(sMsg,0,0);
+          WorkMode.Upravlenie := true;
+        end else
+        if WorkMode.Upravlenie then //------------------------------ если переход в резерв
+        begin
+          WorkMode.Upravlenie := false;
+          InsArcNewMsg(0,274,7);          //------------------- РМ-ДСП переведена в резерв
+          sMsg:=GetShortMsg(1,274,'',7);
+          PutShortMsg(7,LastX, LastY, sMsg);
+          AddFixMessage(sMsg,0,0);
+        end;
+      end
+      else
+      begin
+        WorkMode.Upravlenie := false;
+        InsArcNewMsg(0,570,1);
+        sMsg:= GetShortMsg(1,570,'',1);
+        AddFixMessage(sMsg,0,0);  //------------------------ отключено управление от РМДСП
+        PutShortMsg(1,LastX, LastY, sMsg);
+      end;
     end;
-  end else
-  begin // Получена команда на отключение управления
-    if WorkMode.Upravlenie then
-    begin // Выполнить переключение Управление -> Резерв
-      ResetCommands;
-      WorkMode.Upravlenie := false;
-      for i := 1 to High(ObjZav) do
-      begin // Установить состояния объектов
-      // сбросить FR4
-        case ObjZav[i].TypeObj of
-          1 : begin // хвост стрелки
-            ObjZav[i].bParam[19] := false; // макет
-            if ObjZav[i].ObjConstI[8] > 0 then
-            begin // ограничения для ближней стрелки
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[15] := false; // макет
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[16] := false; // закр.движ.
-              ObjZav[ObjZav[i].ObjConstI[8]].bParam[18] := false; // откл.упр.
+  {  end;
+    else
+    begin //------------------------------------ Получена команда на отключение управления
+      if WorkMode.Upravlenie then
+      begin //-------------------------------- Выполнить переключение Управление -> Резерв
+        ResetCommands;
+        WorkMode.Upravlenie := false;
+        for i := 1 to High(ObjZav) do
+        begin //-------------------------------------------- Установить состояния объектов
+        //------------------------------------------------------------------- сбросить FR4
+          case ObjZav[i].TypeObj of
+            1 :
+            begin //-------------------------------------------------------- хвост стрелки
+              ObjZav[i].bParam[19] := false; //------------------------------------- макет
+              if ObjZav[i].ObjConstI[8] > 0 then
+              begin //------------------------------------ ограничения для ближней стрелки
+                ObjZav[ObjZav[i].ObjConstI[8]].bParam[15] := false; //-------------- макет
+                ObjZav[ObjZav[i].ObjConstI[8]].bParam[16] := false; //--------- закр.движ.
+                ObjZav[ObjZav[i].ObjConstI[8]].bParam[18] := false; //---------- откл.упр.
+              end;
+              if ObjZav[i].ObjConstI[9] > 0 then
+              begin //------------------------------------ ограничения для дальней стрелки
+                ObjZav[ObjZav[i].ObjConstI[9]].bParam[15] := false; //-------------- макет
+                ObjZav[ObjZav[i].ObjConstI[9]].bParam[16] := false; //--------- закр.движ.
+                ObjZav[ObjZav[i].ObjConstI[9]].bParam[18] := false; //---------- откл.упр.
+              end;
             end;
-            if ObjZav[i].ObjConstI[9] > 0 then
-            begin // ограничения для дальней стрелки
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[15] := false; // макет
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[16] := false; // закр.движ.
-              ObjZav[ObjZav[i].ObjConstI[9]].bParam[18] := false; // откл.упр.
+
+            3 :
+            begin //-------------------------------------------------------------- участок
+              ObjZav[i].bParam[13] := false; //-------------------------------- закр.движ.
+              ObjZav[i].bParam[24] := false; //----------------------------- закр.движ.э.т
+              ObjZav[i].bParam[25] := false; //-------------------------- закр.движ.пост.т
+              ObjZav[i].bParam[26] := false; //--------------------------- закр.движ.пер.т
             end;
-          end;
-          3 : begin // участок
-            ObjZav[i].bParam[13] := false; // закр.движ.
-            ObjZav[i].bParam[24] := false; // закр.движ.э.т
-            ObjZav[i].bParam[25] := false; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := false; // закр.движ.пер.т
-          end;
-          4 : begin // путь
-            ObjZav[i].bParam[13] := false; // закр.движ.
-            ObjZav[i].bParam[24] := false; // закр.движ.э.т
-            ObjZav[i].bParam[25] := false; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := false; // закр.движ.пер.т
-          end;
-          5 : begin // светофор
-            ObjZav[i].bParam[13] := false; // заблокирован
-          end;
-          15 : begin // АБ
-            ObjZav[i].bParam[13] := false; // закр.движ.
-            ObjZav[i].bParam[24] := false; // закр.движ.э.т
-            ObjZav[i].bParam[25] := false; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := false; // закр.движ.пер.т
-          end;
-          24 : begin // Увязка с ЭЦ
-            ObjZav[i].bParam[15] := false; // закр.движ.
-            ObjZav[i].bParam[24] := false; // закр.движ.э.т
-            ObjZav[i].bParam[25] := false; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := false; // закр.движ.пер.т
-          end;
-          26 : begin // РПБ
-            ObjZav[i].bParam[13] := false; // закр.движ.
-            ObjZav[i].bParam[24] := false; // закр.движ.э.т
-            ObjZav[i].bParam[25] := false; // закр.движ.пост.т
-            ObjZav[i].bParam[26] := false; // закр.движ.пер.т
-          end;
-          32 : begin // надвиг
-            ObjZav[i].bParam[13] := false; // заблокирован
+
+            4 :
+            begin //----------------------------------------------------------------- путь
+              ObjZav[i].bParam[13] := false; //-------------------------------- закр.движ.
+              ObjZav[i].bParam[24] := false; //----------------------------- закр.движ.э.т
+              ObjZav[i].bParam[25] := false; //-------------------------- закр.движ.пост.т
+              ObjZav[i].bParam[26] := false; //--------------------------- закр.движ.пер.т
+            end;
+
+            5 : ObjZav[i].bParam[13] := false; //------------------- светофор заблокирован
+
+            15 :
+            begin //------------------------------------------------------------------- АБ
+              ObjZav[i].bParam[13] := false; //-------------------------------- закр.движ.
+              ObjZav[i].bParam[24] := false; //----------------------------- закр.движ.э.т
+              ObjZav[i].bParam[25] := false; //-------------------------- закр.движ.пост.т
+              ObjZav[i].bParam[26] := false; //--------------------------- закр.движ.пер.т
+            end;
+
+            24 :
+            begin //---------------------------------------------------------- Увязка с ЭЦ
+              ObjZav[i].bParam[15] := false; //-------------------------------- закр.движ.
+              ObjZav[i].bParam[24] := false; //----------------------------- закр.движ.э.т
+              ObjZav[i].bParam[25] := false; //-------------------------- закр.движ.пост.т
+              ObjZav[i].bParam[26] := false; //--------------------------- закр.движ.пер.т
+            end;
+
+            26 :
+            begin //------------------------------------------------------------------ РПБ
+              ObjZav[i].bParam[13] := false; //-------------------------------- закр.движ.
+              ObjZav[i].bParam[24] := false; //----------------------------- закр.движ.э.т
+              ObjZav[i].bParam[25] := false; //-------------------------- закр.движ.пост.т
+              ObjZav[i].bParam[26] := false; //--------------------------- закр.движ.пер.т
+            end;
+
+            32 : ObjZav[i].bParam[13] := false;//--------------------- надвиг заблокирован
+
           end;
         end;
+        InsArcNewMsg(0,274);
+        AddFixMessage(GetShortMsg(1,274,''),0,2);
       end;
-      InsArcNewMsg(0,274); AddFixMessage(GetShortMsg(1,274,''),0,2);
     end;
+    }
+  except
+    reportf('Ошибка [TabloForm.ChangeDirectState]');
+    Application.Terminate;
   end;
-except
-  reportf('Ошибка [TabloForm.ChangeDirectState]'); Application.Terminate;
-end;
 end;
 
 //========================================================================================
@@ -3288,16 +3474,17 @@ begin
 end;
 //========================================================================================
 //------------------------------------------ Блокировка запроса на изменение размеров окна
-procedure TTabloMain.FormCanResize(Sender:TObject;var NewWidth,NewHeight:Integer;var Resize:Boolean);
+procedure TTabloMain.FormCanResize (Sender :TObject; var NewWidth, NewHeight : Integer;
+var Resize : Boolean);
 begin
   Resize := isChengeRegion;
 end;
 
-//------------------------------------------------------------------------------
-// Обработка каналов АСУ (сеть верхнего уровня)
+//========================================================================================
+//------------------------------------------- Обработка каналов АСУ (сеть верхнего уровня)
 procedure TTabloMain.ASUTimer(Sender: TObject);
 begin
-  IkonSend := true; // сформировать принудительный обмен по каналам АСУ в случае простоя
+  IkonSend := true; //-- сформировать принудительный обмен по каналам АСУ в случае простоя
 end;
 
 end.

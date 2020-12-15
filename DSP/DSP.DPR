@@ -5,25 +5,25 @@ uses
   Windows,
   Forms,
   Registry,
-  MsgForm in 'MsgForm.pas' {MsgFormDlg},
-  TimeInput in 'TimeInput.pas' {TimeInputDlg},
-  CMenu in 'E:\Сапр_new\Commons\CMenu.pas',
-  Commands in 'E:\Сапр_new\Commons\Commands.pas',
-  Commons in 'E:\Сапр_new\Commons\Commons.pas',
-  COMPORT in 'E:\Сапр_new\Commons\COMPORT.PAS',
-  CRCCALC in 'E:\Сапр_new\Commons\CRCCALC.PAS',
-  Load in 'E:\Сапр_new\Commons\Load.pas',
-  LoadSaveDBS in 'E:\Сапр_new\Commons\LoadSaveDBS.pas',
-  MainLoop in 'E:\Сапр_new\Commons\MainLoop.pas',
-  Marshrut in 'E:\Сапр_new\Commons\Marshrut.pas',
-  OBJSOST in 'E:\Сапр_new\Commons\OBJSOST.PAS',
-  TypeALL in 'E:\Сапр_new\Commons\TypeALL.pas',
-  KanalArmSrv in 'E:\Сапр_new\Commons\KanalArmSrv.pas',
+  TypeALL in 'D:\SAPR2012\COMMON\TypeALL.pas',
   TabloForm in 'TabloForm.pas' {TabloMain},
+  TimeInput in 'TimeInput.pas' {TimeInputDlg},
   Password in 'Password.pas' {PasswordDlg},
-  ViewFr in 'E:\Сапр_new\Commons\ViewFr.pas' {FrForm},
-  ASUProc in 'ASUProc.pas',
-  PipeProc in 'E:\Сапр_new\Commons\PipeProc.pas';
+  KanalArmSrv in 'KanalArmSrv.pas',
+  MsgForm in 'MsgForm.pas' {MsgFormDlg},
+  Commands in 'D:\SAPR2012\COMMON\Commands.pas',
+  PipeProc in 'D:\SAPR2012\COMMON\PipeProc.pas',
+  Commons in 'D:\SAPR2012\COMMON\Commons.pas',
+  COMPORT in 'D:\SAPR2012\COMMON\COMPORT.PAS',
+  CMenu in 'D:\SAPR2012\COMMON\CMenu.pas',
+  CRCCALC in 'D:\SAPR2012\COMMON\CRCCALC.PAS',
+  Load in 'D:\SAPR2012\COMMON\Load.pas',
+  MainLoop in 'D:\SAPR2012\COMMON\MainLoop.pas',
+  LoadSaveDBS in 'D:\SAPR2012\COMMON\LoadSaveDBS.pas',
+  Marshrut in 'D:\SAPR2012\COMMON\Marshrut.pas',
+  OBJSOST in 'D:\SAPR2012\COMMON\OBJSOST.PAS',
+  ViewFr in 'D:\SAPR2012\COMMON\ViewFr.pas' {FrForm},
+  ViewOzOv in 'D:\SAPR2012\COMMON\ViewOzOv.pas' {ViewBaza};
 
 {$E exe}
 
@@ -59,11 +59,13 @@ begin
       Application.Initialize;
       Application.Title := 'РМ ДСП';
       Application.CreateForm(TTabloMain, TabloMain);
-  Application.CreateForm(TTimeInputDlg, TimeInputDlg);
-  Application.CreateForm(TMsgFormDlg, MsgFormDlg);
-  Application.CreateForm(TPasswordDlg, PasswordDlg);
-  Application.CreateForm(TFrForm, FrForm);
-  Application.Run;
+      Application.CreateForm(TTimeInputDlg, TimeInputDlg);
+      Application.CreateForm(TPasswordDlg, PasswordDlg);
+      Application.CreateForm(TMsgFormDlg, MsgFormDlg);
+      Application.CreateForm(TFrForm, FrForm);
+      Application.CreateForm(TViewBaza, ViewBaza);
+      Application.Run;
     end;
   end;
 end.
+

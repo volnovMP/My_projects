@@ -103,11 +103,20 @@ begin
 
         for i := 1 to high(ObjZav) do
         begin // коррекция отметок времени в объектах зависимостей
-          if ObjZav[i].Timers[1].Active then ObjZav[i].Timers[1].First := ObjZav[i].Timers[1].First - delta;
-          if ObjZav[i].Timers[2].Active then ObjZav[i].Timers[2].First := ObjZav[i].Timers[2].First - delta;
-          if ObjZav[i].Timers[3].Active then ObjZav[i].Timers[3].First := ObjZav[i].Timers[3].First - delta;
-          if ObjZav[i].Timers[4].Active then ObjZav[i].Timers[4].First := ObjZav[i].Timers[4].First - delta;
-          if ObjZav[i].Timers[5].Active then ObjZav[i].Timers[5].First := ObjZav[i].Timers[5].First - delta;
+          if ObjZav[i].Timers[1].Active then
+          ObjZav[i].Timers[1].First := ObjZav[i].Timers[1].First - delta;
+
+          if ObjZav[i].Timers[2].Active then
+          ObjZav[i].Timers[2].First := ObjZav[i].Timers[2].First - delta;
+
+          if ObjZav[i].Timers[3].Active then
+          ObjZav[i].Timers[3].First := ObjZav[i].Timers[3].First - delta;
+
+          if ObjZav[i].Timers[4].Active then
+          ObjZav[i].Timers[4].First := ObjZav[i].Timers[4].First - delta;
+
+          if ObjZav[i].Timers[5].Active then
+          ObjZav[i].Timers[5].First := ObjZav[i].Timers[5].First - delta;
         end;
         LastSync := ndt;
         LastTime := ndt;

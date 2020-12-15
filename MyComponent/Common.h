@@ -36,6 +36,7 @@ typedef void __fastcall (__closure *TOpenEvent  )(System::TObject* Sender, int E
 typedef void __fastcall (__closure *TErrorEvent )(System::TObject* Sender, int Error );
 typedef void __fastcall (__closure *TReadEvent  )(System::TObject* Sender, char *Packet, int Count, int NPAK );
 typedef void __fastcall (__closure *TReadEventOpt )(System::TObject* Sender,Byte *Packet, bool Priznak);
+typedef void __fastcall (__closure *TReadEventAB )(System::TObject* Sender,Byte *Packet);
 typedef void __fastcall(__closure *TTrubaPacketEvent)(System::TObject* Sender,BYTE *Packet,int &Size);
 typedef CHAR *LPSTR;
 //----------------------------------------------------------------------------------------

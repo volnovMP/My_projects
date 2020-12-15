@@ -28,7 +28,7 @@ implementation
 
 uses
   TypeAll,
-  KanalArmSrv;
+  KanalArmSrvSHN;
 
 //------------------------------------------------------------
 // Обновить данные FR3, FR4
@@ -42,7 +42,7 @@ end;
 procedure TFrForm.FormCreate(Sender: TObject);
   var i,lim : integer;
 begin
-  lim := WorkMode.LimitFR;
+  lim := WorkMode.LimitFRI;
   if (lim < 1) or (lim > FR_LIMIT) then lim := FR_LIMIT;
   sgFr.RowCount := lim + 1;
   for i := 1 to lim do sgFr.Cells[0,i] := IntToStr(i);
@@ -67,7 +67,7 @@ var
 procedure TFrForm.RefreshFr;
   var i,lim : integer; b : byte;
 begin
-  lim := WorkMode.LimitFR;
+  lim := WorkMode.LimitFRI;
   if (lim < 1) or (lim > FR_LIMIT) then lim := FR_LIMIT;
   for i := 1 to lim do
   begin

@@ -282,7 +282,8 @@ end;
 
 procedure TTabloMain.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
-  if not mem_page then PaintBox1.Canvas.Draw(0,0,tablo2) else PaintBox1.Canvas.Draw(0,0,tablo1);
+  if not mem_page then PaintBox1.Canvas.Draw(0,0,tablo2)
+  else PaintBox1.Canvas.Draw(0,0,tablo1);
 end;
 
 //------------------------------------------------------------------------------
@@ -304,6 +305,7 @@ begin
       LineTo(ObjUprav[cur_obj].Box.Left-shiftx, ObjUprav[cur_obj].Box.Top-shifty);
     end;
   Canvas.Brush.Color := bkgndcolor;
+  tablo1.Width := TabloMain.Width;
   canvas.FillRect(rect(0, tablo1.height, tablo1.width, TabloMain.height));
 end;
 

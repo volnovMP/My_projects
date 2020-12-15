@@ -1,5 +1,5 @@
 unit DirectForm;
-{$INCLUDE e:\Сапр_new\CfgProject}
+{$INCLUDE d:\sapr2012\CfgProject}
 interface
 
 uses
@@ -46,7 +46,7 @@ type
       Shift: TShiftState);
     procedure PathExit(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+   // procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -94,16 +94,18 @@ uses
   CMenu,
   Commons,
   Commands,
-  TabloForm,
-  PackArmSrv;
+  TabloFormARC;
 
-var fn,fe : string; cBuf : array of char;
 
+var
+  fn,fe : string;
+  cBuf : array of char;
+{
 procedure TDirectFormDlg.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if TabloMain.Active then TabloMain.Close; 
+  if TabloMain.Active then TabloMain.Close;
 end;
-
+}
 procedure TDirectFormDlg.FormCreate(Sender: TObject);
 begin
   reg   := TRegistry.Create;
@@ -113,21 +115,35 @@ begin
     if reg.ValueExists('left') then Left := reg.ReadInteger('left') else Left := 0;
     if reg.ValueExists('top')  then Top  := reg.ReadInteger('top')  else Top  := 0;
     reg.CloseKey;
+    reg.Free;
   end;
   Path.Text := config.arcpath;
   Region.ItemIndex := 0;
   Zoom.Clear;
-  Zoom.Items.Add('1'); // реальный масштаб
+  Zoom.Items.Add('1'); //------------------------------------------------ реальный масштаб
   Zoom.Items.Add('2'); //
   Zoom.Items.Add('4'); //
   Zoom.Items.Add('10');//
   Zoom.Items.Add('60');//
-  Zoom.Items.Add('-1');// без синхронизации по времени
+  Zoom.Items.Add('-1');//------------------------------------ без синхронизации по времени
   Zoom.ItemIndex := 0;
   SpeedZoom := 1;
-  TimeStart.Time := Time; DateStart.MaxDate := Date; DateStart.MinDate := Date - ArcMaxOldTime; DateStart.Date := Date;
-  TimeEnd.Time := Time; DateEnd.MaxDate := Date; DateEnd.MinDate := Date - ArcMaxOldTime; DateEnd.Date := Date;
-  BtnOpen.Enabled := true; BtnStart.Enabled := false; BtnStop.Enabled := false; BtnStep.Enabled := false; BtnPrev.Enabled := false; Path.ReadOnly := false;
+  TimeStart.Time := Time;
+  DateStart.MaxDate := Date;
+  DateStart.MinDate := Date - ArcMaxOldTime;
+  DateStart.Date := Date;
+
+  TimeEnd.Time := Time;
+  DateEnd.MaxDate := Date;
+  DateEnd.MinDate := Date - ArcMaxOldTime;
+  DateEnd.Date := Date;
+
+  BtnOpen.Enabled := true;
+  BtnStart.Enabled := false;
+  BtnStop.Enabled := false;
+  BtnStep.Enabled := false;
+  BtnPrev.Enabled := false;
+  Path.ReadOnly := false;
 end;
 
 //========================================================================================
@@ -220,7 +236,7 @@ begin
 
   EndTime := DTFrameOffset;
 
-  ListNeisprav := ''; ListDiagnoz := '';
+  LstNN := ''; ListDiagnoz := '';
   FrameOffset := 1; // указатель в начало фрагмента
 
   while FrameOffset < Length(arhiv) do
@@ -241,7 +257,12 @@ end;
 
 procedure TDirectFormDlg.BtnStartClick(Sender: TObject);
 begin
-  edittime.ReadOnly := true; BtnOpen.Enabled := false; BtnStart.Enabled := false; BtnStop.Enabled := true; BtnStep.Enabled := false; BtnPrev.Enabled := false;
+  edittime.ReadOnly := true;
+  BtnOpen.Enabled := false;
+  BtnStart.Enabled := false;
+  BtnStop.Enabled := true;
+  BtnStep.Enabled := false;
+  BtnPrev.Enabled := false;
   NeedStep := true;
 end;
 
@@ -249,7 +270,11 @@ procedure TDirectFormDlg.BtnStopClick(Sender: TObject);
 begin
   edittime.ReadOnly := false;
   Region.SetFocus;
-  BtnOpen.Enabled := true; BtnStart.Enabled := true; BtnStop.Enabled := false; BtnStep.Enabled := true; BtnPrev.Enabled := true;
+  BtnOpen.Enabled := true;
+  BtnStart.Enabled := true;
+  BtnStop.Enabled := false;
+  BtnStep.Enabled := true;
+  BtnPrev.Enabled := true;
   NeedStep := false;
 end;
 
@@ -370,7 +395,7 @@ procedure TDirectFormDlg.RegionChange(Sender: TObject);
   var i : integer;
 begin
   i := Region.ItemIndex+1;
-  if configRU[i].TabloSize.X = 0 then begin Region.ItemIndex := 0; i := 1; end;
+  if configRU[i].Tablo_Size.X = 0 then begin Region.ItemIndex := 0; i := 1; end;
   ChangeRegion(i);
 end;
 
@@ -762,7 +787,7 @@ begin
             begin //---------------------------------------- добавить в список сообщений
               DateTimeToString(t,'dd-mm-yy hh:nn:ss', DTFrameOffset);
               s := t + ' > '+ s;
-              ListNeisprav := s + #13#10 + ListNeisprav;
+              LstNN := s + #13#10 + LstNN;
               NewNeisprav := true;
             end;
           end else
@@ -808,9 +833,10 @@ procedure TDirectFormDlg.PathExit(Sender: TObject);
 begin
   config.arcpath := Path.Text;
 end;
-
+//========================================================================================
 procedure TDirectFormDlg.Button1Click(Sender: TObject);
-  var cErr : integer;
+var
+  cErr : integer;
 begin
   OpenDialog.InitialDir := config.arcpath;
   if OpenDialog.Execute then
@@ -819,7 +845,8 @@ begin
     cErr := WinExec(pchar(s),SW_SHOW);
     if cErr <= 31 then
     begin
-      Beep; ShowMessage('Копирование архива НЕ ВЫПОЛНЕНО!');
+      Beep;
+      ShowMessage('Копирование архива НЕ ВЫПОЛНЕНО!');
     end;
   end;
 end;

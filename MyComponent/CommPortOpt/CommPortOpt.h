@@ -61,11 +61,11 @@ class PACKAGE TCommPortOpt : public TComponent
 
 //------------------------------------------------------------ Com Config ================
 //---------------------------------------------------------------------- Потоки компонента
-		TReadThreadOpt *ReadThreadOpt; //-------------------------- поток, ожидающий приема символов
-		TWriteThreadOpt *WriteThreadOpt; //------------------------ поток, ожидающий записи символов
-		TStatusThreadOpt *StatusThreadOpt; //-------------- поток, следящий за всеми событиями порта
-		TReadEventThreadOpt *ReadEventThreadOpt; //----- поток, ожидающий завершения чтения из порта
-		TStatusEventThreadOpt *StatusEventThreadOpt;//поток,сообщающий из компонента о статусе линий
+		TReadThreadOpt *ReadThreadOpt; //-------------------- поток, ожидающий приема символов
+		TWriteThreadOpt *WriteThreadOpt; //------------------ поток, ожидающий записи символов
+		TStatusThreadOpt *StatusThreadOpt; //-------- поток, следящий за всеми событиями порта
+		TReadEventThreadOpt *ReadEventThreadOpt; // поток,ожидающий завершения чтения из порта
+		TStatusEventThreadOpt *StatusEventThreadOpt;//------- поток,сообщающий о статусе линий
 
 //------------------------------------------------------------------ объекты событий порта
 		TNotifyEvent FOnCTSSignal; //-------------------------- событие "изменился сигнал CTS"
@@ -176,7 +176,7 @@ __published:
 		__property TDataBits DataBits = {read=FDataBits, write=SetDataBits};
 		__property TComEventType MonitorEvents = {read=FMonitorEvents, write=FMonitorEvents};
 
-	//--------------------------------------------------------------------------------- Events
+	//-------------------------------------------------------------------------------- Events
 		__property TNotifyEvent OnCTSSignal     = {read=FOnCTSSignal, write=FOnCTSSignal};
 		__property TNotifyEvent OnDCDSignal     = {read=FOnDCDSignal, write=FOnDCDSignal};
 		__property TNotifyEvent OnDSRSignal     = {read=FOnDSRSignal, write=FOnDSRSignal};

@@ -31,8 +31,9 @@ implementation
 
 uses
   TypeALL,
+  Commons,
   TabloSHN,
-  KanalArmSrv,
+  KanalArmSrvSHN,
   CMenu;
 
 procedure TValueListDlg.FormCreate(Sender: TObject);

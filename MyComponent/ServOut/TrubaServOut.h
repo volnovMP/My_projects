@@ -21,7 +21,8 @@ public:
 	AnsiString Name;
 	OVERLAPPED FWr;
 	OVERLAPPED FRd;
-  HANDLE WaitSinch;
+	HANDLE WaitSinch;
+	bool ServSucces,ServPending, ServConnected,ServBreak,ExitLoop; 
 	unsigned long FCountIn;
   unsigned long FCountOut;
 	unsigned char FOutBuffer[70]; //----------------------------------------- выходной буфер

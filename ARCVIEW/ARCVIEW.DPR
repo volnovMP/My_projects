@@ -1,41 +1,28 @@
 program ARCVIEW;
-
 uses
-  ExceptionLog,
+  ShareMem,
   Windows,
   Forms,
-  PackArmSrv in 'PackArmSrv.pas',
-  TabloForm in 'TabloForm.pas' {TabloMain},
+  TabloFormARC in 'TabloFormARC.pas' {TabloMain},
+  Commons in 'D:\SAPR2012\COMMON\Commons.pas',
+  MainLoop in 'D:\SAPR2012\COMMON\MainLoop.pas',
+  TypeALL in 'D:\SAPR2012\COMMON\TypeALL.pas',
+  Commands in 'D:\SAPR2012\COMMON\Commands.pas',
+  Marshrut in 'D:\SAPR2012\COMMON\Marshrut.pas',
+  Load in 'D:\SAPR2012\COMMON\Load.pas',
+  CRCCALC in 'D:\SAPR2012\COMMON\CRCCALC.PAS',
+  CMenu in 'D:\SAPR2012\COMMON\CMenu.pas',
   MsgForm in 'MsgForm.pas' {MsgFormDlg},
-  ValueList in 'ValueList.pas' {ValueListDlg},
-  DirectForm in 'DirectForm.pas' {DirectFormDlg},
-  Commands in 'E:\Сапр_new\Commons\Commands.pas',
-  COMPORT in 'E:\Сапр_new\Commons\COMPORT.PAS',
-  CRCCALC in 'E:\Сапр_new\Commons\CRCCALC.PAS',
-  Commons in 'E:\Сапр_new\Commons\Commons.pas',
-  Marshrut in 'E:\Сапр_new\Commons\Marshrut.pas',
-  TypeALL in 'E:\Сапр_new\Commons\TypeALL.pas',
-  CMenu in 'E:\Сапр_new\Commons\CMenu.pas',
-  Load in 'E:\Сапр_new\Commons\Load.pas',
-  OBJSOST in 'E:\Сапр_new\Commons\OBJSOST.PAS',
-  MainLoop in 'E:\Сапр_new\Commons\MainLoop.pas';
+  OBJSOST in 'D:\SAPR2012\COMMON\OBJSOST.PAS',
+  DirectForm in 'DirectForm.pas' {DirectFormDlg};
 
+{$E exe}
 {$R *.RES}
 
-var h : cardinal;
-
 begin
-  h := FindWindowEx(0,0,PChar('TDSPMain'+#0),PChar('Архив системного журнала'+#0));
-  if h > 0 then
-  begin
-    ShowWindow(h,SW_SHOW);
-  end else
-  begin
-    Application.Initialize;
-    Application.Title := 'Архив';
-    Application.CreateForm(TTabloMain, TabloMain);
-  Application.CreateForm(TValueListDlg, ValueListDlg);
+  Application.Initialize;
+  Application.CreateForm(TTabloMain, TabloMain);
+  Application.CreateForm(TMsgFormDlg, MsgFormDlg);
   Application.CreateForm(TDirectFormDlg, DirectFormDlg);
   Application.Run;
-  end;
 end.

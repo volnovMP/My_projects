@@ -90,9 +90,6 @@ void __fastcall TServOut::DoOpenTruba(void)
 		hEvent = CreateEvent(NULL,FALSE,FALSE,NULL);
 		FTrubaServOut->FWr.hEvent = hEvent;
 		ResetEvent(FTrubaServOut->FWr.hEvent);
-    hEvent = CreateEvent(NULL,FALSE,FALSE,NULL);
-    FTrubaServOut->WaitSinch = hEvent;
-    ResetEvent(FTrubaServOut->WaitSinch);
 	}
 }
 //--------------закрытие трубы--------------------------------------
@@ -106,9 +103,7 @@ void __fastcall TServOut::DoCloseTruba(void)
 	bool konec;
   int itog;
   if(ComponentState.Contains(csDesigning))return;
-  WaitForSingleObject(FTrubaServOut->WaitSinch,INFINITE);
-  Sost = 8888;
-  FTrubaServOut->Terminate();
+	FTrubaServOut->ServBreak = true;
 	SetEvent(FTrubaServOut->FRd.hEvent);
 	SetEvent(FTrubaServOut->FWr.hEvent);
 	FTrubaServOut->WaitFor();

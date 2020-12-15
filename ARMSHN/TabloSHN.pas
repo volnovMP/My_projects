@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, ImgList, StdCtrls, ComCtrls, Registry, Menus, MMSystem, comport;
+  ExtCtrls, ImgList, StdCtrls, ComCtrls, Registry, Menus, MMSystem;
 
 type
   TTabloMain = class(TForm)
@@ -30,7 +30,6 @@ type
     pmPhoto: TMenuItem;
     pmArxiv: TMenuItem;
     ilClock: TImageList;
-    DC: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
@@ -51,8 +50,8 @@ type
     procedure pmNotifyClick(Sender: TObject);
     procedure pmPhotoClick(Sender: TObject);
     procedure pmArxivClick(Sender: TObject);
-    procedure DCTimer(Sender: TObject);
-    procedure PaintBox1Click(Sender: TObject);
+//    procedure DCTimer(Sender: TObject);
+    procedure N1Click(Sender: TObject);
   private
     function RefreshTablo : Boolean; // Обновление образа табло
     procedure SaveArcToFloppy;       // сохранить архив работы на дискете
@@ -64,24 +63,23 @@ type
 
 var
   TabloMain: TTabloMain;
-  reg : TRegistry;
   Sound : Boolean;
   LastX : SmallInt;
   LastY : SmallInt;
-  lock_maintimer : boolean; // разрешение обработки цикла главного таймера табло
-  RefreshTimeOut : Double;   // максимальное время ожидания синхронизации из канала
-  StartTime      : Double;   // время запуска системы
-  LastReper      : Double;   // время последнего сохранения 10-ти минутного архива состояний
-  TimeLockCmdDsp : Double;   // время блокирования двойного щелчка мышкой
+  lock_maintimer : boolean; //---------- разрешение обработки цикла главного таймера табло
+  RefreshTimeOut : Double;  //-------- максимальное время ожидания синхронизации из канала
+  StartTime      : Double;  //-------------------------------------- время запуска системы
+  LastReper      : Double;  //время последнего сохранения 10-ти минутного архива состояний
+  TimeLockCmdDsp : Double;  //------------------ время блокирования двойного щелчка мышкой
   IsCloseRMDSP   : Boolean;
   AppStart       : Boolean;
   SendToSrvCloseRMDSP : Boolean;
 
-  shiftxscr : integer; // сдвиг картинки
-  shiftyscr : integer; // сдвиг картинки
+  shiftxscr : integer; //-------------------------------------------------- сдвиг картинки
+  shiftyscr : integer; //-------------------------------------------------- сдвиг картинки
 
-procedure ChangeRegion(RU : Byte);
-procedure ResetCommands;                    // сброс всех активных команд
+procedure ChangeRegion(RU : Byte); //---------------------------- смена района управлелния
+procedure ResetCommands;       //------------------------------ сброс всех активных команд
 
 const
   CurTablo1   = 1;
@@ -96,7 +94,7 @@ const
   KeyRegNotifyForm  : string = '\Software\SHNRPCTUMS\NotifyForm';
 
 
-// Технологические процедуры
+//-------------------------------------------------------------- Технологические процедуры
 procedure PresetObjParams;
 procedure Plakat(X,Y : integer);
 
@@ -105,8 +103,8 @@ implementation
 uses
   TypeALL,
   Load,
-  KanalArmSrv,
-  KanalArmDc,
+  KanalArmSrvSHN,
+//  KanalArmDc,
   Objsost,
   Commands,
   MainLoop,
@@ -117,7 +115,7 @@ uses
   Password,
   ViewFr,
   ViewObj,
-  Notify,
+//  Notify,
   Clock;
 
 {$R *.DFM}
@@ -128,58 +126,103 @@ var
 
 procedure TTabloMain.FormDestroy(Sender: TObject);
 begin
-  reportf('Завершение работы программы '+ DateTimeToStr(Date+Time));
-  DestroyKanalSrv;
-  DestroyKanalDC;
+  try
+    NotifyWav.Destroy; 
+    DestroyKanalSrv;
+    if Assigned(Tablo1) then Tablo1.Free;
+    if Assigned(Tablo2) then Tablo2.Free;
+    if Assigned(ObjectWav) then ObjectWav.Free;
+    if Assigned(IpWav) then IpWav.Free;
+//    ResetEvent(hWaitKanal);
+//    CloseHandle(hWaitKanal);
+    Sleep(500);
+    reportf('Завершение работы программы'+ DateTimeToStr(Date+Time));
+  except
+    reportf('Ошибка FormDestroy '+ DateTimeToStr(Date+Time));
+  end;
 end;
-
+//========================================================================================
 procedure TTabloMain.FormCreate(Sender: TObject);
-  var err: boolean; i,h : integer; sr : TSearchRec;
-begin
-  hWaitKanal := CreateEvent(nil,false,false,nil); // создать пустое событие для обработки длинных циклов
-  Caption := 'АРМ ШН - Контроль станции в реальном времени';
-  IsCloseRMDSP := false; SendToSrvCloseRMDSP := false;
-  // Загрузить предыдущий протокол
+var
+  err: boolean;
+  i,h : integer;
+  sr : TSearchRec;
+begin //------------------------------ создать пустое событие для обработки длинных циклов
+{$IFDEF USEC}
+  Caption := 'Программа USEC - Контроль станции в реальном времени';
+{$ENDIF}  
+  LockTablo := false;
+
+  IsCloseRMDSP := false;
+  SendToSrvCloseRMDSP := false;
+
+
+  reg := TRegistry.Create; //-------------------------------- Объект для доступа к реестру
+  reg.RootKey := HKEY_LOCAL_MACHINE;
+
   if FileExists(ReportFileName) then
   begin
-    h := FileOpen(ReportFileName,fmOpenRead);
+    h := FileOpen(ReportFileName,fmOpenRead); //------------ Загрузить предыдущий протокол
     if h > 0 then
     begin
       i := FileSeek(h,0,2);
       FileClose(h);
-      if i > 99999 then
-        DeleteFile(ReportFileName);
+      if i > 99999 then DeleteFile(ReportFileName);
     end;
   end;
-
   DateTimeToString(s, 'dd/mm/yy h:nn:ss.zzz', Date+Time);
   reportf('@');
   reportf('Начало работы программы '+ s);
 
   PopupMenuCmd := TPopupMenu.Create(self);
   PopupMenuCmd.AutoPopup := false;
-
   err := false;
   cok := '';
-  reg := TRegistry.Create; // Объект для доступа к реестру
-  reg.RootKey := HKEY_LOCAL_MACHINE;
   if Reg.OpenKey(KeyName, false) then
   begin
-    if reg.ValueExists('databasepath') then database    := reg.ReadString('databasepath') else begin err := true; reportf('Нет ключа "databasepath"'); end;
-    if reg.ValueExists('path')         then config.path := reg.ReadString('path')         else begin err := true; reportf('Нет ключа "path"'); end;
-    if reg.ValueExists('arcpath')      then config.arcpath := reg.ReadString('arcpath')   else begin err := true; reportf('Нет ключа "arcpath"'); end;
-    if reg.ValueExists('ru')           then config.ru   := reg.ReadInteger('ru')          else begin err := true; reportf('Нет ключа "ru"'); end;
-    if reg.ValueExists('RMID')         then config.RMID := reg.ReadInteger('RMID')        else begin err := true; reportf('Нет ключа "RMID"'); end;
-    if reg.ValueExists('configkanal')  then s := reg.ReadString('configkanal')            else begin err := true; reportf('Нет ключа "configkanal"'); end;
+    if reg.ValueExists('databasepath') then database    := reg.ReadString('databasepath')
+    else begin err := true; reportf('Нет ключа "databasepath"'); end;
+
+    if reg.ValueExists('path')         then config.path := reg.ReadString('path')
+    else begin err := true; reportf('Нет ключа "path"'); end;
+
+    if reg.ValueExists('arcpath')      then config.arcpath := reg.ReadString('arcpath')
+    else begin err := true; reportf('Нет ключа "arcpath"'); end;
+
+    if reg.ValueExists('ru')           then config.ru   := reg.ReadInteger('ru')
+    else begin err := true; reportf('Нет ключа "ru"'); end;
+
+    if reg.ValueExists('RMID')         then config.RMID := reg.ReadInteger('RMID')
+    else begin err := true; reportf('Нет ключа "RMID"'); end;
+
+    if reg.ValueExists('configkanal')  then s := reg.ReadString('configkanal')
+    else begin err := true; reportf('Нет ключа "configkanal"'); end;
     KanalSrv[1].config := s; KanalSrv[2].config := s;
-    if reg.ValueExists('namepipein')  then KanalSrv[1].nPipe := reg.ReadString('namepipein') else s := '';
-    if reg.ValueExists('namepipeout') then KanalSrv[2].nPipe := reg.ReadString('namepipeout') else s := '';
-    if (KanalSrv[1].nPipe = '') and (KanalSrv[2].nPipe = '') then KanalType := 0 else
-    if (KanalSrv[1].nPipe <> '') and (KanalSrv[2].nPipe <> '') then KanalType := 1 else
-    begin err := true; reportf('Неверно определен тип канала связи с сервером'); end;
-    if reg.ValueExists('AnsverTimeOut') then AnsverTimeOut := reg.ReadDateTime('AnsverTimeOut') else begin err := true; reportf('Нет ключа "AnsverTimeOut"'); end;
-    if reg.ValueExists('RefreshTimeOut') then RefreshTimeOut := reg.ReadDateTime('RefreshTimeOut') else begin err := true; reportf('Нет ключа "RefreshTimeOut"'); end;
-    if reg.ValueExists('TimeOutRdy')    then MaxTimeOutRecave := reg.ReadDateTime('TimeOutRdy') else begin err := true; reportf('Нет ключа "TimeOutRdy"'); end;
+
+    if reg.ValueExists('namepipein') then KanalSrv[1].nPipe:= reg.ReadString('namepipein')
+    else s := '';
+
+    if reg.ValueExists('namepipeout') then KanalSrv[2].nPipe := reg.ReadString('namepipeout')
+    else s := '';
+
+    if (KanalSrv[1].nPipe = '') and (KanalSrv[2].nPipe = '')
+    then KanalType := 0 else
+      if (KanalSrv[1].nPipe <> '') and (KanalSrv[2].nPipe <> '')
+      then KanalType := 1 else
+        begin err := true; reportf('Неверно определен тип канала связи с сервером'); end;
+
+    if reg.ValueExists('AnsverTimeOut')
+    then AnsverTimeOut := reg.ReadDateTime('AnsverTimeOut')
+    else begin err := true; reportf('Нет ключа "AnsverTimeOut"'); end;
+
+    if reg.ValueExists('RefreshTimeOut')
+    then RefreshTimeOut := reg.ReadDateTime('RefreshTimeOut')
+    else begin err := true; reportf('Нет ключа "RefreshTimeOut"'); end;
+
+    if reg.ValueExists('TimeOutRdy')
+    then MaxTimeOutRecave := reg.ReadDateTime('TimeOutRdy')
+    else begin err := true; reportf('Нет ключа "TimeOutRdy"'); end;
+
     if reg.ValueExists('kanal1') then
     begin
       i := reg.ReadInteger('kanal1');
@@ -187,6 +230,7 @@ begin
       KanalSrv[1].Index := i;
     end else
     begin KanalSrv[1].Index := 0; err := true; reportf('Нет ключа "kanal1"'); end;
+
     if reg.ValueExists('kanal2') then
     begin
       i := reg.ReadInteger('kanal2');
@@ -194,36 +238,15 @@ begin
       KanalSrv[2].Index := i;
     end else
     begin KanalSrv[2].Index := 0; err := true; reportf('Нет ключа "kanal2"'); end;
-
-    if reg.ValueExists('kanaldc1') then
-    begin
-      i := reg.ReadInteger('kanaldc1');
-      if i = 0 then reportf('Основной канал обмена с ЛП-ДЦ отключен.');
-      KanalDC[1].Index := i;
-    end else
-      KanalDC[1].Index := 0;
-    if reg.ValueExists('kanaldc2') then
-    begin
-      i := reg.ReadInteger('kanaldc2');
-      if i = 0 then reportf('Резервный канал обмена с ЛП-ДЦ отключен.');
-      KanalDC[2].Index := i;
-    end else
-      KanalDC[2].Index := 0;
-    if (KanalDC[1].Index > 0) or (KanalDC[2].Index > 0) then
-    begin
-      if reg.ValueExists('configdc')  then s := reg.ReadString('configdc') else begin err := true; s := ''; reportf('Нет ключа "configdc"'); end;
-    end;
-    KanalDC[1].config := s; KanalDC[2].config := s;
-    if reg.ValueExists('kanaldcloop') then begin DC.Interval := reg.ReadInteger('kanaldcloop'); DC.Enabled := true; end else DC.Enabled := false;
     reg.CloseKey;
-    if DC.Enabled and ((KanalDC[1].Index > 0) or (KanalDC[2].Index > 0)) and (s <> '') then
-      reportf('Подключен канал обмена с ЛП-ДЦ');
 
-    if not FileExists(database) then begin err := true; reportf('Файл конфигурации базы данных станции не найден.'); end;
+    if not FileExists(database) then
+    begin err := true; reportf('Файл конфигурации базы данных станции не найден.'); end;
   end else
   begin
+    reg.Destroy;
     reportf('Нет ключа "SHNRPCTUMS"');
-    ShowMessage('Завершение работы из-за обнаружения ошибки при инициализации программы. Сохранен протокол ошибок в файле shn.rpt');
+    ShowMessage('Завершение работы. Обнаружены ошибки инициализации программы. Сохранен протокол ошибок в файле shn.rpt');
     Application.Terminate;
   end;
   Left := 0; Top := 0;
@@ -231,14 +254,6 @@ begin
 
   CreateKanalSrv;
   InitKanalSrv(1);
-  InitKanalSrv(2);
-
-  if (KanalDC[1].Index > 0) or (KanalDC[2].Index > 0) then
-  begin // инициализация каналов ДЦ
-    CreateKanalDC;
-    InitKanalDC(1);
-    InitKanalDC(2);
-  end;
 
   Tablo1 := TBitmap.Create;
   Tablo2 := TBitmap.Create;
@@ -254,7 +269,7 @@ begin
 
   StartObj := 1;
   DiagnozON := true;
-  CurrDCSoob := 1;
+//  CurrDCSoob := 1;
 
   // Получить список звуковых файлов для озвучивания событий из папки %armshn%\media\wav\*.wav
   NotifyWav := TStringList.Create;
@@ -279,9 +294,9 @@ begin
 
   // Загрузка базы данных
   if not LoadBase(database) then err := true;
-  if configRU[1].TabloSize.X > 0 then pmmRU1.Visible := true else pmmRU1.Visible := false;
-  if configRU[2].TabloSize.X > 0 then pmmRU2.Visible := true else pmmRU2.Visible := false;
-  if configRU[3].TabloSize.X > 0 then pmmRU3.Visible := true else pmmRU3.Visible := false;
+  if configRU[1].Tablo_Size.X > 0 then pmmRU1.Visible := true else pmmRU1.Visible := false;
+  if configRU[2].Tablo_Size.X > 0 then pmmRU2.Visible := true else pmmRU2.Visible := false;
+  if configRU[3].Tablo_Size.X > 0 then pmmRU3.Visible := true else pmmRU3.Visible := false;
 
 
   // получить размеры окна отображения табло
@@ -291,7 +306,12 @@ begin
     if reg.ValueExists('top')  then Top  := reg.ReadInteger('top')  else Top  := 0;
     if reg.ValueExists('width') then Width := reg.ReadInteger('width') else Width := Screen.Width;
     if reg.ValueExists('height')  then Height  := reg.ReadInteger('height')  else
-    begin i := Screen.Height; if Screen.Height < (configRU[config.ru].TabloSize.Y+50) then Height := i else Height := configRU[config.ru].TabloSize.Y+50; end;
+    begin
+      i := Screen.Height;
+      if Screen.Height < (configRU[config.ru].Tablo_Size.Y+50)
+      then Height := i
+      else Height := configRU[config.ru].Tablo_Size.Y+50;
+    end;
     reg.CloseKey;
   end;
 
@@ -301,7 +321,7 @@ begin
   if not LoadLex2(config.path + 'LEX2.SDB') then err := true;
   if not LoadLex3(config.path + 'LEX3.SDB') then err := true;
   if not LoadMsg(config.path + 'MSG.SDB') then err := true;
-  if not LoadLinkFR(config.path + 'FR3.SDB') then err := true;
+//  if not LoadLinkFR(config.path + 'FR3.SDB') then err := true;
  // if not LoadLinkDC(config.path + 'DC.SDB') then err := true;
   // Загрузка структуры АКНР
   if not LoadAKNR(config.path + 'AKNR.SDB') then err := true;
@@ -321,7 +341,8 @@ begin
   WorkMode.GoMaketSt  := false;
   WorkMode.Upravlenie := false;
   WorkMode.LockCmd    := true;
-
+  hWaitKanal := CreateEvent(nil,false,false,nil);
+  reg.Destroy;
   if err then
   begin
     ShowMessage('Завершение работы из-за обнаружения ошибки при инициализации программы.');
@@ -343,13 +364,6 @@ begin
   DrawTablo(Tablo2);
 
   ConnectKanalSrv(1);
-//  ConnectKanalSrv(2);
-
-  if (KanalDC[1].Index > 0) or (KanalDC[2].Index > 0) then
-  begin // каналы ДЦ
-    ConnectKanalDC(1);
-    ConnectKanalDC(2);
-  end;
 
   MainTimer.Enabled := true;
   LastRcv := Date+Time;
@@ -362,97 +376,101 @@ begin
   ClockForm.Show; // открыть окно с часами
 end;
 
-//------------------------------------------------------------------------------
-// Разрешение на закрытие главного окна программы
+//========================================================================================
+//-------- процедура постановки в очередь и предварительных действий перед закрытием формы
 procedure TTabloMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+//var  ec : cardinal;
 begin
-  if IsCloseRMDSP then
-  begin // получено разрешение завершения работы АРМ
-    DisconnectKanalSrv(1);
-   // DisconnectKanalSrv(2);
-    if (KanalDC[1].Index > 0) or (KanalDC[2].Index > 0) then
-    begin // каналы ДЦ
-      DisconnectKanalDC(1);
-      DisconnectKanalDC(2);
-    end;
-    MainTimer.Enabled := false;
-    lock_maintimer := false;
-    FixStatKanalDC(1);
-    FixStatKanalDC(2);
-    if KanalDC[1].Index > 0 then // каналы ДЦ
-      FixStatKanalDC(1);
-    if KanalDC[2].Index > 0 then // каналы ДЦ
-      FixStatKanalDC(2);
-    canClose := true;
-    // сохранить параметры в реестре
-    reg.RootKey := HKEY_LOCAL_MACHINE;
-    if Reg.OpenKey(KeyRegMsgForm, true) then
+  try
+    if IsCloseRMDSP then
+    begin //--------------------------------- получено разрешение завершения работы РМ-ДСП
+      DisconnectKanalSrv(1);
+      TimerView.Enabled := false;
+    end
+    else
+    if not SendToSrvCloseRMDSP then //---------------- если серверу не передавался останов
     begin
-      reg.WriteInteger('left', MsgFormDlg.Left);
-      reg.WriteInteger('top', MsgFormDlg.Top);
-      reg.WriteInteger('width', MsgFormDlg.Width);
-      reg.WriteInteger('height', MsgFormDlg.Height);
-      reg.CloseKey;
+      ShowWindow(Application.Handle,SW_SHOW);//активизировать и отобразить окно приложения
+      if PasswordDlg.ShowModal = mrOk then
+      begin
+        InsArcNewMsg(0,89,7); //--------------------- "Ожидается завершение работы РМ ДСП"
+        TabloMain.Canvas.Font.Size := 20;
+        TabloMain.Canvas.Font.Color := clRed;
+        TabloMain.Canvas.Font.Style := [fsBold];
+        TabloMain.Canvas.TextOut(100,100,'Программа завершает свою работу');
+        Sleep(1000);
+        SendCommandToSrv(WorkMode.DirectStateSoob,cmdfr3_logoff,0);  //- остановить сервер
+        CmdCnt := 1;
+        SendToSrvCloseRMDSP := true; //----- фиксируем передачу останова в серверную часть
+      end;
+      ShowWindow(Application.Handle,SW_HIDE);
     end;
-    if Reg.OpenKey(KeyRegMainForm, true) then
-    begin
-      reg.WriteInteger('left', TabloMain.Left);
-      reg.WriteInteger('top', TabloMain.Top);
-      reg.WriteInteger('width', TabloMain.Width);
-      reg.WriteInteger('height', TabloMain.Height);
-      reg.CloseKey;
-    end;
-    if Reg.OpenKey(KeyRegValListForm, true) then
-    begin
-      reg.WriteInteger('left', ValueListDlg.Left);
-      reg.WriteInteger('top', ValueListDlg.Top);
-      reg.WriteInteger('height', ValueListDlg.Height);
-      reg.CloseKey;
-    end;
-    if Reg.OpenKey(KeyRegViewObjForm, true) then
-    begin
-      reg.WriteInteger('left', ViewObjForm.Left);
-      reg.WriteInteger('top', ViewObjForm.Top);
-      reg.WriteInteger('width', ViewObjForm.Width);
-      reg.WriteInteger('height', ViewObjForm.Height);
-      reg.CloseKey;
-    end;
-    if Reg.OpenKey(KeyRegNotifyForm, true) then
-    begin
-      reg.WriteInteger('left', NotifyForm.Left);
-      reg.WriteInteger('top', NotifyForm.Top);
-      reg.CloseKey;
-    end;
-    NotifyForm.SaveNotify;
-    exit;
-  end else
-  if not SendToSrvCloseRMDSP then
-  begin
-    PasswordDlg := TPasswordDlg.Create(self); //------ создать запрос на завершение работы
-    if PasswordDlg.ShowModal = mrOk then
-    begin
-      SendCommandToSrv(WorkMode.DirectStateSoob,cmdfr3_logoff,0);
-      SaveDiagnoze(config.arcpath+ '\stat.ini'); // сохранить статистику перед завершением
-      SendToSrvCloseRMDSP := true;
-    end;
-    PasswordDlg.Free; //------------------------------------------------ освободить память
+    CanClose := false;
+  except
+    reportf('Ошибка [FormClose]');
   end;
-  CanClose := false;
 end;
-
+//========================================================================================
 procedure TTabloMain.WMEraseBkgnd(var Message: TWMEraseBkgnd);
 begin
-  if not mem_page then PaintBox1.Canvas.Draw(0,0,tablo2)
+  if not mem_page
+  then PaintBox1.Canvas.Draw(0,0,tablo2)
   else PaintBox1.Canvas.Draw(0,0,tablo1);
 end;
 
-//------------------------------------------------------------------------------
-// прорисовка на экране элементов управления
+//========================================================================================
+//---------------------------------------------- прорисовка на экране элементов управления
 procedure TTabloMain.FormPaint(Sender: TObject);
-  var shiftx,shifty : integer;
+var
+  shiftx,shifty,x,y,i : integer;
 begin
   shiftx := HorzScrollBar.Position;
   shifty := VertScrollBar.Position;
+  VertScrollBar.Range := Tablo1.Height;
+  HorzScrollBar.Range := Tablo1.Width;
+
+    x := configRU[config.ru].MonSize.X;
+    if configRU[config.ru].Tablo_Size.X < x
+    then x := configRU[config.ru].Tablo_Size.X;
+    y := configRU[config.ru].Tablo_Size.Y;
+    for i := 1 to High(shortmsg) do
+    begin
+      canvas.Brush.Style := bsSolid;
+      canvas.Font.Style := [];
+      if shortmsg[i] <> '' then
+      begin
+        //---------------------------------------------------- Вывести короткие сообщения
+        canvas.Brush.Color := shortmsgcolor[i];
+        canvas.FillRect(rect((i-1)*X, Y-15, i*X-32, Y));
+        canvas.Font.Color  := clBlack;
+        TekFontSize := canvas.Font.Size;
+        canvas.Font.Size := 10;
+        canvas.TextOut((i-1)*X+3, Y-15,shortmsg[i]);//-------------------- вывод сообщения
+        canvas.Brush.Color := clWhite; canvas.FillRect(rect(i*X-32, Y-15, i*X-16, Y));
+        canvas.Brush.Color := clRed; canvas.FillRect(rect(i*X-31, Y-14, i*X-27, Y-1));
+        canvas.Brush.Color := clGreen; canvas.FillRect(rect(i*X-26, Y-14, i*X-22, Y-1));
+        canvas.Brush.Color := clBlue; canvas.FillRect(rect(i*X-21, Y-14, i*X-17, Y-1));
+        canvas.Font.Size := TekFontSize;
+        if (ObjHintIndex > 0) and ((LastTime - LastMove) < (30/86400)) then
+        begin ImageList16.Draw(canvas,i*X-16, Y-15,1); end
+        else
+        if ShowWarning then
+        begin
+          if tab_page then ImageList16.Draw(canvas,i*X-16, Y-15,5)
+          else ImageList16.Draw(canvas,i*X-16, Y-15,0);
+        end;
+      end else
+      begin
+        canvas.Brush.Color := bkgndcolor; canvas.FillRect(rect((i-1)*X, Y-15, i*X-32, Y));
+        canvas.Brush.Color := clWhite; canvas.FillRect(rect(i*X-32, Y-15, i*X-16, Y));
+        canvas.Brush.Color := clRed; canvas.FillRect(rect(i*X-31, Y-14, i*X-27, Y-1));
+        canvas.Brush.Color := clGreen; canvas.FillRect(rect(i*X-26, Y-14, i*X-22, Y-1));
+        canvas.Brush.Color := clBlue; canvas.FillRect(rect(i*X-21, Y-14, i*X-17, Y-1));
+      end;
+    end;
+
+
+
   // Прорисовка фокуса на объектах
   if (cur_obj > 0) and (ObjUprav[cur_obj].MenuID > 0) then
     with canvas do
@@ -465,8 +483,11 @@ begin
       LineTo(ObjUprav[cur_obj].Box.Left-shiftx, ObjUprav[cur_obj].Box.Top-shifty);
     end;
   Canvas.Brush.Color := bkgndcolor;
-  if tablo1.Width < TabloMain.ClientWidth then canvas.FillRect(rect(tablo1.width, 0, TabloMain.width, TabloMain.height));
-  if tablo1.Height < TabloMain.ClientHeight then canvas.FillRect(rect(0, tablo1.height, tablo1.width, TabloMain.height));
+  if tablo1.Width < TabloMain.ClientWidth then
+  canvas.FillRect(rect(tablo1.width, 0, TabloMain.width, TabloMain.height));
+
+  if tablo1.Height < TabloMain.ClientHeight then
+  canvas.FillRect(rect(0, tablo1.height, tablo1.width, TabloMain.height));
 end;
 
 procedure TTabloMain.DrawTablo(tablo: TBitmap);
@@ -476,12 +497,14 @@ begin
   Tablo.Canvas.Brush.Color := bkgndcolor;
   Tablo.canvas.FillRect(rect(0, 0, tablo.width, tablo.height));
 
-  // прорисовка полки со значками
+  //--------------------------------------------------------- прорисовка полки со значками
   Tablo.Canvas.Pen.Color := armcolor8;
   Tablo.Canvas.Brush.Color := armcolor18;
   Tablo.Canvas.Pen.Style := psSolid;
   Tablo.Canvas.Pen.Width := 2;
-  Tablo.Canvas.Rectangle(configRU[config.ru].BoxLeft,configRU[config.ru].BoxTop,configRU[config.ru].BoxLeft+12*20+7,configRU[config.ru].BoxTop+16);
+  Tablo.Canvas.Rectangle(configRU[config.ru].BoxLeft,configRU[config.ru].BoxTop,
+  configRU[config.ru].BoxLeft+12*20+7,configRU[config.ru].BoxTop+16);
+
   for i := 0 to 19 do
   begin
     x := 1 + i * 12;
@@ -497,57 +520,38 @@ begin
     ImageList.Draw(Tablo.Canvas,configRU[config.ru].BoxLeft+x, configRU[config.ru].BoxTop+1,c, Stellaj[i+1]);
   end;
 
-  // прорисовка иконок в поле
-  c := 0;
+
+  //------------------------------------------------------------- прорисовка иконок в поле
   for i := 1 to High(Ikonki) do
   begin
-    if Ikonki[i,1] > 0 then ImageList.Draw(Tablo.Canvas,Ikonki[i,2],Ikonki[i,3],Ikonki[i,1],true);
-    inc(c); if c > 400 then
-    begin
-      SyncReady;
-      c := 0;
-    end;
+    if Ikonki[i,1] > 0 then
+    ImageList.Draw(Tablo.Canvas,Ikonki[i,2],Ikonki[i,3],Ikonki[i,1],true);
   end;
 
-  // Из за ошибки в драйвере видеоадаптера WinXP приходится проделывать следующие действия:
+  // Из за ошибки в драйвере видеоадаптера WinXP    ????????????????????????????
+  // приходится проделывать следующие действия: ????????????????????????????
   Tablo.Canvas.Brush.Style := bsClear;
   Tablo.Canvas.Font.Color := clRed;
   Tablo.Canvas.Font.Color := clBlack;
   // конец программы, устраняющей ошибку WinXP
 
-  // прорисовка всех отображающих объектов табло
+  //------------------------------------------ прорисовка всех отображающих объектов табло
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   begin
-    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 0) then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
-    inc(c);
-    if c > 400 then
-    begin
-      SyncReady;
-      WaitForSingleObject(hWaitKanal,3);
-      c := 0;
-    end;
+    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 0) then
+    DisplayItemTablo(@ObjView[i], Tablo.Canvas);
   end;
 
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   begin
-    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 1) then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
-    inc(c);if c > 400 then
-    begin
-      SyncReady; WaitForSingleObject(hWaitKanal,3);
-      c := 0;
-    end;
+    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 1) then
+    DisplayItemTablo(@ObjView[i], Tablo.Canvas);
   end;
 
   for i := configRU[config.RU].OVmin to configRU[config.RU].OVmax do
   begin
-    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 2) then DisplayItemTablo(@ObjView[i], Tablo.Canvas);
-    inc(c);
-    if c > 400 then
-    begin
-      SyncReady;
-      WaitForSingleObject(hWaitKanal,3);
-      c := 0;
-    end;
+    if (ObjView[i].TypeObj > 0) and (ObjView[i].Layer = 2) then
+    DisplayItemTablo(@ObjView[i], Tablo.Canvas);
   end;
 
   Tablo.Canvas.UnLock;
@@ -719,6 +723,7 @@ end;
 procedure TTabloMain.FormMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if PopupMenuCmd.PopupComponent <> nil then exit;
+  //ID_ViewObj := DspMenu.obj;
   if Button = mbLeft then
   begin
   // нажата левая кнопка мышки
@@ -806,13 +811,13 @@ begin
     begin // включить 1,2 район
       case config.ru of
         2 : begin
-          if configRU[1].TabloSize.X > 0 then
+          if configRU[1].Tablo_Size.X > 0 then
           begin
             pmmRU1.Checked := true; NewRegion := 1; ChRegion := true;
           end;
         end;
         3 : begin
-          if configRU[2].TabloSize.X > 0 then
+          if configRU[2].Tablo_Size.X > 0 then
           begin
             pmmRU2.Checked := true; NewRegion := 2; ChRegion := true;
           end;
@@ -824,7 +829,7 @@ begin
     begin // включить 2,3 район
       case config.ru of
         1 : begin
-          if configRU[2].TabloSize.X > 0 then
+          if configRU[2].Tablo_Size.X > 0 then
           begin
             pmmRU2.Checked := true;
             NewRegion := 2;
@@ -832,7 +837,7 @@ begin
           end;
         end;
         2 : begin
-          if configRU[3].TabloSize.X > 0 then
+          if configRU[3].Tablo_Size.X > 0 then
           begin
             pmmRU3.Checked := true;
             NewRegion := 3;
@@ -875,224 +880,209 @@ procedure TTabloMain.MainTimerTimer(Sender: TObject);
 var
   st,i : integer;
 begin
-  LastTime := Date+Time; //-------------------------- момент последнего чтения из канала
-  if dMigTablo < LastTime then
-  begin //---------------------------------------------- организовать мигающую индикацию
-    tab_page := not tab_page;
-    dMigTablo := LastTime + MigInterval/86400; //--------- передвинуть мигалку в будущее
-  end;
-
-  if LockTablo then exit;
-
   try
-    LockTablo := true;
-    MainTimer.Enabled := false;
+    LastTime := Date+Time; //-------------------------- момент последнего чтения из канала
+    if dMigTablo < LastTime then
+    begin //---------------------------------------------- организовать мигающую индикацию
+      tab_page := not tab_page;
+      dMigTablo := LastTime + MigInterval/86400; //--------- передвинуть мигалку в будущее
+    end;
+
+    if dMigTablo < LastTime then
+    begin //---------------------------------------------- организовать мигающую индикацию
+      tab_page := not tab_page;
+      dMigTablo := LastTime + MigInterval / 86400;
+    end;
+
     SyncReady; //--------------- Ожидание новых данных и синхронизации канала сервер-арм
-    if LastTime - LastSync > RefreshTimeOut then //------------------- интервал 0,33 сек.
-    begin //----------------------------------------------------- Пора рисовать на табло
-
-      //--------------------------------- определить остановку обмена по каналу АРМ-Сервер
-      if KanalSrv[1].lastcnt < 70 then inc(KanalSrv[1].lostcnt)
-      else KanalSrv[1].lostcnt := 0;
-      if KanalSrv[1].lostcnt > 6 then
-      begin
-        KanalSrv[1].iserror := true;
-        KanalSrv[1].lostcnt := 0;
-      end;
-      if KanalSrv[2].lastcnt < 70 then inc(KanalSrv[2].lostcnt)
-      else KanalSrv[2].lostcnt := 0;
-      if KanalSrv[2].lostcnt > 6 then
-      begin
-        KanalSrv[2].iserror := true;
-        KanalSrv[2].lostcnt := 0;
-      end;
-
-      //------------------------------------- определить остановку обмена по каналу АРМ-ДЦ
-      if KanalDC[1].lastcnt < 6 then inc(KanalDC[1].lostcnt)
-      else KanalDC[1].lostcnt := 0;
-      if KanalDC[1].lostcnt > 16 then
-      begin
-        KanalDC[1].iserror := true;
-        KanalDC[1].lostcnt := 0;
-      end;
-      if KanalDC[2].lastcnt < 6 then inc(KanalDC[2].lostcnt)
-      else KanalDC[2].lostcnt := 0;
-      if KanalDC[2].lostcnt > 16 then
-      begin
-        KanalDC[2].iserror := true;
-        KanalDC[2].lostcnt := 0;
-      end;
-
-      //--------------------------------------------------------------- Перерисовка экрана
-      if not RefreshTablo then
-      begin
-        DateTimeToString(s, 'dd/mm/yy h:nn:ss.zzz', LastTime);
-        reportf('Сбой регенерации табло '+ s);
-      end;
-
-      //------------------------------- сохранить канальную новизну и команды меню в архив
-      if (NewFR[1] <> '') or (NewFR[2] <> '') then SaveArch(1);
-
-      if LastReper + 600 / 86400 < LastTime then
-      begin //----------------------------------- сохранить 10-ти минутный архив состояний
-        LastReper := LastTime; SaveArch(2);
-      end;
-
-      if (MsgFormDlg <> nil) and MsgFormDlg.Visible then
-      begin
-        if NewNeisprav then
-        begin
-          NewNeisprav := false;
-          MsgFormDlg.BtnUpdate.Enabled := true;
-          MsgFormDlg.TabSheet1.Highlighted := newListMessages;
-          MsgFormDlg.TabSheet2.Highlighted := newListDiagnoz;
-          MsgFormDlg.TabSheet3.Highlighted := newListNeisprav;
-        end;
-        if UpdateMsgQuery then
-        begin
-          MsgFormDlg.BtnUpdate.Enabled := false;
-          UpdateMsgQuery := false;
-          st := 1;
-          i := 0;
-          while st <= Length(ListMessages) do
-          begin
-            if ListMessages[st] = #10 then inc(i);
-            if i < 700 then inc(st)
-            else
-            begin
-              SetLength(ListMessages,st);
-              break;
-            end;
-          end;
-          MsgFormDlg.Memo.Lines.Text := ListMessages;
-          st := 1;
-          i := 0;
-          while st <= Length(ListNeisprav) do
-          begin
-            if ListNeisprav[st] = #10 then inc(i);
-            if i < 700 then inc(st)
-            else
-            begin
-              SetLength(ListNeisprav,st);
-              break;
-            end;
-          end;
-          MsgFormDlg.MemoNeispr.Lines.Text := ListNeisprav;
-          st := 1; i := 0;
-          while st <= Length(ListDiagnoz) do
-          begin
-            if ListDiagnoz[st] = #10 then inc(i);
-            if i < 700 then inc(st)
-            else
-            begin
-              SetLength(ListDiagnoz,st);
-              break;
-            end;
-          end;
-          MsgFormDlg.MemoUVK.Lines.Text := ListDiagnoz;
-        end;
-      end;
-
-      //----------------------------------------------------- обработать состояние системы
-      if ChRegion then //--------------------------- выполнить изменение района управления
-      ChangeRegion(NewRegion);
-
-      if Ip1Beep then
-      begin
-        PlaySound(PAnsiChar(IpWav.Strings[0]),0,SND_ASYNC);
-        Ip1Beep := false
-      end else
-      if Ip2Beep then
-      begin
-        PlaySound(PAnsiChar(IpWav.Strings[1]),0,SND_ASYNC);
-        Ip2Beep := false
-      end else
-      if SingleBeep  then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[0]),0,SND_ASYNC);
-        SingleBeep := false
-      end else
-      if SingleBeep2 then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[1]),0,SND_ASYNC);
-        SingleBeep2 := false
-      end else
-      if SingleBeep3 then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[2]),0,SND_ASYNC);
-        SingleBeep3 := false
-      end else
-      if SingleBeep4 then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[3]),0,SND_ASYNC);
-        SingleBeep4 := false
-      end else
-      if SingleBeep5 then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[4]),0,SND_ASYNC);
-        SingleBeep5 := false
-      end else
-      if SingleBeep6 then
-      begin
-        PlaySound(PAnsiChar(ObjectWav.Strings[5]),0,SND_ASYNC);
-        SingleBeep6 := false
-      end;
-
-      for i := 1 to 10 do
-      begin //----------------------- воспроизвести звуки регистрируемых событий (ловушек)
-        if FixNotify[i].beep then
-        PlaySound(PAnsiChar(NotifyWav.Strings[FixNotify[i].Sound]),0,SND_ASYNC);
-        FixNotify[i].beep := false;
-      end;
-    end;
-    MySync[1] := false; MySync[2] := false;
-
-    if SendToSrvCloseRMDSP then
-    if CmdSendT + (3/86400) < LastTime then
-    begin //-------------------------------------------------- Закрыть главное окно РМ-ДСП
+    if (not IsCloseRMDSP) and SendToSrvCloseRMDSP
+    and ((CmdSendT + (3/86400)) <  LastTime) then
+    begin
       IsCloseRMDSP := true;
-      Close;
+      Application.Terminate;
+      exit;
     end;
+    if IsCloseRMDSP then
+    begin
+      MainTimer.Enabled := false;
+      exit;
+   end
+   else MainTimer.Enabled := true;
 
-    if CmdCnt > 0 then
-    begin //-------------------------------------------------------- буфер команд заполнен
-      if WorkMode.LockCmd then
-      begin //------------------ есть блокировка команд - отложить выдачу команд на сервер
-        if StartRM then
+    if LastTime - LastSync > RefreshTimeOut then //------------------- интервал 0,33 сек.
+    begin
+      try //------------------------------------------------------- Пора рисовать на табло
+        //------------------------------- определить остановку обмена по каналу АРМ-Сервер
+        if KanalSrv[1].lastcnt < 70 then inc(KanalSrv[1].lostcnt)
+        else KanalSrv[1].lostcnt := 0;
+        if KanalSrv[1].lostcnt > 6 then
         begin
-          if CmdSendT + (10/86400) < LastTime then
-          begin //---- превышено время ожидания команды автоматического захвата управления
-            CmdCnt := 0;
-            WorkMode.CmdReady := false;
-            StartRM := false; //--------------------------------------------- сброс команд
-          end;
-        end
-        else if not SendToSrvCloseRMDSP then CmdSendT := LastTime;
-      end
-      else
-      begin //-------------------------- проверить время ожидания выдачи команды на сервер
-        if CmdSendT + (2/86400) < LastTime then
-        begin //----------------------------------------- превышено время ожидания команды
-          CmdCnt := 0;
-          WorkMode.CmdReady := false; //------------------------------------- сброс команд
-          if not StartRM then AddFixMessage(GetShortMsg(1,296,''),4,0);
+          KanalSrv[1].iserror := true;
+          KanalSrv[1].lostcnt := 0;
         end;
+        if KanalSrv[2].lastcnt < 70 then inc(KanalSrv[2].lostcnt)
+        else KanalSrv[2].lostcnt := 0;
+        if KanalSrv[2].lostcnt > 6 then
+        begin
+          KanalSrv[2].iserror := true;
+          KanalSrv[2].lostcnt := 0;
+        end;
+
+        //------------------------------------------------------------- Перерисовка экрана
+        if not RefreshTablo then
+        begin
+          DateTimeToString(s, 'dd/mm/yy h:nn:ss.zzz', LastTime);
+          reportf('Сбой регенерации табло '+ s);
+        end;
+
+        //----------------------------- сохранить канальную новизну и команды меню в архив
+        if (NewFR[1] <> '') or (NewFR[2] <> '') then SaveArch(1);
+
+        if LastReper + 600 / 86400 < LastTime then
+        begin //--------------------------------- сохранить 10-ти минутный архив состояний
+          LastReper := LastTime;
+          SaveArch(2);
+        end;
+
+        if (MsgFormDlg <> nil) and MsgFormDlg.Visible then
+        begin
+          if NewNeisprav then
+          begin
+            NewNeisprav := false;
+            MsgFormDlg.BtnUpdate.Enabled := true;
+            MsgFormDlg.TabSheet1.Highlighted := newListMessages;
+            MsgFormDlg.TabSheet2.Highlighted := newListDiagnoz;
+            MsgFormDlg.TabSheet3.Highlighted := newListNeisprav;
+          end;
+
+          if UpdateMsgQuery then
+          begin
+            MsgFormDlg.BtnUpdate.Enabled := false;
+            UpdateMsgQuery := false;
+            st := 1;
+            i := 0;
+            while st <= Length(ListMessages) do
+            begin
+              if ListMessages[st] = #10 then inc(i);
+              if i < 700 then inc(st)
+              else
+              begin
+                SetLength(ListMessages,st);
+                break;
+              end;
+            end;
+
+            MsgFormDlg.Memo.Lines.Text := ListMessages;
+            st := 1;
+            i := 0;
+
+            while st <= Length(LstNN) do
+            begin
+              if LstNN[st] = #10 then inc(i);
+              if i < 700 then inc(st)
+              else
+              begin
+                SetLength(LstNN,st);
+                break;
+              end;
+            end;
+            MsgFormDlg.MemoNeispr.Lines.Text := LstNN;
+            st := 1; i := 0;
+            while st <= Length(ListDiagnoz) do
+            begin
+              if ListDiagnoz[st] = #10 then inc(i);
+              if i < 700 then inc(st)
+              else
+              begin
+                SetLength(ListDiagnoz,st);
+                break;
+              end;
+            end;
+            MsgFormDlg.MemoUVK.Lines.Text := ListDiagnoz;
+          end;
+        end;
+
+        //--------------------------------------------------- обработать состояние системы
+        if ChRegion then ChangeRegion(NewRegion);//- выполнить изменение района управления
+        if Ip1Beep then
+        begin
+          PlaySound(PAnsiChar(IpWav.Strings[0]),0,SND_ASYNC);
+          Ip1Beep := false
+        end else
+        if Ip2Beep then
+        begin
+          PlaySound(PAnsiChar(IpWav.Strings[1]),0,SND_ASYNC);
+          Ip2Beep := false
+        end else
+        if SingleBeep  then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[0]),0,SND_ASYNC);
+          SingleBeep := false
+        end else
+        if SingleBeep2 then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[1]),0,SND_ASYNC);
+          SingleBeep2 := false
+        end else
+        if SingleBeep3 then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[2]),0,SND_ASYNC);
+          SingleBeep3 := false
+        end else
+        if SingleBeep4 then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[3]),0,SND_ASYNC);
+          SingleBeep4 := false
+        end else
+        if SingleBeep5 then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[4]),0,SND_ASYNC);
+          SingleBeep5 := false
+        end else
+        if SingleBeep6 then
+        begin
+          PlaySound(PAnsiChar(ObjectWav.Strings[5]),0,SND_ASYNC);
+          SingleBeep6 := false
+        end;
+
+        for i := 1 to 10 do
+        begin //--------------------- воспроизвести звуки регистрируемых событий (ловушек)
+          if FixNotify[i].beep then
+          PlaySound(PAnsiChar(NotifyWav.Strings[FixNotify[i].Sound]),0,SND_ASYNC);
+          FixNotify[i].beep := false;
+        end;
+
+        MySync[1] := false; MySync[2] := false;
+
+        if CmdCnt > 0 then
+        begin //---------------------------------------------------- буфер команд заполнен
+          if CmdSendT + (2/86400) < LastTime then
+          if not IsCloseRMDSP then
+          begin //--------------------------------------- превышено время ожидания команды
+            CmdCnt := 0;
+            WorkMode.CmdReady := false; //----------------------------------- сброс команд
+            if not StartRM then AddFixMessage(GetShortMsg(1,296,'',0),4,0);
+          end;
+        end;
+
+        if StartRM and (StartTime < LastTime - 10/86400) then
+        begin //------------------------------------------------- процедуры старта системы
+          if (KanalSrv[1].issync or KanalSrv[2].issync)
+          then StartRM := false;
+        end;
+        //--------------------------------------- Отработать команду синхронизации времени
+        SetDateTimeARM(DateTimeSync);
+      finally
+        LockTablo := false;
       end;
     end;
-
-    if StartRM and (StartTime < LastTime - 25/86400) then
-    begin //--------------------------------------------------- процедуры старта системы
-      if (KanalSrv[1].issync or KanalSrv[2].issync) then StartRM := false;
-    end;
-
-    //----------------------------------------- Отработать команду синхронизации времени
-    SetDateTimeARM(DateTimeSync);
-  finally
-    LockTablo := false;
-    MainTimer.Enabled := true;
+  except
+    reportf('Ошибка [TabloSHN.MainTimerTimer]');
+    Application.Terminate;
   end;
 end;
-procedure TTabloMain.PaintBox1Click(Sender: TObject);
+
+procedure TTabloMain.N1Click(Sender: TObject);
 begin
 
 end;
@@ -1102,11 +1092,12 @@ end;
 procedure TTabloMain.TimerViewTimer(Sender: TObject);
 begin
   if Assigned(ValueListDlg) then
+  //if DspMenu.obj <> 0 then ID_ViewObj := DspMenu.obj;
   if ValueListDlg.Visible then UpdateValueList(ID_ViewObj); // вывести параметры объекта
 end;
 
-//------------------------------------------------------------------------------
-// Обновление образа табло
+//----------------------------------------------------------------------------------------
+//---------------------------------------------------------------- Обновление образа табло
 function TTabloMain.RefreshTablo : Boolean;
 begin
   LastSync := LastTime;
@@ -1201,16 +1192,17 @@ end;
 procedure TTabloMain.SaveTablo;
 begin
   try
-  TmpTablo := TBitmap.Create;
-  TmpTablo.Width := Tablo1.Width;
-  TmpTablo.Height := Tablo1.Height;
-  TmpTablo.Assign(Tablo1);
-  SaveDialog.InitialDir := config.arcpath;
-  if SaveDialog.Execute then
+    TmpTablo := TBitmap.Create;
+    TmpTablo.Width := Tablo1.Width;
+    TmpTablo.Height := Tablo1.Height;
+    TmpTablo.Assign(Tablo1);
+    SaveDialog.InitialDir := config.arcpath;
+    if SaveDialog.Execute then
     TmpTablo.SaveToFile(SaveDialog.FileName);
-finally
-  if Assigned(TmpTablo) then TmpTablo.Free;
-end;
+    if Assigned(TmpTablo) then TmpTablo.Free;
+  except
+    ShowMessage('Ошибка cохранения параметров табло ');
+  end;
 end;
 
 //---------------------------------------------------------------------------
@@ -1224,7 +1216,7 @@ end;
 // Открыть форму назначения регистрируемых событий
 procedure TTabloMain.pmNotifyClick(Sender: TObject);
 begin
-  NotifyForm.Show;
+  //NotifyForm.Show;
 end;
 
 //----------------------------------------------------------------------------
@@ -1240,13 +1232,13 @@ procedure TTabloMain.pmArxivClick(Sender: TObject);
 begin
   SaveArcToFloppy;
 end;
-
+{
 //----------------------------------------------------------------------------
 // обработка канала обмена с ЛП-ДЦ
 procedure TTabloMain.DCTimer(Sender: TObject);
 begin
   SyncDCReady
 end;
-
+}
 end.
 

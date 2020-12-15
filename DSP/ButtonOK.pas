@@ -1,4 +1,5 @@
 unit ButtonOK;
+{$INCLUDE d:\sapr_new\CfgProject}
 //========================================================================================
 //---------------------------------------- Процедуры обработки кнопки ответственных команд
 interface
@@ -18,11 +19,6 @@ var
   LastTr1       : string;
   LastTr2       : string;
   s1,s2         : string;
-  CntPacketKOK  : word;
-  UndefineState : Boolean;
-  BadSxemaKOK   : Boolean;
-  err           : boolean;
-  lpModemStat   : Cardinal;
 //========================================================================================
 //---------------------------------------------------------- Обработка КОК по схеме RS-232
 function GetKOKStateKvit : byte;

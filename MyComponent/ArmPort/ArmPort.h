@@ -1,6 +1,5 @@
 #ifndef ArmPortH
 #define ArmPortH
-
 //---------------------------------------------------------------------------
 #include <SysUtils.hpp>
 #include <Controls.hpp>

@@ -15,7 +15,7 @@ __fastcall TTrubaServOut::TTrubaServOut(TServOut *ServOut) : TThread(false)
 void __fastcall TTrubaServOut::DoReadPacket(void)
 {
 	int Razmer = 28;
-  if(FServOut->Sost == 8888)return;
+	if(FServOut->Sost == 8888)return;
 	if(FServOut->OnReadPacket)FServOut->OnReadPacket(FServOut,FInBuffer,Razmer);
 }
 
@@ -27,33 +27,74 @@ void __fastcall TTrubaServOut::Execute(void)
 	DWORD err1,dwWait;
 	bool rc, fSuccess;
 	bool tst,tst1;
-	try
+	//	try	{
+	while(!ServBreak)
 	{
-	 //----------------------------------------------- ожидаем подключения клиента
-	 //-------------------------------------------------- готовим структуру чтения
-	 if(FServOut->Sost == 0L) //---------------------- если труба успешно создана
-	 {
-	 //-------- если функция ожидания подключения удачна, то fPending = 0 (false),
-	 //-------- но при этом само подключение состоится позже при включении клиента
-	 //-------------- ожидание клиента выполняется по асинхронному чтению, то есть
-	 //-------------- по структуре FRd если функция ожидания подключения неудачна,
-	 //----------------------------------------------------- то fPending = 1(true)
-	 //---------------------- подключиться к именованной трубе, с ожиданием чтения
-		fPendingIO = !ConnectNamedPipe(FServOut->Hndler,&FRd);
-		FServOut->Sost = fPendingIO ?  CONNECTING_STATE : READING_STATE ;
-	 }
-	 while(!Terminated)
-	 {
-		SostSrv = FServOut->Sost;
-		if(SostSrv == 8888)
-    {
-     tst = true;
-     break;
-    }
+		if(ServConnected) //-------------------------------------------- если сервер подключен
+		{
+			if(!ReadFile(FServOut->Hndler,FInBuffer,28,&FCountIn,&FRd))
+			{
+				err = GetLastError();
+				switch(err)
+				{
+					case ERROR_PIPE_LISTENING: WaitForSingleObject(FRd.hEvent ,300); break;
+					case ERROR_NO_DATA: WaitForSingleObject(FRd.hEvent ,300); break;
+					case ERROR_IO_PENDING:
+						WaitForSingleObject(FRd.hEvent,INFINITE);
+						CancelIo(FServOut->Hndler);
+						break;
+					default: ExitLoop = true;		
+				}			
+			}
+			if(!ExitLoop)
+			{
+				GetOverlappedResult(FServOut->Hndler,&FRd,&FCountIn,true);	
+				ResetEvent(FRd.hEvent);
+				if(FCountIn == 28)Synchronize(DoReadPacket);
+				else
+				{
+					err = GetLastError();
+					if(err == ERROR_BROKEN_PIPE) ExitLoop = true;
+				}
+			}
+		}
+		else  //--------------------------------------------- не подключен, будем подключаться
+		{
+			if(ConnectNamedPipe(FServOut->Hndler,&FRd)) //------ если подключился к трубе удачно
+			{
+				ServConnected = true;				
+				ServPending = false;
+			}
+			else
+			{
+				err = GetLastError();
+				switch(err)
+				{
+					case ERROR_IO_PENDING: ServConnected = true; ExitLoop = false; break;
+					case ERROR_PIPE_LISTENING: ServConnected = true; break;
+					case ERROR_PIPE_CONNECTED: ServConnected = true; break;
+					case ERROR_NO_DATA: ExitLoop = true; break;		
+					default: ExitLoop = true;
+				}	
+			}
+
+		}
+		if(ExitLoop || ServBreak )
+		{
+			ServConnected = false;
+			ServPending = false;
+			ServSucces = false;
+			ExitLoop = !DisconnectNamedPipe(FServOut->Hndler);
+		}
+	}
+	ExitThread(100);
+}	
+/*
 		switch(SostSrv) //---------------------- переключаемся по состоянию сервера
 		{
 			case CONNECTING_STATE:  //----------- клиент подключается, идет ожидание
-				fSuccess=GetOverlappedResult(FServOut->Hndler,&FRd,&FCountIn,true);
+				fSuccess=
+				GetOverlappedResult(FServOut->Hndler,&FRd,&FCountIn,true);
 				if(fSuccess)
 				{
 					EnterCriticalSection(&FServOut->WriteSection);
@@ -70,16 +111,14 @@ void __fastcall TTrubaServOut::Execute(void)
 				{
 					fPendingIO = false;
 					if(FCountIn == 28)
-          {
-            ResetEvent(WaitSinch);
-          	Synchronize(DoReadPacket);
-            SetEvent(WaitSinch);
-          }
+					{
+						Synchronize(DoReadPacket);
+					}
 				}
 				else
 				{
 					err = GetLastError();
-          if(err == ERROR_BROKEN_PIPE)break;
+					if(err == ERROR_BROKEN_PIPE)break;
 				}
 				EnterCriticalSection(&FServOut->WriteSection);
 				FServOut->Sost = WRITING_STATE;
@@ -107,12 +146,12 @@ void __fastcall TTrubaServOut::Execute(void)
 			}
 		}
     FServOut->Sost = 8888;
-	}
-	catch(...)
-	{
-		Application->MessageBox("ОШИБКА","TrubaPotok",MB_OK);
-	}
+	//}
+//catch(...)
+//	{
+//		Application->MessageBox("ОШИБКА","TrubaPotok",MB_OK);
+//	}
 	return;
 }
 //==============================================================================
-
+*/
